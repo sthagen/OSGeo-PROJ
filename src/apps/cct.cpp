@@ -360,7 +360,7 @@ int main(int argc, char **argv) {
 
     if (nullptr==P) {
         print (PJ_LOG_ERROR, "%s: Bad transformation arguments - (%s)\n    '%s -h' for help",
-                 o->progname, pj_strerrno (proj_errno(P)), o->progname);
+                 o->progname, proj_errno_string (proj_errno(P)), o->progname);
         free (o);
         if (stdout != fout)
             fclose (fout);
@@ -387,7 +387,7 @@ int main(int argc, char **argv) {
     buf = static_cast<char*>(calloc (1, 10000));
     if (nullptr==buf) {
         print (PJ_LOG_ERROR, "%s: Out of memory", o->progname);
-        pj_free (P);
+        proj_destroy (P);
         free (o);
         if (stdout != fout)
             fclose (fout);
@@ -435,7 +435,7 @@ int main(int argc, char **argv) {
         if (HUGE_VAL==point.xyzt.x) {
             /* transformation error */
             print (PJ_LOG_NONE, "# Record %d TRANSFORMATION ERROR: %s (%s)",
-                   (int) o->record_index, buf, pj_strerrno (proj_errno(P)));
+                   (int) o->record_index, buf, proj_errno_string (proj_errno(P)));
             proj_errno_restore (P, err);
             continue;
         }
@@ -450,12 +450,22 @@ int main(int argc, char **argv) {
                 colmax = MAX(colmax, columns_xyzt[i]);
             comment = column(buf, colmax+1);
         }
+        /* remove the line feed from comment, as logger() above, invoked
+           by print() below (output), will add one */
+        size_t len = strlen(comment);
+        if (len >= 1)
+            comment[len - 1] = '\0';
         comment_delimiter = (comment && *comment) ? whitespace : blank_comment;
 
         /* Time to print the result */
-        if (proj_angular_output (P, direction)) {
-            point.lpzt.lam = proj_todeg (point.lpzt.lam);
-            point.lpzt.phi = proj_todeg (point.lpzt.phi);
+        /* use same arguments to printf format string for both radians and
+           degrees; convert radians to degrees before printing */
+        if (proj_angular_output (P, direction) ||
+            proj_degree_output (P, direction)) {
+            if (proj_angular_output (P, direction)) {
+                point.lpzt.lam = proj_todeg (point.lpzt.lam);
+                point.lpzt.phi = proj_todeg (point.lpzt.phi);
+            }
             print (PJ_LOG_NONE, "%14.*f  %14.*f  %12.*f  %12.4f%s%s",
                    decimals_angles, point.xyzt.x,
                    decimals_angles, point.xyzt.y,
@@ -470,6 +480,8 @@ int main(int argc, char **argv) {
                    decimals_distances, point.xyzt.z,
                    point.xyzt.t, comment_delimiter, comment
             );
+        if( fout == stdout )
+            fflush(stdout);
     }
 
     proj_destroy(P);
