@@ -177,6 +177,13 @@ if(ENABLE_CURL)
 endif()
 
 ################################################################################
+
+option(PROJ_LIB_ENV_VAR_TRIED_LAST "Whether the PROJ_LIB environment variable should be tried after the hardcoded location" OFF)
+if(PROJ_LIB_ENV_VAR_TRIED_LAST)
+    add_definitions(-DPROJ_LIB_ENV_VAR_TRIED_LAST)
+endif()
+
+################################################################################
 # threading configuration
 ################################################################################
 set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
@@ -251,12 +258,6 @@ set(CMAKECONFIGDIR "${DEFAULT_CMAKEDIR}"
 # Tests
 ################################################################################
 include(CTest)
-
-# Support older option, to be removed by PROJ 8.0
-if(DEFINED PROJ_TESTS)
-  message(DEPRECATION "PROJ_TESTS has been replaced with BUILD_TESTING")
-  set(BUILD_TESTING ${PROJ_TESTS})
-endif()
 
 if(BUILD_TESTING)
   include(ProjTest)

@@ -5475,7 +5475,7 @@ TEST(operation, normalizeForVisualization) {
             src,
             authFactory->createCoordinateReferenceSystem("4979"), // WGS 84 3D
             ctxt);
-        ASSERT_EQ(list.size(), 3U);
+        ASSERT_GE(list.size(), 3U);
         auto op = list[1];
         auto opNormalized = op->normalizeForVisualization();
         EXPECT_FALSE(opNormalized->_isEquivalentTo(op.get()));
@@ -5552,11 +5552,11 @@ TEST(operation,
         "file\",\"foo.gtx\"]]";
 
     auto obj = WKTParser().createFromWKT(wkt);
-    auto crs = nn_dynamic_pointer_cast<Transformation>(obj);
-    ASSERT_TRUE(crs != nullptr);
+    auto transf = nn_dynamic_pointer_cast<Transformation>(obj);
+    ASSERT_TRUE(transf != nullptr);
     // Test that even if the .gtx file is unknown, we export in the correct
     // direction
-    EXPECT_EQ(crs->exportToPROJString(PROJStringFormatter::create().get()),
+    EXPECT_EQ(transf->exportToPROJString(PROJStringFormatter::create().get()),
               "+proj=pipeline "
               "+step +proj=axisswap +order=2,1 "
               "+step +proj=unitconvert +xy_in=deg +xy_out=rad "
