@@ -101,7 +101,7 @@ namespace io {
 constexpr int DATABASE_LAYOUT_VERSION_MAJOR = 1;
 // If the code depends on the new additions, then DATABASE_LAYOUT_VERSION_MINOR
 // must be incremented.
-constexpr int DATABASE_LAYOUT_VERSION_MINOR = 0;
+constexpr int DATABASE_LAYOUT_VERSION_MINOR = 1;
 
 constexpr size_t N_MAX_PARAMS = 7;
 
@@ -735,7 +735,7 @@ void DatabaseContext::Private::checkDatabaseLayout(
             // cppcheck-suppress knownConditionTrueFalse
             DATABASE_LAYOUT_VERSION_MAJOR == 1 &&
                 // cppcheck-suppress knownConditionTrueFalse
-                DATABASE_LAYOUT_VERSION_MINOR == 0,
+                DATABASE_LAYOUT_VERSION_MINOR == 1,
             "remove that assertion and below lines next time we upgrade "
             "database structure");
         res = run("SELECT 1 FROM metadata WHERE key = 'EPSG.VERSION' AND "
@@ -766,6 +766,15 @@ void DatabaseContext::Private::checkDatabaseLayout(
             " is expected. "
             "It comes from another PROJ installation.");
     }
+    // Database layout v1.0 of PROJ 8.0 is forward compatible with v1.1
+    static_assert(
+        // cppcheck-suppress knownConditionTrueFalse
+        DATABASE_LAYOUT_VERSION_MAJOR == 1 &&
+            // cppcheck-suppress knownConditionTrueFalse
+            DATABASE_LAYOUT_VERSION_MINOR == 1,
+        "re-enable the check below if database layout v1.0 and v1.1 is no "
+        "longer compatible");
+#if 0
     if (minor < DATABASE_LAYOUT_VERSION_MINOR) {
         throw FactoryException(
             path +
@@ -774,6 +783,7 @@ void DatabaseContext::Private::checkDatabaseLayout(
             " is expected. "
             "It comes from another PROJ installation.");
     }
+#endif
     if (dbNamePrefix.empty()) {
         nLayoutVersionMajor_ = major;
         nLayoutVersionMinor_ = minor;
@@ -4941,6 +4951,79 @@ AuthorityFactory::createCoordinateReferenceSystem(const std::string &code,
     if (crs) {
         return NN_NO_CHECK(crs);
     }
+
+    if (d->authority() == metadata::Identifier::OGC) {
+        if (code == "AnsiDate") {
+            // Derived from http://www.opengis.net/def/crs/OGC/0/AnsiDate
+            return crs::TemporalCRS::create(
+                util::PropertyMap()
+                    // above URL indicates Julian Date" as name... likely wrong
+                    .set(common::IdentifiedObject::NAME_KEY, "Ansi Date")
+                    .set(metadata::Identifier::CODESPACE_KEY, d->authority())
+                    .set(metadata::Identifier::CODE_KEY, code),
+                datum::TemporalDatum::create(
+                    util::PropertyMap().set(
+                        common::IdentifiedObject::NAME_KEY,
+                        "Epoch time for the ANSI date (1-Jan-1601, 00h00 UTC) "
+                        "as day 1."),
+                    common::DateTime::create("1600-12-31T00:00:00Z"),
+                    datum::TemporalDatum::CALENDAR_PROLEPTIC_GREGORIAN),
+                cs::TemporalCountCS::create(
+                    util::PropertyMap(),
+                    cs::CoordinateSystemAxis::create(
+                        util::PropertyMap().set(
+                            common::IdentifiedObject::NAME_KEY, "Time"),
+                        "T", cs::AxisDirection::FUTURE,
+                        common::UnitOfMeasure("day", 0,
+                                              UnitOfMeasure::Type::TIME))));
+        }
+        if (code == "JulianDate") {
+            // Derived from http://www.opengis.net/def/crs/OGC/0/JulianDate
+            return crs::TemporalCRS::create(
+                util::PropertyMap()
+                    .set(common::IdentifiedObject::NAME_KEY, "Julian Date")
+                    .set(metadata::Identifier::CODESPACE_KEY, d->authority())
+                    .set(metadata::Identifier::CODE_KEY, code),
+                datum::TemporalDatum::create(
+                    util::PropertyMap().set(
+                        common::IdentifiedObject::NAME_KEY,
+                        "The beginning of the Julian period."),
+                    common::DateTime::create("-4714-11-24T12:00:00Z"),
+                    datum::TemporalDatum::CALENDAR_PROLEPTIC_GREGORIAN),
+                cs::TemporalCountCS::create(
+                    util::PropertyMap(),
+                    cs::CoordinateSystemAxis::create(
+                        util::PropertyMap().set(
+                            common::IdentifiedObject::NAME_KEY, "Time"),
+                        "T", cs::AxisDirection::FUTURE,
+                        common::UnitOfMeasure("day", 0,
+                                              UnitOfMeasure::Type::TIME))));
+        }
+        if (code == "UnixTime") {
+            // Derived from http://www.opengis.net/def/crs/OGC/0/UnixTime
+            return crs::TemporalCRS::create(
+                util::PropertyMap()
+                    .set(common::IdentifiedObject::NAME_KEY, "Unix Time")
+                    .set(metadata::Identifier::CODESPACE_KEY, d->authority())
+                    .set(metadata::Identifier::CODE_KEY, code),
+                datum::TemporalDatum::create(
+                    util::PropertyMap().set(common::IdentifiedObject::NAME_KEY,
+                                            "Unix epoch"),
+                    common::DateTime::create("1970-01-01T00:00:00Z"),
+                    datum::TemporalDatum::CALENDAR_PROLEPTIC_GREGORIAN),
+                cs::TemporalCountCS::create(
+                    util::PropertyMap(),
+                    cs::CoordinateSystemAxis::create(
+                        util::PropertyMap().set(
+                            common::IdentifiedObject::NAME_KEY, "Time"),
+                        "T", cs::AxisDirection::FUTURE,
+                        common::UnitOfMeasure::SECOND)));
+        }
+        if (code == "84") {
+            return createCoordinateReferenceSystem("CRS84", false);
+        }
+    }
+
     auto res = d->runWithCodeParam(
         "SELECT type FROM crs_view WHERE auth_name = ? AND code = ?", code);
     if (res.empty()) {
@@ -7255,19 +7338,21 @@ AuthorityFactory::getDescriptionText(const std::string &code) const {
  */
 std::list<AuthorityFactory::CRSInfo> AuthorityFactory::getCRSInfoList() const {
 
-    const auto getSqlArea = [](const std::string &table_name) {
-        return "JOIN usage u ON "
-               "u.object_table_name = '" +
-               table_name +
-               "' AND "
+    const auto getSqlArea = [](const char* table_name) {
+        std::string sql(
+            "JOIN usage u ON u.object_table_name = '");
+        sql += table_name;
+        sql += "' AND "
                "u.object_auth_name = c.auth_name AND "
                "u.object_code = c.code "
                "JOIN extent a "
                "ON a.auth_name = u.extent_auth_name AND "
                "a.code = u.extent_code ";
+       return sql;
     };
 
-    std::string sql = "SELECT c.auth_name, c.code, c.name, c.type, "
+    std::string sql = "SELECT * FROM ("
+                      "SELECT c.auth_name, c.code, c.name, c.type, "
                       "c.deprecated, "
                       "a.west_lon, a.south_lat, a.east_lon, a.north_lat, "
                       "a.description, NULL FROM geodetic_crs c " +
@@ -7282,9 +7367,9 @@ std::list<AuthorityFactory::CRSInfo> AuthorityFactory::getCRSInfoList() const {
            "c.deprecated, "
            "a.west_lon, a.south_lat, a.east_lon, a.north_lat, "
            "a.description, cm.name AS conversion_method_name FROM "
-           "projected_crs c " +
-           getSqlArea("projected_crs") +
-           "LEFT JOIN conversion_table conv ON "
+           "projected_crs c ";
+    sql += getSqlArea("projected_crs");
+    sql += "LEFT JOIN conversion_table conv ON "
            "c.conversion_auth_name = conv.auth_name AND "
            "c.conversion_code = conv.code "
            "LEFT JOIN conversion_method cm ON "
@@ -7298,8 +7383,8 @@ std::list<AuthorityFactory::CRSInfo> AuthorityFactory::getCRSInfoList() const {
     sql += "SELECT c.auth_name, c.code, c.name, 'vertical', "
            "c.deprecated, "
            "a.west_lon, a.south_lat, a.east_lon, a.north_lat, "
-           "a.description, NULL FROM vertical_crs c " +
-           getSqlArea("vertical_crs");
+           "a.description, NULL FROM vertical_crs c ";
+    sql += getSqlArea("vertical_crs");
     if (d->hasAuthorityRestriction()) {
         sql += " WHERE c.auth_name = ?";
         params.emplace_back(d->authority());
@@ -7308,12 +7393,13 @@ std::list<AuthorityFactory::CRSInfo> AuthorityFactory::getCRSInfoList() const {
     sql += "SELECT c.auth_name, c.code, c.name, 'compound', "
            "c.deprecated, "
            "a.west_lon, a.south_lat, a.east_lon, a.north_lat, "
-           "a.description, NULL FROM compound_crs c " +
-           getSqlArea("compound_crs");
+           "a.description, NULL FROM compound_crs c ";
+    sql += getSqlArea("compound_crs");
     if (d->hasAuthorityRestriction()) {
         sql += " WHERE c.auth_name = ?";
         params.emplace_back(d->authority());
     }
+    sql += ") r ORDER BY auth_name, code";
     auto sqlRes = d->run(sql, params);
     std::list<AuthorityFactory::CRSInfo> res;
     for (const auto &row : sqlRes) {
