@@ -1238,6 +1238,9 @@ unknown id, Inverse of UTM zone 31N + WGS 84 to EGM2008 height (1), 1 m, World.
 unknown id, Inverse of UTM zone 31N + WGS 84 to EGM2008 height (2), 0.5 m, World.
 unknown id, Inverse of UTM zone 31N + Inverse of Transformation from EGM2008 height to WGS 84 (ballpark vertical transformation, without ellipsoid height to vertical height correction), unknown accuracy, World, has ballpark transformation
 
+Testing -s EPSG:4326 -t EPSG:32661 --normalize-axis-order -o PROJ -q --single-line
++proj=pipeline +step +proj=unitconvert +xy_in=deg +xy_out=rad +step +proj=stere +lat_0=90 +lon_0=0 +k=0.994 +x_0=2000000 +y_0=2000000 +ellps=WGS84
+
 Testing -s EPSG:4936 -t EPSG:4978 --spatial-test intersects --summary where WGS 84 to ETRS89 (2) uses a transformation method not supported by PROJ currently (time-specific Helmert), and thus must be sorted last
 Candidate operations found: 2
 unknown id, Ballpark geocentric translation from ETRS89 to WGS 84, unknown accuracy, World, has ballpark transformation
@@ -1599,4 +1602,61 @@ Checks that ED50 to ETRS89 (12) is in the output (superseded transformation, but
 Candidate operations found: 2
 unknown id, Inverse of UTM zone 30N + ED50 to ETRS89 (12) + UTM zone 30N, 0.2 m, Spain - mainland, Balearic Islands, Ceuta and Melila - onshore.
 unknown id, Inverse of UTM zone 30N + ED50 to ETRS89 (7) + UTM zone 30N, 1.5 m, Spain - onshore mainland except northwest (north of 41°30'N and west of 4°30'W).
+
+Testing --list-crs | grep "EPSG:32632\|ESRI:103668\|OGC" | sort
+EPSG:32632 "WGS 84 / UTM zone 32N"
+ESRI:103668 "NAD_1983_HARN_Adj_MN_Ramsey_Meters"
+OGC:CRS27 "NAD27 (CRS27)"
+OGC:CRS83 "NAD83 (CRS83)"
+OGC:CRS84 "WGS 84 (CRS84)"
+
+Testing --list-crs --authority OGC,EPSG | grep "EPSG:4326\|OGC" | sort
+EPSG:4326 "WGS 84"
+OGC:CRS27 "NAD27 (CRS27)"
+OGC:CRS83 "NAD83 (CRS83)"
+OGC:CRS84 "WGS 84 (CRS84)"
+
+Testing --list-crs | grep deprecated | sort
+
+Testing --list-crs vertical --bbox 0,40,1,41 --spatial-test intersects | grep "Alicante\|NAVD88" | sort
+EPSG:5782 "Alicante height"
+
+Testing --list-crs vertical --bbox -10,35,5,45 --spatial-test contains | grep "Alicante\|NAVD88" | sort
+EPSG:5782 "Alicante height"
+
+Testing --list-crs --area Spain --spatial-test intersects | grep "EPSG:9505\|EPSG:9398\|EPSG:4258\|EPSG:5703" | sort
+EPSG:4258 "ETRS89"
+EPSG:9398 "Tenerife height"
+EPSG:9505 "ETRS89 + Alicante height"
+
+Testing --list-crs --area Spain --spatial-test contains | grep "EPSG:9505\|EPSG:9398\|EPSG:4258\|EPSG:5703" | sort
+EPSG:9398 "Tenerife height"
+EPSG:9505 "ETRS89 + Alicante height"
+
+Testing --list-crs --area Spain | grep "EPSG:9505\|EPSG:9398\|EPSG:4258\|EPSG:5703" | sort
+EPSG:9398 "Tenerife height"
+EPSG:9505 "ETRS89 + Alicante height"
+
+Testing --list-crs geodetic | grep "EPSG:4326\|EPSG:4979\|EPSG:4978" | sort
+EPSG:4326 "WGS 84"
+EPSG:4978 "WGS 84"
+EPSG:4979 "WGS 84"
+
+Testing --list-crs geographic | grep "EPSG:4326\|EPSG:4979\|EPSG:4978" | sort
+EPSG:4326 "WGS 84"
+EPSG:4979 "WGS 84"
+
+Testing --list-crs geocentric,geographic_3d | grep "EPSG:4326\|EPSG:4979\|EPSG:4978" | sort
+EPSG:4978 "WGS 84"
+EPSG:4979 "WGS 84"
+
+Testing --list-crs geographic_2d,allow_deprecated --bbox -100,40,-90,41 --spatial-test intersects | grep deprecated | grep "NAD83(FBN)\|GCS_IGS08" | sort
+EPSG:8449 "NAD83(FBN)" [deprecated]
+ESRI:104010 "GCS_IGS08" [deprecated]
+
+Testing --list-crs projected --bbox -100,40,-90,41 --spatial-test intersects | grep "(2011).*Missouri East\|York" | sort
+EPSG:6512 "NAD83(2011) / Missouri East"
+
+Testing --list-crs projected --area France | grep "RGF93 / Lambert-93\|UTM zone 11N" | sort
+EPSG:2154 "RGF93 / Lambert-93"
 
