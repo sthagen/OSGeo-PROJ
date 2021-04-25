@@ -274,7 +274,7 @@ static BaseObjectNNPtr buildObject(
             char buffer[256];
             fs.read(buffer, sizeof(buffer));
             l_user_string.append(buffer, static_cast<size_t>(fs.gcount()));
-            if (l_user_string.size() > 100 * 1000) {
+            if (l_user_string.size() > 1000 * 1000) {
                 fs.close();
                 std::cerr << context << ": too big file" << std::endl;
                 std::exit(1);
@@ -1339,9 +1339,15 @@ int main(int argc, char **argv) {
 
     if (dumpDbStructure) {
         assert(dbContext);
-        const auto structure = dbContext->getDatabaseStructure();
-        for (const auto &sql : structure) {
-            std::cout << sql << std::endl;
+        try {
+            const auto structure = dbContext->getDatabaseStructure();
+            for (const auto &sql : structure) {
+                std::cout << sql << std::endl;
+            }
+        } catch (const std::exception &e) {
+            std::cerr << "ERROR: getDatabaseStructure() failed: " << e.what()
+                      << std::endl;
+            std::exit(1);
         }
     }
 

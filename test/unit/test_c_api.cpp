@@ -3903,7 +3903,8 @@ TEST_F(CApi, proj_get_celestial_body_list_from_database) {
     { proj_celestial_body_list_destroy(nullptr); }
 
     {
-        auto list = proj_get_celestial_body_list_from_database(nullptr, nullptr, 0);
+        auto list =
+            proj_get_celestial_body_list_from_database(nullptr, nullptr, 0);
         ASSERT_NE(list, nullptr);
         ASSERT_NE(list[0], nullptr);
         ASSERT_NE(list[0]->auth_name, nullptr);
@@ -3912,7 +3913,8 @@ TEST_F(CApi, proj_get_celestial_body_list_from_database) {
     }
     {
         int result_count = 0;
-        auto list = proj_get_celestial_body_list_from_database(nullptr, "ESRI", &result_count);
+        auto list = proj_get_celestial_body_list_from_database(nullptr, "ESRI",
+                                                               &result_count);
         ASSERT_NE(list, nullptr);
         EXPECT_GT(result_count, 1);
         EXPECT_EQ(list[result_count], nullptr);
@@ -5019,7 +5021,7 @@ TEST_F(CApi, proj_create_vertical_crs_ex) {
     ASSERT_TRUE(name != nullptr);
     EXPECT_EQ(name,
               std::string("Inverse of UTM zone 11N + "
-                          "Transformation from myVertCRS (ftUS) to myVertCRS + "
+                          "Conversion from myVertCRS (ftUS) to myVertCRS + "
                           "Transformation from myVertCRS to NAD83(2011)"));
 
     auto proj_5 = proj_as_proj_string(m_ctxt, P, PJ_PROJ_5, nullptr);
@@ -5088,7 +5090,7 @@ TEST_F(CApi, proj_create_vertical_crs_ex_with_geog_crs) {
         name,
         std::string("Inverse of UTM zone 11N + "
                     "Ballpark geographic offset from NAD83(2011) to WGS 84 + "
-                    "Transformation from myVertCRS to myVertCRS (metre) + "
+                    "Conversion from myVertCRS to myVertCRS (metre) + "
                     "Transformation from myVertCRS (metre) to WGS 84 + "
                     "Ballpark geographic offset from WGS 84 to NAD83(2011)"));
 
@@ -5616,6 +5618,26 @@ TEST_F(CApi, proj_get_insert_statements) {
 
         proj_insert_object_session_destroy(m_ctxt, session);
     }
+}
+// ---------------------------------------------------------------------------
+
+TEST_F(CApi, proj_get_geoid_models_from_database) {
+    auto findInList = [](PROJ_STRING_LIST list, const std::string &ref) {
+        while (list && *list) {
+            if (std::string(*list) == ref) {
+                return true;
+            }
+            list++;
+        }
+        return false;
+    };
+
+    auto list =
+        proj_get_geoid_models_from_database(m_ctxt, "EPSG", "5703", nullptr);
+    ListFreer freer(list);
+    EXPECT_TRUE(findInList(list, "GEOID12B"));
+    EXPECT_TRUE(findInList(list, "GEOID18"));
+    EXPECT_FALSE(findInList(list, "OSGM15"));
 }
 
 } // namespace

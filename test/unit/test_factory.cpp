@@ -1261,9 +1261,45 @@ TEST(
     auto operations = concatenated->operations();
     ASSERT_EQ(operations.size(), 2U);
     EXPECT_TRUE(operations[0]->isEquivalentTo(
-        factory->createCoordinateOperation("7972", false).get()));
+        factory->createCoordinateOperation("7813", false).get()));
     EXPECT_TRUE(operations[1]->isEquivalentTo(
         factory->createCoordinateOperation("7969", false).get()));
+}
+
+// ---------------------------------------------------------------------------
+
+TEST(
+    factory,
+    AuthorityFactory_createCoordinateOperation_concatenated_operation_step_2_and_3_are_conversion) {
+    auto factory = AuthorityFactory::create(DatabaseContext::create(), "EPSG");
+    auto op = factory->createCoordinateOperation("7987", false);
+    auto concatenated = nn_dynamic_pointer_cast<ConcatenatedOperation>(op);
+    ASSERT_TRUE(concatenated != nullptr);
+    auto operations = concatenated->operations();
+    ASSERT_EQ(operations.size(), 3U);
+    EXPECT_TRUE(operations[0]->isEquivalentTo(
+        factory->createCoordinateOperation("7980", false).get()));
+    EXPECT_TRUE(operations[1]->isEquivalentTo(
+        factory->createCoordinateOperation("7812", false).get()));
+    EXPECT_TRUE(operations[2]->isEquivalentTo(
+        factory->createCoordinateOperation("7813", false).get()));
+
+    EXPECT_EQ(operations[1]->targetCRS()->nameStr(), "KOC WD depth");
+    EXPECT_EQ(operations[2]->sourceCRS()->nameStr(),
+              operations[1]->targetCRS()->nameStr());
+    EXPECT_EQ(
+        concatenated->exportToPROJString(PROJStringFormatter::create().get()),
+        "+proj=pipeline "
+        "+step +proj=geogoffset +dh=-4.74 "
+        "+step +proj=axisswap +order=1,2,-3 "
+        "+step +proj=unitconvert +z_in=m +z_out=ft");
+
+    EXPECT_EQ(concatenated->inverse()->exportToPROJString(
+                  PROJStringFormatter::create().get()),
+              "+proj=pipeline "
+              "+step +proj=unitconvert +z_in=ft +z_out=m "
+              "+step +proj=axisswap +order=1,2,-3 "
+              "+step +proj=geogoffset +dh=4.74");
 }
 
 // ---------------------------------------------------------------------------
@@ -2100,6 +2136,62 @@ TEST(
             EXPECT_TRUE(conv->targetCRS()->getEPSGCode() == 4326);
             EXPECT_FALSE(conv->isDeprecated());
         }
+    }
+}
+
+TEST(factory, AuthorityFactory_getAvailableGeoidmodels) {
+
+    const std::string OSGM15{"OSGM15"};
+    const std::string GEOID12B{"GEOID12B"};
+    const std::string GEOID18{"GEOID18"};
+
+    auto checkNavd88 = [&](const std::list<std::string> &res) {
+        EXPECT_TRUE(res.end() != std::find(res.begin(), res.end(), GEOID12B));
+        EXPECT_TRUE(res.end() != std::find(res.begin(), res.end(), GEOID18));
+        EXPECT_FALSE(res.end() != std::find(res.begin(), res.end(), OSGM15));
+    };
+
+    auto checkOdn = [&](const std::list<std::string> &res) {
+        EXPECT_FALSE(res.end() != std::find(res.begin(), res.end(), GEOID12B));
+        EXPECT_FALSE(res.end() != std::find(res.begin(), res.end(), GEOID18));
+        EXPECT_TRUE(res.end() != std::find(res.begin(), res.end(), OSGM15));
+    };
+
+    auto factory = AuthorityFactory::create(DatabaseContext::create(), "EPSG");
+
+    {
+        auto res = factory->getGeoidModels("4326");
+        ASSERT_TRUE(res.empty());
+    }
+
+    {
+        auto res = factory->getGeoidModels("5703"); // "NAVD88 height"
+        checkNavd88(res);
+    }
+    {
+        auto res = factory->getGeoidModels("6360"); // "NAVD88 height (ftUS)"
+        checkNavd88(res);
+    }
+    {
+        auto res = factory->getGeoidModels("8228"); // "NAVD88 height (ft)"
+        checkNavd88(res);
+    }
+    {
+        auto res = factory->getGeoidModels("6357"); // "NAVD88 depth"
+        checkNavd88(res);
+    }
+    {
+        auto res = factory->getGeoidModels("6358"); // "NAVD88 depth (ftUS)"
+        checkNavd88(res);
+    }
+
+    {
+        auto res = factory->getGeoidModels("5701"); // "ODN height"
+        checkOdn(res);
+    }
+    {
+        auto res = factory->getGeoidModels("5732"); // "Belfast height"
+        checkOdn(res);
     }
 }
 

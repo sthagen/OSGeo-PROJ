@@ -2676,8 +2676,9 @@ PROJ_STRING_LIST proj_get_codes_from_database(PJ_CONTEXT *ctx,
 
 /** \brief Enumerate celestial bodies from the database.
  *
- * The returned object is an array of PROJ_CELESTIAL_BODY_INFO* pointers, whose last
- * entry is NULL. This array should be freed with proj_celestial_body_list_destroy()
+ * The returned object is an array of PROJ_CELESTIAL_BODY_INFO* pointers, whose
+ * last entry is NULL. This array should be freed with
+ * proj_celestial_body_list_destroy()
  *
  * @param ctx PROJ context, or NULL for default context
  * @param auth_name Authority name, used to restrict the search.
@@ -2688,9 +2689,8 @@ PROJ_STRING_LIST proj_get_codes_from_database(PJ_CONTEXT *ctx,
  * proj_celestial_body_list_destroy(), or NULL in case of error.
  * @since 8.1
  */
-PROJ_CELESTIAL_BODY_INFO **proj_get_celestial_body_list_from_database(PJ_CONTEXT *ctx,
-                                              const char *auth_name,
-                                              int *out_result_count) {
+PROJ_CELESTIAL_BODY_INFO **proj_get_celestial_body_list_from_database(
+    PJ_CONTEXT *ctx, const char *auth_name, int *out_result_count) {
     SANITIZE_CTX(ctx);
     PROJ_CELESTIAL_BODY_INFO **ret = nullptr;
     int i = 0;
@@ -2740,7 +2740,6 @@ void proj_celestial_body_list_destroy(PROJ_CELESTIAL_BODY_INFO **list) {
         delete[] list;
     }
 }
-
 
 // ---------------------------------------------------------------------------
 
@@ -9163,3 +9162,46 @@ PROJ_STRING_LIST proj_get_insert_statements(
     }
     return nullptr;
 }
+
+// ---------------------------------------------------------------------------
+
+/** \brief Returns a list of geoid models available for that crs
+ *
+ * The list includes the geoid models connected directly with the crs,
+ * or via "Height Depth Reversal" or "Change of Vertical Unit" transformations.
+ * The returned list is NULL terminated and must be freed with
+ * proj_string_list_destroy().
+ *
+ * @param ctx Context, or NULL for default context.
+ * @param auth_name Authority name (must not be NULL)
+ * @param code Object code (must not be NULL)
+ * @param options should be set to NULL for now
+ * @return list of geoid models names (to be freed with
+ * proj_string_list_destroy()), or NULL in case of error.
+ * @since 8.1
+ */
+PROJ_STRING_LIST
+proj_get_geoid_models_from_database(PJ_CONTEXT *ctx, const char *auth_name,
+                                    const char *code,
+                                    const char *const *options) {
+    SANITIZE_CTX(ctx);
+    if (!auth_name || !code) {
+        proj_context_errno_set(ctx, PROJ_ERR_OTHER_API_MISUSE);
+        proj_log_error(ctx, __FUNCTION__, "missing required input");
+        return nullptr;
+    }
+    (void)options;
+    try {
+        const std::string codeStr(code);
+        auto factory = AuthorityFactory::create(getDBcontext(ctx), auth_name);
+        auto geoidModels = factory->getGeoidModels(codeStr);
+        ctx->safeAutoCloseDbIfNeeded();
+        return to_string_list(std::move(geoidModels));
+    } catch (const std::exception &e) {
+        proj_log_error(ctx, __FUNCTION__, e.what());
+    }
+    ctx->safeAutoCloseDbIfNeeded();
+    return nullptr;
+}
+
+// ---------------------------------------------------------------------------
