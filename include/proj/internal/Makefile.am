@@ -1,4 +1,4 @@
-SUBDIRS = nlohmann
+SUBDIRS = vendor
 
 noinst_HEADERS = \
 	coordinatesystem_internal.hpp \
@@ -6,5 +6,6 @@ noinst_HEADERS = \
 	io_internal.hpp \
 	lru_cache.hpp \
 	include_nlohmann_json.hpp \
-	tracing.hpp
+	tracing.hpp \
+	mutex.hpp
 

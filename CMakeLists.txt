@@ -122,8 +122,48 @@ include(ProjMac)
 include(policies)
 
 ################################################################################
+# Check for nlohmann_json
+################################################################################
+
+set(NLOHMANN_JSON_ORIGIN "auto" CACHE STRING
+"nlohmann/json origin. The default auto will try to use external \
+nlohmann/json if possible")
+set_property(CACHE NLOHMANN_JSON_ORIGIN PROPERTY STRINGS auto internal external)
+
+# Probably not the strictest minimum, but known to work with it
+set(MIN_NLOHMANN_JSON_VERSION 3.7.0)
+
+if(NLOHMANN_JSON_ORIGIN STREQUAL "external")
+  find_package(nlohmann_json REQUIRED)
+  set(NLOHMANN_JSON "external")
+elseif(NLOHMANN_JSON_ORIGIN STREQUAL "internal")
+  set(NLOHMANN_JSON "internal")
+else()
+  find_package(nlohmann_json QUIET)
+  if(nlohmann_json_FOUND)
+    set(NLOHMANN_JSON "external")
+  else()
+    set(NLOHMANN_JSON "internal")
+  endif()
+endif()
+
+if(NLOHMANN_JSON STREQUAL "external")
+  # Check minimum version
+  if(nlohmann_json_VERSION VERSION_LESS MIN_NLOHMANN_JSON_VERSION)
+    message(STATUS "external nlohmann/json version ${nlohmann_json_VERSION} "
+      "is older than minimum requirement ${MIN_NLOHMANN_JSON_VERSION}")
+    set(NLOHMANN_JSON "internal")
+  else()
+    message(STATUS "found nlohmann/json version ${nlohmann_json_VERSION}")
+  endif()
+endif()
+
+message(STATUS "nlohmann/json: ${NLOHMANN_JSON}")
+
+################################################################################
 # Check for sqlite3
 ################################################################################
+
 find_program(EXE_SQLITE3 sqlite3)
 if(NOT EXE_SQLITE3)
   message(SEND_ERROR "sqlite3 binary not found!")
@@ -292,4 +332,61 @@ if(UNIX OR MINGW)
   install(FILES
     ${CMAKE_CURRENT_BINARY_DIR}/proj.pc
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
+endif()
+
+################################################################################
+# "make dist" workalike
+################################################################################
+
+set(CPACK_SOURCE_GENERATOR "TGZ;ZIP")
+set(CPACK_SOURCE_PACKAGE_FILE_NAME "proj-${PROJ_VERSION}")
+set(CPACK_PACKAGE_VENDOR "OSGeo")
+set(CPACK_PACKAGE_VERSION_MAJOR ${PROJ_VERSION_MAJOR})
+set(CPACK_PACKAGE_VERSION_MINOR ${PROJ_VERSION_MINOR})
+set(CPACK_PACKAGE_VERSION_PATCH ${PROJ_VERSION_PATCH})
+set(CPACK_VERBATIM_VARIABLES TRUE)
+set(CPACK_SOURCE_IGNORE_FILES
+  /\\..*  # any file/directory starting with .
+  /.*\\.yml
+  /.*\\.gz
+  /.*\\.zip
+  /.*build.*/
+  \\.deps
+  /autogen\\.sh
+  /autom4te\\.cache
+  /CODE_OF_CONDUCT.md
+  /CONTRIBUTING.md
+  /Dockerfile
+  /docs/
+  /Doxyfile
+  /examples/
+  /HOWTO-RELEASE
+  /m4/lt*
+  /m4/libtool*
+  /media/
+  /schemas/
+  /scripts/
+  /test/fuzzers/
+  /test/gigs/.*gie\\.failing
+  /test/postinstall/
+  /travis/
+  ${PROJECT_BINARY_DIR}
+)
+
+include(CPack)
+
+# Simplify README.md to README
+add_custom_target(README
+  COMMAND ${CMAKE_COMMAND}
+    -D PROJ_SOURCE_DIR=${PROJ_SOURCE_DIR}
+    -P ${PROJ_SOURCE_DIR}/cmake/ProjReadme.cmake
+)
+
+get_property(_is_multi_config_generator GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+if(NOT _is_multi_config_generator)
+  add_custom_target(dist
+    COMMAND ${CMAKE_MAKE_PROGRAM} package_source
+    DEPENDS README
+  )
+  message(STATUS "PROJ: Configured 'dist' target")
 endif()

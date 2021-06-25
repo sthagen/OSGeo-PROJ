@@ -1,11 +1,11 @@
 /******************************************************************************
  *
  * Project:  PROJ
- * Purpose:  Wrapper for nlohmann/json.hpp
+ * Purpose:  std::mutex emulation
  * Author:   Even Rouault <even dot rouault at spatialys dot com>
  *
  ******************************************************************************
- * Copyright (c) 2019, Even Rouault <even dot rouault at spatialys dot com>
+ * Copyright (c) 2021, Even Rouault <even dot rouault at spatialys dot com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -26,26 +26,36 @@
  * DEALINGS IN THE SOFTWARE.
  ****************************************************************************/
 
-#ifndef INCLUDE_NLOHMANN_JSON_HPP
-#define INCLUDE_NLOHMANN_JSON_HPP
+#include "proj/util.hpp"
+#include "proj_internal.h"
 
-#if defined(__GNUC__)
-#pragma GCC system_header
+#ifndef __MINGW32__
+#include <mutex>
 #endif
 
-#ifdef EXTERNAL_NLOHMANN_JSON
+NS_PROJ_START
 
-#include <nlohmann/json.hpp>
+#ifdef __MINGW32__
+// mingw32-win32 doesn't implement std::mutex
+class mutex {
+  public:
+    // cppcheck-suppress functionStatic
+    void lock() { pj_acquire_lock(); }
+    // cppcheck-suppress functionStatic
+    void unlock() { pj_release_lock(); }
+};
 
-#else // !EXTERNAL_NLOHMANN_JSON
+template <class Lock> struct lock_guard {
+    Lock &lock_;
+    lock_guard(Lock &lock) : lock_(lock) { lock_.lock(); }
+    ~lock_guard() { lock_.unlock(); }
+};
 
-// to avoid any clash if PROJ users have another version of nlohmann/json.hpp
-#define nlohmann proj_nlohmann
+#else
 
-#if !defined(DOXYGEN_ENABLED)
-#include "vendor/nlohmann/json.hpp"
+typedef std::mutex mutex;
+template <class Mutex> using lock_guard = std::lock_guard<Mutex>;
+
 #endif
 
-#endif // EXTERNAL_NLOHMANN_JSON
-
-#endif // INCLUDE_NLOHMANN_JSON_HPP
+NS_PROJ_END

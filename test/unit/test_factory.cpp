@@ -1345,7 +1345,8 @@ TEST(factory, AuthorityFactory_build_all_concatenated) {
         AuthorityFactory::ObjectType::CONCATENATED_OPERATION, false);
     EXPECT_LT(setConcatenatedNoDeprecated.size(), setConcatenated.size());
     for (const auto &code : setConcatenated) {
-        if (in(code, {"8422", "8481", "8482", "8565", "8566", "8572"})) {
+        if (in(code,
+               {"8422", "8481", "8482", "8565", "8566", "8572", "9731"})) {
             EXPECT_THROW(factory->createCoordinateOperation(code, false),
                          FactoryException)
                 << code;
@@ -2911,7 +2912,7 @@ TEST(factory, attachExtraDatabases_none) {
 TEST(factory, attachExtraDatabases_auxiliary) {
 
     const std::string auxDbName(
-        "file:proj_test_aux.db?mode=memory&cache=shared");
+        "file:attachExtraDatabases_auxiliary.db?mode=memory&cache=shared");
 
     sqlite3 *dbAux = nullptr;
     sqlite3_open_v2(

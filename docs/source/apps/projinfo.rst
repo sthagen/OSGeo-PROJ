@@ -141,7 +141,7 @@ The following control parameters can appear in any order:
     Specify how the area of use of coordinate operations found in the database
     are compared to the area of use specified explicitly with :option:`--area` or :option:`--bbox`,
     or derived implicitly from the area of use of the source and target CRS.
-    By default, projinfo will only keep coordinate operations whose are of use
+    By default, :program:`projinfo` will only keep coordinate operations whose are of use
     is strictly within the area of interest (``contains`` strategy).
     If using the ``intersects`` strategy, the spatial test is relaxed, and any
     coordinate operation whose area of use at least partly intersects the
@@ -191,7 +191,7 @@ The following control parameters can appear in any order:
 
     Determine if intermediate (pivot) CRS can be used when researching coordinate
     operation between 2 CRS. A typical example is the WGS84 pivot. By default,
-    projinfo will consider any potential pivot if there is no direct transformation
+    :program:`projinfo` will consider any potential pivot if there is no direct transformation
     ( ``if_no_direct_transformation``). If using the ``never`` strategy,
     only direct transformations between the source and target CRS will be
     used. If using the ``always`` strategy, intermediate CRS will be considered
@@ -256,8 +256,8 @@ The following control parameters can appear in any order:
 
 .. option:: --main-db-path path
 
-    Specify the name and path of the database to be used by projinfo. The
-    default is proj.db in the PROJ resource directories.
+    Specify the name and path of the database to be used by :program:`projinfo`.
+    The default is :file:`proj.db` in the PROJ resource directories.
 
 .. option:: --aux-db-path path
 
@@ -320,7 +320,7 @@ The following control parameters can appear in any order:
     procedure explained at https://epsg.org/dataset-change-requests.html.
 
     Combined with :option:`--dump-db-structure`, users can create
-    auxiliary databases, instead of directly modifying the main proj.db database.
+    auxiliary databases, instead of directly modifying the main :file:`proj.db` database.
     See the :ref:`example how to export to an auxiliary database <projinfo_aux_db_example>`.
 
     Those auxiliary databases can be specified through
@@ -583,6 +583,18 @@ Output:
                 LENGTHUNIT["metre",1]],
         ID["HOBU","MY_CRS"]]
 
+5. Get the WKT representation of EPSG:25832 in the WKT1:GDAL output format and on a single line
+
+.. code-block:: console
+
+      projinfo -o WKT1:GDAL --single-line EPSG:25832
+
+Output:
+
+::
+
+    WKT1:GDAL string:
+    PROJCS["ETRS89 / UTM zone 32N",GEOGCS["ETRS89",DATUM["European_Terrestrial_Reference_System_1989",SPHEROID["GRS 1980",6378137,298.257222101,AUTHORITY["EPSG","7019"]],AUTHORITY["EPSG","6258"]],PRIMEM["Greenwich",0,AUTHORITY["EPSG","8901"]],UNIT["degree",0.0174532925199433,AUTHORITY["EPSG","9122"]],AUTHORITY["EPSG","4258"]],PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",0],PARAMETER["central_meridian",9],PARAMETER["scale_factor",0.9996],PARAMETER["false_easting",500000],PARAMETER["false_northing",0],UNIT["metre",1,AUTHORITY["EPSG","9001"]],AXIS["Easting",EAST],AXIS["Northing",NORTH],AUTHORITY["EPSG","25832"]]
 
 .. only:: man
 

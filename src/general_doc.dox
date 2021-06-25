@@ -118,13 +118,13 @@ Older specifications of well-known text representation of coordinate reference
 systems are also supported by PROJ, mostly for compatibility with legacy
 systems, or older versions of GDAL.
 
-GDAL v2.3 and earlier mostly implements:
+GDAL v2.4 and earlier mostly implements:
 
 [OGC 01-009, 2001-01-12, OpenGIS Coordinate Transformation Service Implementation Specification]
 (http://portal.opengeospatial.org/files/?artifact_id=999)
 
 The [GDAL documentation, OGC WKT Coordinate System Issues]
-(http://www.gdal.org/wktproblems.html) discusses issues, and GDAL implementation
+(https://gdal.org/tutorials/wktproblems.html) discusses issues, and GDAL implementation
 choices.
 
 An older specification of WKT1 is/was used by some software packages:

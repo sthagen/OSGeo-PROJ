@@ -9,9 +9,13 @@
 INSERT INTO "metadata" VALUES('DATABASE.LAYOUT.VERSION.MAJOR', 1);
 INSERT INTO "metadata" VALUES('DATABASE.LAYOUT.VERSION.MINOR', 1);
 
-INSERT INTO "metadata" VALUES('EPSG.VERSION', 'v10.019');
-INSERT INTO "metadata" VALUES('EPSG.DATE', '2021-04-20');
+INSERT INTO "metadata" VALUES('EPSG.VERSION', 'v10.027');
+INSERT INTO "metadata" VALUES('EPSG.DATE', '2021-06-17');
 
 -- The value of ${PROJ_VERSION} is substituted at build time by the actual
 -- value.
 INSERT INTO "metadata" VALUES('PROJ.VERSION', '${PROJ_VERSION}');
+
+-- Version of the PROJ-data package with which this database is the most
+-- compatible.
+INSERT INTO "metadata" VALUES('PROJ_DATA.VERSION', '1.7');

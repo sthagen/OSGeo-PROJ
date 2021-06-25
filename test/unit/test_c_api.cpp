@@ -30,6 +30,7 @@
 
 #include <cstdio>
 #include <limits>
+#include <math.h>
 
 #include "proj.h"
 #include "proj_constants.h"
@@ -45,6 +46,10 @@
 #include "proj/util.hpp"
 
 #include <sqlite3.h>
+
+#ifndef __MINGW32__
+#include <thread>
+#endif
 
 using namespace osgeo::proj::common;
 using namespace osgeo::proj::crs;
@@ -3970,9 +3975,10 @@ TEST_F(CApi, proj_normalize_for_visualization_with_alternatives) {
     {
         PJ_COORD c;
         // Approximately Roma
-        c.lpz.lam = 12.5;
-        c.lpz.phi = 42;
-        c.lpz.z = 0;
+        c.xyzt.x = 12.5;
+        c.xyzt.y = 42;
+        c.xyzt.z = 0;
+        c.xyzt.t = HUGE_VAL;
         c = proj_trans(Pnormalized, PJ_FWD, c);
         EXPECT_NEAR(c.xy.x, 1789912.46264783037, 1e-8);
         EXPECT_NEAR(c.xy.y, 4655716.25402576849, 1e-8);
@@ -3991,9 +3997,10 @@ TEST_F(CApi, proj_normalize_for_visualization_with_alternatives) {
     {
         PJ_COORD c;
         // Approximately Roma
-        c.xyz.x = 1789912.46264783037;
-        c.xyz.y = 4655716.25402576849;
-        c.xyz.z = 0;
+        c.xyzt.x = 1789912.46264783037;
+        c.xyzt.y = 4655716.25402576849;
+        c.xyzt.z = 0;
+        c.xyzt.t = HUGE_VAL;
         c = proj_trans(Pnormalized, PJ_INV, c);
         EXPECT_NEAR(c.lp.lam, 12.5, 1e-8);
         EXPECT_NEAR(c.lp.phi, 42, 1e-8);
@@ -4013,9 +4020,10 @@ TEST_F(CApi, proj_normalize_for_visualization_with_alternatives_reverse) {
 
     PJ_COORD c;
     // Approximately Roma
-    c.xyz.x = 1789912.46264783037;
-    c.xyz.y = 4655716.25402576849;
-    c.xyz.z = 0;
+    c.xyzt.x = 1789912.46264783037;
+    c.xyzt.y = 4655716.25402576849;
+    c.xyzt.z = 0;
+    c.xyzt.t = HUGE_VAL;
     c = proj_trans(Pnormalized, PJ_FWD, c);
     EXPECT_NEAR(c.lp.lam, 12.5, 1e-8);
     EXPECT_NEAR(c.lp.phi, 42, 1e-8);
@@ -4279,106 +4287,6 @@ TEST_F(CApi, proj_as_projjson) {
                   "\"inverse_flattening\":298.257223563,"
                   "\"id\":{\"authority\":\"EPSG\",\"code\":7030}}");
     }
-}
-
-// ---------------------------------------------------------------------------
-
-struct Fixture_proj_context_set_autoclose_database : public CApi {
-    void test(bool autoclose) {
-        proj_context_set_autoclose_database(m_ctxt, autoclose);
-
-        auto c_path = proj_context_get_database_path(m_ctxt);
-        ASSERT_TRUE(c_path != nullptr);
-        std::string path(c_path);
-
-        FILE *f = fopen(path.c_str(), "rb");
-        ASSERT_NE(f, nullptr);
-        fseek(f, 0, SEEK_END);
-        auto length = ftell(f);
-        std::string content;
-        content.resize(static_cast<size_t>(length));
-        fseek(f, 0, SEEK_SET);
-        auto read_bytes = fread(&content[0], 1, content.size(), f);
-        ASSERT_EQ(read_bytes, content.size());
-        fclose(f);
-        const char *tempdir = getenv("TEMP");
-        if (!tempdir) {
-            tempdir = getenv("TMP");
-        }
-        if (!tempdir) {
-            tempdir = "/tmp";
-        }
-        std::string tmp_filename(
-            std::string(tempdir) +
-            "/test_proj_context_set_autoclose_database.db");
-        f = fopen(tmp_filename.c_str(), "wb");
-        if (!f) {
-            std::cerr << "Cannot create " << tmp_filename << std::endl;
-            return;
-        }
-        fwrite(content.data(), 1, content.size(), f);
-        fclose(f);
-
-        {
-            sqlite3 *db = nullptr;
-            sqlite3_open_v2(tmp_filename.c_str(), &db, SQLITE_OPEN_READWRITE,
-                            nullptr);
-            ASSERT_NE(db, nullptr);
-            ASSERT_TRUE(sqlite3_exec(db,
-                                     "UPDATE geodetic_crs SET name = 'foo' "
-                                     "WHERE auth_name = 'EPSG' and code = "
-                                     "'4326'",
-                                     nullptr, nullptr, nullptr) == SQLITE_OK);
-            sqlite3_close(db);
-        }
-
-        EXPECT_TRUE(proj_context_set_database_path(m_ctxt, tmp_filename.c_str(),
-                                                   nullptr, nullptr));
-        {
-            auto crs = proj_create_from_database(
-                m_ctxt, "EPSG", "4326", PJ_CATEGORY_CRS, false, nullptr);
-            ObjectKeeper keeper(crs);
-            ASSERT_NE(crs, nullptr);
-            EXPECT_EQ(proj_get_name(crs), std::string("foo"));
-        }
-
-        {
-            sqlite3 *db = nullptr;
-            sqlite3_open_v2(tmp_filename.c_str(), &db, SQLITE_OPEN_READWRITE,
-                            nullptr);
-            ASSERT_NE(db, nullptr);
-            ASSERT_TRUE(sqlite3_exec(db,
-                                     "UPDATE geodetic_crs SET name = 'bar' "
-                                     "WHERE auth_name = 'EPSG' and code = "
-                                     "'4326'",
-                                     nullptr, nullptr, nullptr) == SQLITE_OK);
-            sqlite3_close(db);
-        }
-        {
-            auto crs = proj_create_from_database(
-                m_ctxt, "EPSG", "4326", PJ_CATEGORY_CRS, false, nullptr);
-            ObjectKeeper keeper(crs);
-            ASSERT_NE(crs, nullptr);
-            EXPECT_EQ(proj_get_name(crs),
-                      std::string(autoclose ? "bar" : "foo"));
-        }
-
-        if (!autoclose) {
-            proj_context_destroy(m_ctxt);
-            m_ctxt = nullptr;
-        }
-        std::remove(tmp_filename.c_str());
-    }
-};
-
-TEST_F(Fixture_proj_context_set_autoclose_database,
-       proj_context_set_autoclose_database_true) {
-    test(true);
-}
-
-TEST_F(Fixture_proj_context_set_autoclose_database,
-       proj_context_set_autoclose_database_false) {
-    test(false);
 }
 
 // ---------------------------------------------------------------------------
@@ -5639,5 +5547,73 @@ TEST_F(CApi, proj_get_geoid_models_from_database) {
     EXPECT_TRUE(findInList(list, "GEOID18"));
     EXPECT_FALSE(findInList(list, "OSGM15"));
 }
+
+// ---------------------------------------------------------------------------
+
+#if !defined(_WIN32)
+TEST_F(CApi, open_plenty_of_contexts) {
+    // Test that we only consume 1 file handle for the connection to the
+    // database
+    std::vector<FILE *> dummyFilePointers;
+    std::vector<PJ_CONTEXT *> ctxts;
+    // 1024 is the number of file descriptors that can be opened simultaneously
+    // by a Linux process (by default)
+    for (int i = 0; i < 1024 - 50; i++) {
+        FILE *f = fopen("/dev/null", "rb");
+        ASSERT_TRUE(f != nullptr);
+        dummyFilePointers.push_back(f);
+    }
+    for (int i = 0; i < 100; i++) {
+        PJ_CONTEXT *ctxt = proj_context_create();
+        ASSERT_TRUE(ctxt != nullptr);
+        auto obj = proj_create(ctxt, "EPSG:4326");
+        ObjectKeeper keeper(obj);
+        EXPECT_NE(obj, nullptr);
+        ctxts.push_back(ctxt);
+    }
+    for (PJ_CONTEXT *ctxt : ctxts) {
+        proj_context_destroy(ctxt);
+    }
+    for (FILE *f : dummyFilePointers) {
+        fclose(f);
+    }
+    proj_cleanup();
+}
+#endif // !defined(_WIN32)
+
+// ---------------------------------------------------------------------------
+
+#ifndef __MINGW32__
+// We need std::thread support
+
+TEST_F(CApi, concurrent_context) {
+    // Test that concurrent access to the database is thread safe.
+    std::vector<std::thread> threads;
+    for (int i = 0; i < 4; i++) {
+        threads.emplace_back(std::thread([] {
+            for (int j = 0; j < 60; j++) {
+                PJ_CONTEXT *ctxt = proj_context_create();
+                {
+                    auto obj = proj_create(ctxt, "EPSG:4326");
+                    ObjectKeeper keeper(obj);
+                    EXPECT_NE(obj, nullptr);
+                }
+                {
+                    auto obj = proj_create(
+                        ctxt, ("EPSG:" + std::to_string(32600 + j)).c_str());
+                    ObjectKeeper keeper(obj);
+                    EXPECT_NE(obj, nullptr);
+                }
+                proj_context_destroy(ctxt);
+            }
+        }));
+    }
+    for (auto &t : threads) {
+        t.join();
+    }
+    proj_cleanup();
+}
+
+#endif // __MINGW32__
 
 } // namespace
