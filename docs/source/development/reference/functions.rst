@@ -391,6 +391,11 @@ Coordinate transformation
               reasons.
 
 
+
+.. doxygenfunction:: proj_trans_bounds
+   :project: doxygen_api
+
+
 Error reporting
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -755,6 +760,15 @@ Various
     Calculate various cartographic properties, such as scale factors, angular
     distortion and meridian convergence. Depending on the underlying projection
     values will be calculated either numerically (default) or analytically.
+
+    Starting with PROJ 8.2, the P object can be a projected CRS, for example
+    instantiated from a EPSG CRS code. The factors computed will be those of the
+    map projection implied by the transformation from the base geographic CRS of
+    the projected CRS to the projected CRS.
+
+    The input geodetic coordinate lp should be such that lp.lam is the longitude
+    in radian, and lp.phi the latitude in radian (thus independently of the
+    definition of the base CRS, if P is a projected CRS).
 
     The function also calculates the partial derivatives of the given
     coordinate.
