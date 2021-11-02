@@ -177,6 +177,9 @@ VALUES
 -- jp_gsi - Geospatial Information Authority of Japan
 ('jp_gsi_gsigeo2011.tif','jp_gsi_gsigeo2011.tif',NULL,'GTiff','geoid_like',0,NULL,'https://cdn.proj.org/jp_gsi_gsigeo2011.tif',1,1,NULL),
 
+-- mx_inegi - Instituto Nacional de Estadística, Geografía e Informática (INEGI) Mexico
+('GGM10.txt','mx_inegi_ggm10.tif',NULL,'GTiff','geoid_like',0,NULL,'https://cdn.proj.org/mx_inegi_ggm10.tif',1,1,NULL),
+
 -- nc_dittt - Gouvernement de Nouvelle Calédonie - DITTT
 ('Ranc08_Circe.mnt','nc_dittt_Ranc08_Circe.tif',NULL,'GTiff','geoid_like',0,NULL,'https://cdn.proj.org/nc_dittt_Ranc08_Circe.tif',1,1,NULL),
 ('gr3dnc01b.mnt','nc_dittt_gr3dnc01b.tif',NULL,'GTiff','geocentricoffset',0,NULL,'https://cdn.proj.org/nc_dittt_gr3dnc01b.tif',1,1,NULL),
@@ -298,6 +301,9 @@ VALUES
 ('g2012bs0.bin','us_noaa_g2012bs0.tif','g2012bs0.gtx','GTiff','geoid_like',0,NULL,'https://cdn.proj.org/us_noaa_g2012bs0.tif',1,1,NULL),
 -- US GEOID18 height models
 ('g2018u0.bin','us_noaa_g2018u0.tif','g2018u0.gtx','GTiff','geoid_like',0,NULL,'https://cdn.proj.org/us_noaa_g2018u0.tif',1,1,NULL),
-('g2018p0.bin','us_noaa_g2018p0.tif','g2018p0.gtx','GTiff','geoid_like',0,NULL,'https://cdn.proj.org/us_noaa_g2018p0.tif',1,1,NULL)
+('g2018p0.bin','us_noaa_g2018p0.tif','g2018p0.gtx','GTiff','geoid_like',0,NULL,'https://cdn.proj.org/us_noaa_g2018p0.tif',1,1,NULL),
+
+-- za_cdngi - Chief Directorate: National Geospatial Information (CD:NGI) South Africa
+('SAGEOID2010.dat','za_cdngi_sageoid2010.tif',NULL,'GTiff','geoid_like',0,NULL,'https://cdn.proj.org/za_cdngi_sageoid2010.tif',1,1,NULL)
 ;
 

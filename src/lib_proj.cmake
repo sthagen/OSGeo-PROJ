@@ -372,6 +372,8 @@ add_library(proj
   ${ALL_LIBPROJ_HEADERS}
   ${PROJ_RESOURCES}
 )
+add_library(PROJ::proj ALIAS proj)
+
 target_compile_options(proj
   PRIVATE $<$<COMPILE_LANGUAGE:C>:${PROJ_C_WARN_FLAGS}>
   PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${PROJ_CXX_WARN_FLAGS}>
@@ -402,6 +404,8 @@ if(ENABLE_IPO)
 endif()
 
 target_include_directories(proj INTERFACE
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+  $<BUILD_INTERFACE:${PROJ_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:${INCLUDEDIR}>)
 
 if(WIN32)
@@ -477,9 +481,12 @@ if(CURL_ENABLED)
       $<$<CXX_COMPILER_ID:MSVC>:normaliz>)
 endif()
 
-if(MSVC AND BUILD_SHARED_LIBS)
-  target_compile_definitions(proj
-    PRIVATE PROJ_MSVC_DLL_EXPORT=1)
+if(BUILD_SHARED_LIBS)
+  if(MSVC)
+    target_compile_definitions(proj PRIVATE PROJ_MSVC_DLL_EXPORT=1)
+  endif()
+else()
+  target_compile_definitions(proj PUBLIC PROJ_DLL=)
 endif()
 
 ##############################################
