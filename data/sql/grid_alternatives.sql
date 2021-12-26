@@ -197,8 +197,8 @@ VALUES
 
 -- no_kv - Kartverket
 -- Norwegian grids
-('HREF2018B_NN2000_EUREF89.gtx','no_kv_HREF2018B_NN2000_EUREF89.tif',NULL,'GTiff','geoid_like',0,NULL,'https://cdn.proj.org/no_kv_HREF2018B_NN2000_EUREF89.tif',1,1,NULL),
-('href2008a.gtx','no_kv_href2008a.tif',NULL,'GTiff','geoid_like',0,NULL,'https://cdn.proj.org/no_kv_href2008a.tif',1,1,NULL),
+('HREF2018B_NN2000_EUREF89.bin','no_kv_HREF2018B_NN2000_EUREF89.tif',NULL,'GTiff','geoid_like',0,NULL,'https://cdn.proj.org/no_kv_HREF2018B_NN2000_EUREF89.tif',1,1,NULL),
+('href2008a.bin','no_kv_href2008a.tif',NULL,'GTiff','geoid_like',0,NULL,'https://cdn.proj.org/no_kv_href2008a.tif',1,1,NULL),
 ('no_kv_NKGETRF14_EPSG7922_2000.tif','no_kv_NKGETRF14_EPSG7922_2000.tif',NULL,'GTiff','geocentricoffset',0,NULL,'https://cdn.proj.org/no_kv_NKGETRF14_EPSG7922_2000.tif',1,1,NULL),
 ('no_kv_ETRS89NO_NGO48_TIN.json','no_kv_ETRS89NO_NGO48_TIN.json',NULL,'JSON','tinshift',0,NULL,'https://cdn.proj.org/no_kv_ETRS89NO_NGO48_TIN.json',1,1,NULL),
 
@@ -238,6 +238,10 @@ VALUES
 ('stewartisland-1977-to-nzvd2016-conversion.csv','nz_linz_stisht1977-nzvd2016.tif','stisht1977-nzvd2016.gtx','GTiff','vgridshift',0,NULL,'https://cdn.proj.org/nz_linz_stisht1977-nzvd2016.tif',1,1,NULL),
 ('taranaki-1970-to-nzvd2016-conversion.csv','nz_linz_taraht1970-nzvd2016.tif','taraht1970-nzvd2016.gtx','GTiff','vgridshift',0,NULL,'https://cdn.proj.org/nz_linz_taraht1970-nzvd2016.tif',1,1,NULL),
 ('wellington-1953-to-nzvd2016-conversion.csv','nz_linz_wellht1953-nzvd2016.tif','wellht1953-nzvd2016.gtx','GTiff','vgridshift',0,NULL,'https://cdn.proj.org/nz_linz_wellht1953-nzvd2016.tif',1,1,NULL),
+
+-- pl_gugik - Główny Urząd Geodezji i Kartografii
+('gugik-geoid2011-PL-EVRF2007-NH.txt','pl_gugik_geoid2011-PL-EVRF2007-NH.tif',NULL,'GTiff','geoid_like',0,NULL,'https://cdn.proj.org/pl_gugik_geoid2011-PL-EVRF2007-NH.tif',1,1,NULL),
+('gugik-geoid2011-PL-KRON86-NH.txt','pl_gugik_geoid2011-PL-KRON86-NH.tif',NULL,'GTiff','geoid_like',0,NULL,'https://cdn.proj.org/pl_gugik_geoid2011-PL-KRON86-NH.tif',1,1,NULL),
 
 -- pt_dgt - DG Territorio
 ('DLx_ETRS89_geo.gsb','pt_dgt_DLx_ETRS89_geo.tif','DLx_ETRS89_geo.gsb','GTiff','hgridshift',0,NULL,'https://cdn.proj.org/pt_dgt_DLx_ETRS89_geo.tif',1,1,NULL),

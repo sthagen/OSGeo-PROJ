@@ -573,6 +573,9 @@ struct PJconsts {
     mutable bool gridsNeededAsked = false;
     mutable std::vector<NS_PROJ::operation::GridDescription> gridsNeeded{};
 
+    // cache pj_get_type() result to help for repeated calls to proj_factors()
+    mutable PJ_TYPE type = PJ_TYPE_UNKNOWN;
+
     /*************************************************************************************
      proj_create_crs_to_crs() alternative coordinate operations
     **************************************************************************************/
@@ -683,6 +686,7 @@ struct pj_ctx{
     void    *logger_app_data = nullptr;
     struct projCppContext* cpp_context = nullptr; /* internal context for C++ code */
     int     use_proj4_init_rules = -1; /* -1 = unknown, 0 = no, 1 = yes */
+    bool     forceOver = false; 
     int     epsg_file_exists = -1; /* -1 = unknown, 0 = no, 1 = yes */
     std::string ca_bundle_path{};
 

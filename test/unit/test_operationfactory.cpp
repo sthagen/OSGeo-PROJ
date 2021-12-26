@@ -4518,6 +4518,63 @@ TEST(operation, compoundCRS_to_compoundCRS_issue_2720) {
 
 // ---------------------------------------------------------------------------
 
+TEST(
+    operation,
+    compoundCRS_to_compoundCRS_concatenated_operation_with_two_vert_transformation_and_ballpark_geog) {
+    auto authFactory =
+        AuthorityFactory::create(DatabaseContext::create(), "EPSG");
+    // "NAD83(CSRS) + CGVD28 height"
+    auto srcObj = createFromUserInput("EPSG:4617+5713",
+                                      authFactory->databaseContext(), false);
+    auto src = nn_dynamic_pointer_cast<CRS>(srcObj);
+    ASSERT_TRUE(src != nullptr);
+
+    // "NAD83(CSRS) + CGVD2013(CGG2013) height"
+    auto dstObj = createFromUserInput("EPSG:4617+6647",
+                                      authFactory->databaseContext(), false);
+    auto dst = nn_dynamic_pointer_cast<CRS>(dstObj);
+    ASSERT_TRUE(dst != nullptr);
+
+    // That transformation involves doing CGVD28 height to CGVD2013(CGG2013)
+    // height by doing:
+    // - CGVD28 height to NAD83(CSRS): EPSG registered operation
+    // - NAD83(CSRS) to CGVD2013(CGG2013) height by doing:
+    //   * NAD83(CSRS) to NAD83(CSRS)v6: ballpark
+    //   * NAD83(CSRS)v6 to CGVD2013(CGG2013): EPSG registered operation
+    auto ctxt = CoordinateOperationContext::create(authFactory, nullptr, 0.0);
+    ctxt->setSpatialCriterion(
+        CoordinateOperationContext::SpatialCriterion::PARTIAL_INTERSECTION);
+    {
+        auto list = CoordinateOperationFactory::create()->createOperations(
+            NN_NO_CHECK(src), NN_NO_CHECK(dst), ctxt);
+        ASSERT_GE(list.size(), 1U);
+        // Check that we have the transformation using NAD83(CSRS)v6 first
+        // (as well as the one between NAD83(CSRS) to CGVD28 height)
+        EXPECT_EQ(list[0]->nameStr(),
+                  "Inverse of NAD83(CSRS) to CGVD28 height (1) + "
+                  "Inverse of Ballpark geographic offset from NAD83(CSRS)v6 to "
+                  "NAD83(CSRS) + "
+                  "NAD83(CSRS)v6 to CGVD2013(CGG2013) height (1) + "
+                  "Inverse of Ballpark geographic offset from NAD83(CSRS) to "
+                  "NAD83(CSRS)v6");
+    }
+    {
+        auto list = CoordinateOperationFactory::create()->createOperations(
+            NN_NO_CHECK(dst), NN_NO_CHECK(src), ctxt);
+        ASSERT_GE(list.size(), 1U);
+        // Check that we have the transformation using NAD83(CSRS)v6 first
+        // (as well as the one between NAD83(CSRS) to CGVD28 height)
+        EXPECT_EQ(
+            list[0]->nameStr(),
+            "Ballpark geographic offset from NAD83(CSRS) to NAD83(CSRS)v6 + "
+            "Inverse of NAD83(CSRS)v6 to CGVD2013(CGG2013) height (1) + "
+            "Ballpark geographic offset from NAD83(CSRS)v6 to NAD83(CSRS) + "
+            "NAD83(CSRS) to CGVD28 height (1)");
+    }
+}
+
+// ---------------------------------------------------------------------------
+
 TEST(operation, vertCRS_to_vertCRS) {
 
     auto vertcrs_m_obj = PROJStringParser().createFromPROJString("+vunits=m");
@@ -4921,6 +4978,53 @@ TEST(operation, compoundCRS_to_geogCRS_3D_context) {
                   "+step +inv +proj=cart +ellps=WGS72 "
                   "+step +proj=unitconvert +xy_in=rad +xy_out=deg "
                   "+step +proj=axisswap +order=2,1");
+    }
+
+    // Check that we can handle vertical transformations where there is a
+    // mix of available ones in the PROJ namespace (mx_inegi_ggm10) and in
+    // in the EPSG namespace (us_noaa_g2018u0)
+    // This test might no longer test this scenario if mx_inegi_ggm10 is
+    // referenced one day by EPSG, but at least this tests a common use case.
+    {
+        auto authFactoryAll =
+            AuthorityFactory::create(DatabaseContext::create(), std::string());
+        auto ctxt =
+            CoordinateOperationContext::create(authFactoryAll, nullptr, 0.0);
+        ctxt->setSpatialCriterion(
+            CoordinateOperationContext::SpatialCriterion::PARTIAL_INTERSECTION);
+        ctxt->setGridAvailabilityUse(
+            CoordinateOperationContext::GridAvailabilityUse::
+                IGNORE_GRID_AVAILABILITY);
+        // NAD83(2011) + NAVD88 height
+        auto srcObj = createFromUserInput(
+            "EPSG:6318+5703", authFactory->databaseContext(), false);
+        auto src = nn_dynamic_pointer_cast<CRS>(srcObj);
+        ASSERT_TRUE(src != nullptr);
+        auto nnSrc = NN_NO_CHECK(src);
+
+        auto list = CoordinateOperationFactory::create()->createOperations(
+            nnSrc,
+            authFactory->createCoordinateReferenceSystem("4979"), // WGS 84 3D
+            ctxt);
+        bool foundGeoid2018 = false;
+        bool foundGGM10 = false;
+        for (const auto &op : list) {
+            try {
+                const auto projString = op->exportToPROJString(
+                    PROJStringFormatter::create(
+                        PROJStringFormatter::Convention::PROJ_5,
+                        authFactory->databaseContext())
+                        .get());
+                if (projString.find("us_noaa_g2018u0.tif") != std::string::npos)
+                    foundGeoid2018 = true;
+                else if (projString.find("mx_inegi_ggm10.tif") !=
+                         std::string::npos)
+                    foundGGM10 = true;
+            } catch (const std::exception &) {
+            }
+        }
+        EXPECT_TRUE(foundGeoid2018);
+        EXPECT_TRUE(foundGGM10);
     }
 }
 

@@ -373,6 +373,24 @@ const char *proj_context_get_database_path(PJ_CONTEXT *ctx) {
  * The returned pointer remains valid while ctx is valid, and until
  * proj_context_get_database_metadata() is called.
  *
+ * Available keys:
+ *
+ * - DATABASE.LAYOUT.VERSION.MAJOR
+ * - DATABASE.LAYOUT.VERSION.MINOR
+ * - EPSG.VERSION
+ * - EPSG.DATE
+ * - ESRI.VERSION
+ * - ESRI.DATE
+ * - IGNF.SOURCE
+ * - IGNF.VERSION
+ * - IGNF.DATE
+ * - NKG.SOURCE
+ * - NKG.VERSION
+ * - NKG.DATE
+ * - PROJ.VERSION
+ * - PROJ_DATA.VERSION : PROJ-data version most compatible with this database.
+ *
+ *
  * @param ctx PROJ context, or NULL for default context
  * @param key Metadata key. Must not be NULL
  * @return value, or nullptr
@@ -856,7 +874,7 @@ int proj_uom_get_info_from_database(PJ_CONTEXT *ctx, const char *auth_name,
  * grid is available at runtime. or NULL
  * @return TRUE in case of success.
  */
-int PROJ_DLL proj_grid_get_info_from_database(
+int proj_grid_get_info_from_database(
     PJ_CONTEXT *ctx, const char *grid_name, const char **out_full_name,
     const char **out_package_name, const char **out_url,
     int *out_direct_download, int *out_open_license, int *out_available) {
@@ -1132,98 +1150,106 @@ PJ_TYPE proj_get_type(const PJ *obj) {
     if (!obj || !obj->iso_obj) {
         return PJ_TYPE_UNKNOWN;
     }
-    auto ptr = obj->iso_obj.get();
-    if (dynamic_cast<Ellipsoid *>(ptr)) {
-        return PJ_TYPE_ELLIPSOID;
-    }
+    if (obj->type != PJ_TYPE_UNKNOWN)
+        return obj->type;
 
-    if (dynamic_cast<PrimeMeridian *>(ptr)) {
-        return PJ_TYPE_PRIME_MERIDIAN;
-    }
+    const auto getType = [&obj]() {
+        auto ptr = obj->iso_obj.get();
+        if (dynamic_cast<Ellipsoid *>(ptr)) {
+            return PJ_TYPE_ELLIPSOID;
+        }
 
-    if (dynamic_cast<DynamicGeodeticReferenceFrame *>(ptr)) {
-        return PJ_TYPE_DYNAMIC_GEODETIC_REFERENCE_FRAME;
-    }
-    if (dynamic_cast<GeodeticReferenceFrame *>(ptr)) {
-        return PJ_TYPE_GEODETIC_REFERENCE_FRAME;
-    }
-    if (dynamic_cast<DynamicVerticalReferenceFrame *>(ptr)) {
-        return PJ_TYPE_DYNAMIC_VERTICAL_REFERENCE_FRAME;
-    }
-    if (dynamic_cast<VerticalReferenceFrame *>(ptr)) {
-        return PJ_TYPE_VERTICAL_REFERENCE_FRAME;
-    }
-    if (dynamic_cast<DatumEnsemble *>(ptr)) {
-        return PJ_TYPE_DATUM_ENSEMBLE;
-    }
-    if (dynamic_cast<TemporalDatum *>(ptr)) {
-        return PJ_TYPE_TEMPORAL_DATUM;
-    }
-    if (dynamic_cast<EngineeringDatum *>(ptr)) {
-        return PJ_TYPE_ENGINEERING_DATUM;
-    }
-    if (dynamic_cast<ParametricDatum *>(ptr)) {
-        return PJ_TYPE_PARAMETRIC_DATUM;
-    }
+        if (dynamic_cast<PrimeMeridian *>(ptr)) {
+            return PJ_TYPE_PRIME_MERIDIAN;
+        }
 
-    {
-        auto crs = dynamic_cast<GeographicCRS *>(ptr);
-        if (crs) {
-            if (crs->coordinateSystem()->axisList().size() == 2) {
-                return PJ_TYPE_GEOGRAPHIC_2D_CRS;
-            } else {
-                return PJ_TYPE_GEOGRAPHIC_3D_CRS;
+        if (dynamic_cast<DynamicGeodeticReferenceFrame *>(ptr)) {
+            return PJ_TYPE_DYNAMIC_GEODETIC_REFERENCE_FRAME;
+        }
+        if (dynamic_cast<GeodeticReferenceFrame *>(ptr)) {
+            return PJ_TYPE_GEODETIC_REFERENCE_FRAME;
+        }
+        if (dynamic_cast<DynamicVerticalReferenceFrame *>(ptr)) {
+            return PJ_TYPE_DYNAMIC_VERTICAL_REFERENCE_FRAME;
+        }
+        if (dynamic_cast<VerticalReferenceFrame *>(ptr)) {
+            return PJ_TYPE_VERTICAL_REFERENCE_FRAME;
+        }
+        if (dynamic_cast<DatumEnsemble *>(ptr)) {
+            return PJ_TYPE_DATUM_ENSEMBLE;
+        }
+        if (dynamic_cast<TemporalDatum *>(ptr)) {
+            return PJ_TYPE_TEMPORAL_DATUM;
+        }
+        if (dynamic_cast<EngineeringDatum *>(ptr)) {
+            return PJ_TYPE_ENGINEERING_DATUM;
+        }
+        if (dynamic_cast<ParametricDatum *>(ptr)) {
+            return PJ_TYPE_PARAMETRIC_DATUM;
+        }
+
+        {
+            auto crs = dynamic_cast<GeographicCRS *>(ptr);
+            if (crs) {
+                if (crs->coordinateSystem()->axisList().size() == 2) {
+                    return PJ_TYPE_GEOGRAPHIC_2D_CRS;
+                } else {
+                    return PJ_TYPE_GEOGRAPHIC_3D_CRS;
+                }
             }
         }
-    }
 
-    {
-        auto crs = dynamic_cast<GeodeticCRS *>(ptr);
-        if (crs) {
-            if (crs->isGeocentric()) {
-                return PJ_TYPE_GEOCENTRIC_CRS;
-            } else {
-                return PJ_TYPE_GEODETIC_CRS;
+        {
+            auto crs = dynamic_cast<GeodeticCRS *>(ptr);
+            if (crs) {
+                if (crs->isGeocentric()) {
+                    return PJ_TYPE_GEOCENTRIC_CRS;
+                } else {
+                    return PJ_TYPE_GEODETIC_CRS;
+                }
             }
         }
-    }
 
-    if (dynamic_cast<VerticalCRS *>(ptr)) {
-        return PJ_TYPE_VERTICAL_CRS;
-    }
-    if (dynamic_cast<ProjectedCRS *>(ptr)) {
-        return PJ_TYPE_PROJECTED_CRS;
-    }
-    if (dynamic_cast<CompoundCRS *>(ptr)) {
-        return PJ_TYPE_COMPOUND_CRS;
-    }
-    if (dynamic_cast<TemporalCRS *>(ptr)) {
-        return PJ_TYPE_TEMPORAL_CRS;
-    }
-    if (dynamic_cast<EngineeringCRS *>(ptr)) {
-        return PJ_TYPE_ENGINEERING_CRS;
-    }
-    if (dynamic_cast<BoundCRS *>(ptr)) {
-        return PJ_TYPE_BOUND_CRS;
-    }
-    if (dynamic_cast<CRS *>(ptr)) {
-        return PJ_TYPE_OTHER_CRS;
-    }
+        if (dynamic_cast<VerticalCRS *>(ptr)) {
+            return PJ_TYPE_VERTICAL_CRS;
+        }
+        if (dynamic_cast<ProjectedCRS *>(ptr)) {
+            return PJ_TYPE_PROJECTED_CRS;
+        }
+        if (dynamic_cast<CompoundCRS *>(ptr)) {
+            return PJ_TYPE_COMPOUND_CRS;
+        }
+        if (dynamic_cast<TemporalCRS *>(ptr)) {
+            return PJ_TYPE_TEMPORAL_CRS;
+        }
+        if (dynamic_cast<EngineeringCRS *>(ptr)) {
+            return PJ_TYPE_ENGINEERING_CRS;
+        }
+        if (dynamic_cast<BoundCRS *>(ptr)) {
+            return PJ_TYPE_BOUND_CRS;
+        }
+        if (dynamic_cast<CRS *>(ptr)) {
+            return PJ_TYPE_OTHER_CRS;
+        }
 
-    if (dynamic_cast<Conversion *>(ptr)) {
-        return PJ_TYPE_CONVERSION;
-    }
-    if (dynamic_cast<Transformation *>(ptr)) {
-        return PJ_TYPE_TRANSFORMATION;
-    }
-    if (dynamic_cast<ConcatenatedOperation *>(ptr)) {
-        return PJ_TYPE_CONCATENATED_OPERATION;
-    }
-    if (dynamic_cast<CoordinateOperation *>(ptr)) {
-        return PJ_TYPE_OTHER_COORDINATE_OPERATION;
-    }
+        if (dynamic_cast<Conversion *>(ptr)) {
+            return PJ_TYPE_CONVERSION;
+        }
+        if (dynamic_cast<Transformation *>(ptr)) {
+            return PJ_TYPE_TRANSFORMATION;
+        }
+        if (dynamic_cast<ConcatenatedOperation *>(ptr)) {
+            return PJ_TYPE_CONCATENATED_OPERATION;
+        }
+        if (dynamic_cast<CoordinateOperation *>(ptr)) {
+            return PJ_TYPE_OTHER_COORDINATE_OPERATION;
+        }
 
-    return PJ_TYPE_UNKNOWN;
+        return PJ_TYPE_UNKNOWN;
+    };
+
+    obj->type = getType();
+    return obj->type;
 }
 
 // ---------------------------------------------------------------------------
@@ -1571,6 +1597,11 @@ const char *proj_as_wkt(PJ_CONTEXT *ctx, const PJ *obj, PJ_WKT_TYPE type,
  * The returned string is valid while the input obj parameter is valid,
  * and until a next call to proj_as_proj_string() with the same input
  * object.
+ *
+ * \warning If a CRS object was not created from a PROJ string,
+ *          exporting to a PROJ string will in most cases
+ *          cause a loss of information. This can potentially lead to
+ *          erroneous transformations.
  *
  * This function calls
  * osgeo::proj::io::IPROJStringExportable::exportToPROJString().
@@ -3670,7 +3701,7 @@ PJ *proj_create_compound_crs(PJ_CONTEXT *ctx, const char *crs_name,
  * @return Object that must be unreferenced with
  * proj_destroy(), or NULL in case of error.
  */
-PJ PROJ_DLL *proj_alter_name(PJ_CONTEXT *ctx, const PJ *obj, const char *name) {
+PJ *proj_alter_name(PJ_CONTEXT *ctx, const PJ *obj, const char *name) {
     SANITIZE_CTX(ctx);
     if (!obj || !name) {
         proj_context_errno_set(ctx, PROJ_ERR_OTHER_API_MISUSE);
@@ -3707,8 +3738,8 @@ PJ PROJ_DLL *proj_alter_name(PJ_CONTEXT *ctx, const PJ *obj, const char *name) {
  * @return Object that must be unreferenced with
  * proj_destroy(), or NULL in case of error.
  */
-PJ PROJ_DLL *proj_alter_id(PJ_CONTEXT *ctx, const PJ *obj,
-                           const char *auth_name, const char *code) {
+PJ *proj_alter_id(PJ_CONTEXT *ctx, const PJ *obj, const char *auth_name,
+                  const char *code) {
     SANITIZE_CTX(ctx);
     if (!obj || !auth_name || !code) {
         proj_context_errno_set(ctx, PROJ_ERR_OTHER_API_MISUSE);
@@ -4143,8 +4174,7 @@ PJ *proj_crs_demote_to_2D(PJ_CONTEXT *ctx, const char *crs_2D_name,
  * @return Object that must be unreferenced with
  * proj_destroy(), or NULL in case of error.
  */
-PJ PROJ_DLL *proj_create_engineering_crs(PJ_CONTEXT *ctx,
-                                         const char *crs_name) {
+PJ *proj_create_engineering_crs(PJ_CONTEXT *ctx, const char *crs_name) {
     SANITIZE_CTX(ctx);
     try {
         return pj_obj_create(
@@ -7779,7 +7809,7 @@ void proj_operation_factory_context_set_crs_extent_use(
  * @param factory_ctx Operation factory context. must not be NULL
  * @param criterion spatial criterion to use
  */
-void PROJ_DLL proj_operation_factory_context_set_spatial_criterion(
+void proj_operation_factory_context_set_spatial_criterion(
     PJ_CONTEXT *ctx, PJ_OPERATION_FACTORY_CONTEXT *factory_ctx,
     PROJ_SPATIAL_CRITERION criterion) {
     SANITIZE_CTX(ctx);
@@ -7817,7 +7847,7 @@ void PROJ_DLL proj_operation_factory_context_set_spatial_criterion(
  * @param factory_ctx Operation factory context. must not be NULL
  * @param use how grid availability is used.
  */
-void PROJ_DLL proj_operation_factory_context_set_grid_availability_use(
+void proj_operation_factory_context_set_grid_availability_use(
     PJ_CONTEXT *ctx, PJ_OPERATION_FACTORY_CONTEXT *factory_ctx,
     PROJ_GRID_AVAILABILITY_USE use) {
     SANITIZE_CTX(ctx);
@@ -7978,7 +8008,7 @@ void proj_operation_factory_context_set_allowed_intermediate_crs(
  * @param factory_ctx Operation factory context. must not be NULL
  * @param discard superseded crs or not
  */
-void PROJ_DLL proj_operation_factory_context_set_discard_superseded(
+void proj_operation_factory_context_set_discard_superseded(
     PJ_CONTEXT *ctx, PJ_OPERATION_FACTORY_CONTEXT *factory_ctx, int discard) {
     SANITIZE_CTX(ctx);
     if (!factory_ctx) {
@@ -8002,7 +8032,7 @@ void PROJ_DLL proj_operation_factory_context_set_discard_superseded(
  * @param allow set to TRUE to allow ballpark transformations.
  * @since 7.1
  */
-void PROJ_DLL proj_operation_factory_context_set_allow_ballpark_transformations(
+void proj_operation_factory_context_set_allow_ballpark_transformations(
     PJ_CONTEXT *ctx, PJ_OPERATION_FACTORY_CONTEXT *factory_ctx, int allow) {
     SANITIZE_CTX(ctx);
     if (!factory_ctx) {
