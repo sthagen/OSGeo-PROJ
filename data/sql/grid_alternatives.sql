@@ -34,6 +34,7 @@ VALUES
 
 -- be_ign - IGN Belgium
 ('bd72lb72_etrs89lb08.gsb','be_ign_bd72lb72_etrs89lb08.tif','bd72lb72_etrs89lb08.gsb','GTiff','hgridshift',0,NULL,'https://cdn.proj.org/be_ign_bd72lb72_etrs89lb08.tif',1,1,NULL),
+('hBG18.dat', 'be_ign_hBG18.tif',NULL,'GTiff','geoid_like',0,NULL,'https://cdn.proj.org/be_ign_hBG18.tif',1,1,NULL),
 
 -- br_ibge - Instituto Brasileiro de Geografia e Estatistica (IBGE)
 ('CA61_003.gsb','br_ibge_CA61_003.tif',NULL,'GTiff','hgridshift',0,NULL,'https://cdn.proj.org/br_ibge_CA61_003.tif',1,1,NULL),
@@ -200,6 +201,7 @@ VALUES
 ('HREF2018B_NN2000_EUREF89.bin','no_kv_HREF2018B_NN2000_EUREF89.tif',NULL,'GTiff','geoid_like',0,NULL,'https://cdn.proj.org/no_kv_HREF2018B_NN2000_EUREF89.tif',1,1,NULL),
 ('href2008a.bin','no_kv_href2008a.tif',NULL,'GTiff','geoid_like',0,NULL,'https://cdn.proj.org/no_kv_href2008a.tif',1,1,NULL),
 ('no_kv_NKGETRF14_EPSG7922_2000.tif','no_kv_NKGETRF14_EPSG7922_2000.tif',NULL,'GTiff','geocentricoffset',0,NULL,'https://cdn.proj.org/no_kv_NKGETRF14_EPSG7922_2000.tif',1,1,NULL),
+('ChartDatum_above_Ellipsoid_EUREF89_v2021a.bin','no_kv_CD_above_Ell_ETRS89_v2021a.tif',NULL,'GTiff','vgridshift',0,NULL,'https://cdn.proj.org/no_kv_CD_above_Ell_ETRS89_v2021a.tif',1,1,NULL),
 ('no_kv_ETRS89NO_NGO48_TIN.json','no_kv_ETRS89NO_NGO48_TIN.json',NULL,'JSON','tinshift',0,NULL,'https://cdn.proj.org/no_kv_ETRS89NO_NGO48_TIN.json',1,1,NULL),
 
 -- nz_linz - New Zealand

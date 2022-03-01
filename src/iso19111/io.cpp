@@ -866,6 +866,8 @@ void WKTFormatter::stopInversion() {
 bool WKTFormatter::isInverted() const { return d->inversionStack_.back(); }
 #endif
 
+//! @endcond
+
 // ---------------------------------------------------------------------------
 
 //! @cond Doxygen_Suppress
@@ -1411,6 +1413,7 @@ struct WKTParser::Private {
     ConcatenatedOperationNNPtr
     buildConcatenatedOperation(const WKTNodeNNPtr &node);
 };
+//! @endcond
 
 // ---------------------------------------------------------------------------
 
@@ -4069,7 +4072,7 @@ WKTParser::Private::buildProjectedCRS(const WKTNodeNNPtr &node) {
             props.set(IdentifiedObject::NAME_KEY, "WGS 84 / UPS North (E,N)");
         } else if (projCRSName == "UPS_South") {
             props.set(IdentifiedObject::NAME_KEY, "WGS 84 / UPS South (E,N)");
-        } else {
+        } else if (cartesianCS) {
             std::string outTableName;
             std::string authNameFromAlias;
             std::string codeFromAlias;
@@ -7671,6 +7674,13 @@ const std::string &PROJStringFormatter::toString() const {
             continue;
         }
 
+        // axisswap order=1,2,-3 is its own inverse
+        if (step.name == "axisswap" && paramCount == 1 &&
+            step.paramValues[0].equals("order", "1,2,-3")) {
+            step.inverted = false;
+            continue;
+        }
+
         // handle unitconvert inverse
         if (step.name == "unitconvert" && paramCount == 2 &&
             step.paramValues[0].keyEquals("xy_in") &&
@@ -8867,6 +8877,8 @@ struct PROJStringParser::Private {
                                       int iAxisSwap, bool ignorePROJAxis);
 };
 
+//! @endcond
+
 // ---------------------------------------------------------------------------
 
 PROJStringParser::PROJStringParser() : d(internal::make_unique<Private>()) {}
@@ -9895,10 +9907,16 @@ PROJStringParser::Private::buildProjectedCRS(int iStep,
 
     if (mappings.size() >= 2) {
         // To distinguish for example +ortho from +ortho +f=0
+        bool allMappingsHaveAuxParam = true;
+        bool foundStrictlyMatchingMapping = false;
         for (const auto *mappingIter : mappings) {
+            if (mappingIter->proj_name_aux == nullptr) {
+                allMappingsHaveAuxParam = false;
+            }
             if (mappingIter->proj_name_aux != nullptr &&
                 strchr(mappingIter->proj_name_aux, '=') == nullptr &&
                 hasParamValue(step, mappingIter->proj_name_aux)) {
+                foundStrictlyMatchingMapping = true;
                 mapping = mappingIter;
                 break;
             } else if (mappingIter->proj_name_aux != nullptr &&
@@ -9906,10 +9924,14 @@ PROJStringParser::Private::buildProjectedCRS(int iStep,
                 const auto tokens = split(mappingIter->proj_name_aux, '=');
                 if (tokens.size() == 2 &&
                     getParamValue(step, tokens[0]) == tokens[1]) {
+                    foundStrictlyMatchingMapping = true;
                     mapping = mappingIter;
                     break;
                 }
             }
+        }
+        if (allMappingsHaveAuxParam && !foundStrictlyMatchingMapping) {
+            mapping = nullptr;
         }
     }
 
@@ -10204,6 +10226,8 @@ PROJStringParser::Private::buildProjectedCRS(int iStep,
                 }
             } else if (param->unit_type == UnitOfMeasure::Type::SCALE) {
                 value = 1;
+            } else if (step.name == "peirce_q" && proj_name == "lat_0") {
+                value = 90;
             }
 
             PropertyMap propertiesParameter;
@@ -10475,9 +10499,12 @@ PROJStringParser::createFromPROJString(const std::string &projString) {
                 auto crs = dynamic_cast<CRS *>(obj.get());
 
                 bool hasSignificantParamValues = false;
+                bool hasOver = false;
                 for (const auto &kv : d->steps_[0].paramValues) {
-                    if (!((kv.key == "type" && kv.value == "crs") ||
-                          kv.key == "wktext" || kv.key == "no_defs")) {
+                    if (kv.key == "over") {
+                        hasOver = true;
+                    } else if (!((kv.key == "type" && kv.value == "crs") ||
+                                 kv.key == "wktext" || kv.key == "no_defs")) {
                         hasSignificantParamValues = true;
                         break;
                     }
@@ -10488,6 +10515,9 @@ PROJStringParser::createFromPROJString(const std::string &projString) {
                     properties.set(IdentifiedObject::NAME_KEY,
                                    d->title_.empty() ? crs->nameStr()
                                                      : d->title_);
+                    if (hasOver) {
+                        properties.set("OVER", true);
+                    }
                     const auto &extent = getExtent(crs);
                     if (extent) {
                         properties.set(

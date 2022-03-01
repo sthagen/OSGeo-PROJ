@@ -6075,6 +6075,38 @@ static const struct {
          {"False northing", 2},
      }},
 
+    {"Peirce_Quincuncial",
+     {{"False_Easting", 1},
+      {"False_Northing", 2},
+      {"Central_Meridian", 3},
+      {"Scale_Factor", 4},
+      {"Latitude_Of_Origin", 5},
+      {"Option", 0}},
+     "Peirce Quincuncial (Square)",
+     {
+         {"Latitude of natural origin", 5},
+         {"Longitude of natural origin", 3},
+         {"Scale factor at natural origin", 4},
+         {"False easting", 1},
+         {"False northing", 2},
+     }},
+
+    {"Peirce_Quincuncial",
+     {{"False_Easting", 1},
+      {"False_Northing", 2},
+      {"Central_Meridian", 3},
+      {"Scale_Factor", 4},
+      {"Latitude_Of_Origin", 5},
+      {"Option", 1}},
+     "Peirce Quincuncial (Diamond)",
+     {
+         {"Latitude of natural origin", 5},
+         {"Longitude of natural origin", 3},
+         {"Scale factor at natural origin", 4},
+         {"False easting", 1},
+         {"False northing", 2},
+     }},
+
     {
         "Unknown_Method",
         {{"False_Easting", 1},
@@ -9931,6 +9963,79 @@ TEST(io, projparse_ortho_spherical_on_sphere) {
 
 // ---------------------------------------------------------------------------
 
+TEST(io, projparse_peirce_q_square) {
+    std::string input("+proj=peirce_q +shape=square +type=crs");
+    auto obj = PROJStringParser().createFromPROJString(input);
+    auto crs = nn_dynamic_pointer_cast<ProjectedCRS>(obj);
+    ASSERT_TRUE(crs != nullptr);
+    EXPECT_EQ(
+        crs->exportToPROJString(
+            PROJStringFormatter::create(PROJStringFormatter::Convention::PROJ_4)
+                .get()),
+        "+proj=peirce_q +shape=square +lat_0=90 +lon_0=0 +k_0=1 +x_0=0 +y_0=0 "
+        "+datum=WGS84 +units=m +no_defs +type=crs");
+}
+
+// ---------------------------------------------------------------------------
+
+TEST(io, projparse_peirce_q_diamond) {
+    std::string input("+proj=peirce_q +shape=diamond +type=crs");
+    auto obj = PROJStringParser().createFromPROJString(input);
+    auto crs = nn_dynamic_pointer_cast<ProjectedCRS>(obj);
+    ASSERT_TRUE(crs != nullptr);
+    EXPECT_EQ(
+        crs->exportToPROJString(
+            PROJStringFormatter::create(PROJStringFormatter::Convention::PROJ_4)
+                .get()),
+        "+proj=peirce_q +shape=diamond +lat_0=90 +lon_0=0 +k_0=1 +x_0=0 +y_0=0 "
+        "+datum=WGS84 +units=m +no_defs +type=crs");
+}
+
+// ---------------------------------------------------------------------------
+
+TEST(io, projparse_peirce_q_horizontal) {
+    std::string input("+proj=peirce_q +shape=horizontal +datum=WGS84 +units=m "
+                      "+no_defs +type=crs");
+    auto obj = PROJStringParser().createFromPROJString(input);
+    auto crs = nn_dynamic_pointer_cast<ProjectedCRS>(obj);
+    ASSERT_TRUE(crs != nullptr);
+    EXPECT_EQ(
+        crs->exportToPROJString(
+            PROJStringFormatter::create(PROJStringFormatter::Convention::PROJ_4)
+                .get()),
+        input);
+}
+
+// ---------------------------------------------------------------------------
+
+TEST(io, projparse_peirce_q_invalid_lat_0) {
+    std::string input("+proj=peirce_q +lat_0=0 +shape=square +type=crs");
+    auto obj = PROJStringParser().createFromPROJString(input);
+    auto crs = nn_dynamic_pointer_cast<ProjectedCRS>(obj);
+    ASSERT_TRUE(crs != nullptr);
+    EXPECT_THROW(
+        crs->exportToPROJString(
+            PROJStringFormatter::create(PROJStringFormatter::Convention::PROJ_4)
+                .get()),
+        FormattingException);
+}
+
+// ---------------------------------------------------------------------------
+
+TEST(io, projparse_peirce_q_invalid_k_0) {
+    std::string input("+proj=peirce_q +k_0=0.5 +shape=square +type=crs");
+    auto obj = PROJStringParser().createFromPROJString(input);
+    auto crs = nn_dynamic_pointer_cast<ProjectedCRS>(obj);
+    ASSERT_TRUE(crs != nullptr);
+    EXPECT_THROW(
+        crs->exportToPROJString(
+            PROJStringFormatter::create(PROJStringFormatter::Convention::PROJ_4)
+                .get()),
+        FormattingException);
+}
+
+// ---------------------------------------------------------------------------
+
 TEST(io, projparse_axisswap_unitconvert_longlat_proj) {
     std::string input =
         "+type=crs +proj=pipeline +step +proj=axisswap +order=2,1 +step "
@@ -10456,13 +10561,13 @@ TEST(io, projparse_init) {
     }
 
     {
-        auto obj = createFromUserInput("+title=mytitle +over +init=epsg:4326",
+        auto obj = createFromUserInput("+title=mytitle +init=epsg:4326 +over",
                                        dbContext, true);
         auto crs = nn_dynamic_pointer_cast<GeographicCRS>(obj);
         ASSERT_TRUE(crs != nullptr);
         EXPECT_EQ(crs->nameStr(), "mytitle");
         EXPECT_EQ(crs->exportToPROJString(PROJStringFormatter::create().get()),
-                  "+proj=longlat +over +datum=WGS84 +no_defs +type=crs");
+                  "+proj=longlat +datum=WGS84 +over +no_defs +type=crs");
     }
 
     {

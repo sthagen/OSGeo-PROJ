@@ -4,10 +4,16 @@ set -e
 
 apt-get update -y
 DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-    sudo autoconf automake libtool clang++-10 python3-clang-10 make cmake ccache pkg-config tar zip \
-    sqlite3 libsqlite3-dev libtiff-dev libcurl4-openssl-dev jq python3-pip nlohmann-json3-dev
+    autoconf automake libtool make cmake ccache pkg-config python3-pip sqlite3 tar zip \
+    clang++-10 jq python3-clang-10 \
+    libsqlite3-dev \
+    libtiff-dev libwebp-dev libzstd-dev \
+    libcurl4-openssl-dev libnghttp2-dev libidn2-dev librtmp-dev libssh-dev \
+      libpsl-dev libssl-dev libkrb5-dev comerr-dev libldap2-dev libbrotli-dev \
+    nlohmann-json3-dev libgtest-dev
 
 python3 -m pip install --user jsonschema
+export PATH=$HOME/.local/bin:$PATH
 
 cd "$WORK_DIR"
 
@@ -16,16 +22,12 @@ if test -f "$WORK_DIR/ccache.tar.gz"; then
     (cd $HOME && tar xzf "$WORK_DIR/ccache.tar.gz")
 fi
 
-export CCACHE_CPP2=yes
 export PROJ_DB_CACHE_DIR="$HOME/.ccache"
 
 ccache -M 500M
-ccache -s
 
 # -fno-use-cxa-atexit is needed to build with -coverage
-CC="ccache clang-10" CXX="ccache clang++-10" CFLAGS="-Werror -fsanitize=address -fno-use-cxa-atexit" CXXFLAGS="-Werror -fsanitize=address -fno-use-cxa-atexit" LDFLAGS="-fsanitize=address" ./travis/install.sh
-
-ccache -s
+CC="clang-10" CXX="clang++-10" CFLAGS="-Werror -fsanitize=address -fno-use-cxa-atexit" CXXFLAGS="-Werror -fsanitize=address -fno-use-cxa-atexit" LDFLAGS="-fsanitize=address" ./travis/install.sh
 
 echo "Saving ccache..."
 rm -f "$WORK_DIR/ccache.tar.gz"
