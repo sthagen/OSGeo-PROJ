@@ -4924,6 +4924,54 @@ void CoordinateOperationFactory::Private::createOperationsCompoundToGeog(
                 }
                 return;
             }
+
+            auto boundSrc =
+                dynamic_cast<const crs::BoundCRS *>(componentsSrc[0].get());
+            if (boundSrc) {
+                derivedHSrc = dynamic_cast<const crs::DerivedCRS *>(
+                    boundSrc->baseCRS().get());
+                if (derivedHSrc) {
+                    std::vector<crs::CRSNNPtr> intermComponents{
+                        crs::BoundCRS::create(derivedHSrc->baseCRS(),
+                                              boundSrc->hubCRS(),
+                                              boundSrc->transformation()),
+                        componentsSrc[1]};
+                    auto properties = util::PropertyMap().set(
+                        common::IdentifiedObject::NAME_KEY,
+                        intermComponents[0]->nameStr() + " + " +
+                            intermComponents[1]->nameStr());
+                    auto intermCompound =
+                        crs::CompoundCRS::create(properties, intermComponents);
+                    auto opsFirst =
+                        createOperations(sourceCRS, intermCompound, context);
+                    assert(!opsFirst.empty());
+                    auto opsLast =
+                        createOperations(intermCompound, targetCRS, context);
+                    for (const auto &opLast : opsLast) {
+                        try {
+                            res.emplace_back(
+                                ConcatenatedOperation::createComputeMetadata(
+                                    {opsFirst.front(), opLast},
+                                    disallowEmptyIntersection));
+                        } catch (const std::exception &) {
+                        }
+                    }
+                    return;
+                }
+            }
+        }
+
+        // Only do a vertical transformation if the target CRS is 3D.
+        const auto dstSingle = dynamic_cast<crs::SingleCRS *>(targetCRS.get());
+        if (dstSingle &&
+            dstSingle->coordinateSystem()->axisList().size() == 2) {
+            auto tmp = createOperations(componentsSrc[0], targetCRS, context);
+            for (const auto &op : tmp) {
+                auto opClone = op->shallowClone();
+                setCRSs(opClone.get(), sourceCRS, targetCRS);
+                res.emplace_back(opClone);
+            }
+            return;
         }
 
         std::vector<CoordinateOperationNNPtr> horizTransforms;
@@ -5083,6 +5131,28 @@ void CoordinateOperationFactory::Private::createOperationsCompoundToGeog(
                     srcToInterpOps = createOperations(
                         componentsSrc[0], NN_NO_CHECK(interpolationGeogCRS),
                         context);
+
+                    // e.g when doing COMPOUND_CRS[
+                    //      NAD83(CRS)+TOWGS84[0,0,0],
+                    //      CGVD28 height + EXTENSION["PROJ4_GRIDS","HT2_0.gtx"]
+                    // to NAD83(CRS) 3D
+                    const auto boundSrc =
+                        dynamic_cast<crs::BoundCRS *>(componentsSrc[0].get());
+                    if (boundSrc &&
+                        boundSrc->baseCRS()->isEquivalentTo(
+                            targetCRS->demoteTo2D(std::string(), dbContext)
+                                .get(),
+                            util::IComparable::Criterion::EQUIVALENT) &&
+                        boundSrc->hubCRS()->isEquivalentTo(
+                            interpolationGeogCRS
+                                ->demoteTo2D(std::string(), dbContext)
+                                .get(),
+                            util::IComparable::Criterion::EQUIVALENT)) {
+                        // Make sure to use the same horizontal transformation
+                        // (likely a null shift)
+                        interpToTargetOps = applyInverse(srcToInterpOps);
+                        return;
+                    }
 
                     // But do the interpolation CRS to targetCRS in 3D
                     // to have proper ellipsoid height transformation.
@@ -5304,16 +5374,65 @@ void CoordinateOperationFactory::Private::createOperationsCompoundToCompound(
 
     // If we didn't find a non-ballpark transformation between
     // the 2 vertical CRS, then try through intermediate geographic CRS
-    // For example
-    // WGS 84 + EGM96 --> ETRS89 + Belfast height where
-    // there is a geoid model for EGM96 referenced to WGS 84
-    // and a geoid model for Belfast height referenced to ETRS89
     if (verticalTransforms.size() == 1 &&
         verticalTransforms.front()->hasBallparkTransformation()) {
         const auto &authFactory = context.context->getAuthorityFactory();
         auto dbContext = authFactory
                              ? authFactory->databaseContext().as_nullable()
                              : nullptr;
+
+        const auto createWithIntermediateCRS =
+            [&sourceCRS, &targetCRS, &context,
+             &res](const crs::CRSNNPtr &intermCRS) {
+                const auto ops1 =
+                    createOperations(sourceCRS, intermCRS, context);
+                const auto ops2 =
+                    createOperations(intermCRS, targetCRS, context);
+                for (const auto &op1 : ops1) {
+                    for (const auto &op2 : ops2) {
+                        try {
+                            res.emplace_back(
+                                ConcatenatedOperation::createComputeMetadata(
+                                    {op1, op2}, disallowEmptyIntersection));
+                        } catch (const std::exception &) {
+                        }
+                    }
+                }
+            };
+
+        const auto boundSrcHorizontal =
+            dynamic_cast<const crs::BoundCRS *>(componentsSrc[0].get());
+        const auto boundDstHorizontal =
+            dynamic_cast<const crs::BoundCRS *>(componentsDst[0].get());
+
+        // CompoundCRS[something_with_TOWGS84, ...] to CompoundCRS[WGS84, ...]
+        if (boundSrcHorizontal != nullptr && boundDstHorizontal == nullptr &&
+            boundSrcHorizontal->hubCRS()->_isEquivalentTo(
+                componentsDst[0].get(),
+                util::IComparable::Criterion::EQUIVALENT)) {
+            createWithIntermediateCRS(
+                componentsDst[0]->promoteTo3D(std::string(), dbContext));
+            if (!res.empty()) {
+                return;
+            }
+        }
+        // Inverse of above
+        else if (boundDstHorizontal != nullptr &&
+                 boundSrcHorizontal == nullptr &&
+                 boundDstHorizontal->hubCRS()->_isEquivalentTo(
+                     componentsSrc[0].get(),
+                     util::IComparable::Criterion::EQUIVALENT)) {
+            createWithIntermediateCRS(
+                componentsSrc[0]->promoteTo3D(std::string(), dbContext));
+            if (!res.empty()) {
+                return;
+            }
+        }
+
+        // Deal with situation like
+        // WGS 84 + EGM96 --> ETRS89 + Belfast height where
+        // there is a geoid model for EGM96 referenced to WGS 84
+        // and a geoid model for Belfast height referenced to ETRS89
         const auto intermGeogSrc =
             srcGeog->promoteTo3D(std::string(), dbContext);
         const bool intermGeogSrcIsSameAsIntermGeogDst =
@@ -5544,6 +5663,44 @@ void CoordinateOperationFactory::Private::createOperationsBoundToCompound(
                     }
                     return;
                 }
+            }
+        }
+
+        // e.g transforming from a Bound[something_not_WGS84_but_with_TOWGS84]
+        // to a CompoundCRS[WGS84, ...]
+        const auto srcBaseSingleCRS =
+            dynamic_cast<const crs::SingleCRS *>(boundSrc->baseCRS().get());
+        const auto srcGeogCRS = boundSrc->extractGeographicCRS();
+        const auto boundSrcHubAsGeogCRS =
+            dynamic_cast<const crs::GeographicCRS *>(boundSrc->hubCRS().get());
+        const auto comp0Geog = componentsDst[0]->extractGeographicCRS();
+        if (srcBaseSingleCRS &&
+            srcBaseSingleCRS->coordinateSystem()->axisList().size() == 3 &&
+            srcGeogCRS && boundSrcHubAsGeogCRS && comp0Geog &&
+            boundSrcHubAsGeogCRS->coordinateSystem()->axisList().size() == 3 &&
+            !srcGeogCRS->datumNonNull(dbContext)->isEquivalentTo(
+                comp0Geog->datumNonNull(dbContext).get(),
+                util::IComparable::Criterion::EQUIVALENT) &&
+            boundSrcHubAsGeogCRS &&
+            boundSrcHubAsGeogCRS->datumNonNull(dbContext)->isEquivalentTo(
+                comp0Geog->datumNonNull(dbContext).get(),
+                util::IComparable::Criterion::EQUIVALENT)) {
+            const auto ops1 =
+                createOperations(sourceCRS, boundSrc->hubCRS(), context);
+            const auto ops2 =
+                createOperations(boundSrc->hubCRS(), targetCRS, context);
+            for (const auto &op1 : ops1) {
+                for (const auto &op2 : ops2) {
+                    try {
+                        res.emplace_back(
+                            ConcatenatedOperation::createComputeMetadata(
+                                {op1, op2}, disallowEmptyIntersection));
+                    } catch (const std::exception &) {
+                    }
+                }
+            }
+            if (!res.empty()) {
+                return;
             }
         }
     }

@@ -1243,10 +1243,8 @@ PROJCRS["WGS 84 / UTM zone 31N",
     REMARK["Promoted to 3D from EPSG:32631"]]
 
 Testing -s EPSG:32631 -t EPSG:4326+3855 --summary
-Candidate operations found: 3
-unknown id, Inverse of UTM zone 31N + WGS 84 to EGM2008 height (1), 1 m, World.
-unknown id, Inverse of UTM zone 31N + WGS 84 to EGM2008 height (2), 0.5 m, World.
-unknown id, Inverse of UTM zone 31N + Inverse of Transformation from EGM2008 height to WGS 84 (ballpark vertical transformation, without ellipsoid height to vertical height correction), unknown accuracy, World, has ballpark transformation
+Candidate operations found: 1
+unknown id, Inverse of UTM zone 31N + Inverse of Null geographic offset from WGS 84 to WGS 84, 0 m, World.
 
 Testing -s EPSG:32631 -t EPSG:4326+3855 --3d --summary
 Candidate operations found: 3
@@ -1262,7 +1260,7 @@ Candidate operations found: 2
 unknown id, Ballpark geocentric translation from ETRS89 to WGS 84, unknown accuracy, World, has ballpark transformation
 INVERSE(EPSG):9225, Inverse of WGS 84 to ETRS89 (2), 0.1 m, Germany - offshore North Sea. Netherlands - offshore east of 5E.
 
-Testing -s +proj=longlat +datum=WGS84 +geoidgrids=@foo.gtx +type=crs -t EPSG:4326 -o PROJ -q
+Testing -s +proj=longlat +datum=WGS84 +geoidgrids=@foo.gtx +type=crs -t EPSG:4979 -o PROJ -q
 +proj=pipeline
   +step +proj=unitconvert +xy_in=deg +xy_out=rad
   +step +proj=vgridshift +grids=@foo.gtx +multiplier=1
@@ -1624,18 +1622,20 @@ Candidate operations found: 2
 unknown id, Inverse of UTM zone 30N + ED50 to ETRS89 (12) + UTM zone 30N, 0.2 m, Spain - mainland, Balearic Islands, Ceuta and Melila - onshore.
 unknown id, Inverse of UTM zone 30N + ED50 to ETRS89 (7) + UTM zone 30N, 1.5 m, Spain - onshore mainland except northwest (north of 41°30'N and west of 4°30'W).
 
-Testing --list-crs | grep "EPSG:32632\|ESRI:103668\|OGC" | sort
+Testing --list-crs | grep "EPSG:32632\|ESRI:103668\|OGC"
 EPSG:32632 "WGS 84 / UTM zone 32N"
 ESRI:103668 "NAD_1983_HARN_Adj_MN_Ramsey_Meters"
 OGC:CRS27 "NAD27 (CRS27)"
 OGC:CRS83 "NAD83 (CRS83)"
 OGC:CRS84 "WGS 84 (CRS84)"
+OGC:CRS84h "WGS 84 longitude-latitude-height"
 
-Testing --list-crs --authority OGC,EPSG | grep "EPSG:4326\|OGC" | sort
-EPSG:4326 "WGS 84"
+Testing --list-crs --authority OGC,EPSG | grep "EPSG:4326\|OGC"
 OGC:CRS27 "NAD27 (CRS27)"
 OGC:CRS83 "NAD83 (CRS83)"
 OGC:CRS84 "WGS 84 (CRS84)"
+OGC:CRS84h "WGS 84 longitude-latitude-height"
+EPSG:4326 "WGS 84"
 
 Testing --list-crs | grep deprecated | sort
 
@@ -1680,4 +1680,7 @@ EPSG:6512 "NAD83(2011) / Missouri East"
 
 Testing --list-crs projected --area France | grep "RGF93 v1 / Lambert-93\|UTM zone 11N" | sort
 EPSG:2154 "RGF93 v1 / Lambert-93"
+
+Testing EPSG:9945 -o PROJ -q
++proj=tmerc +lat_0=0 +lon_0=21 +k=0.9999 +x_0=500000 +y_0=-4000000 +ellps=bessel +towgs84=521.748,229.489,590.921,4.029,4.488,-15.521,-9.78 +units=m +no_defs +type=crs
 

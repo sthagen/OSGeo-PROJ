@@ -1,7 +1,7 @@
-.. _gnom:
+.. _imoll_o:
 
 ********************************************************************************
-Gnomonic
+Interrupted Mollweide (Oceanic View)
 ********************************************************************************
 
 +---------------------+----------------------------------------------------------+
@@ -11,7 +11,7 @@ Gnomonic
 +---------------------+----------------------------------------------------------+
 | **Defined area**    | Global                                                   |
 +---------------------+----------------------------------------------------------+
-| **Alias**           | gnom                                                     |
+| **Alias**           | imoll_o                                                  |
 +---------------------+----------------------------------------------------------+
 | **Domain**          | 2D                                                       |
 +---------------------+----------------------------------------------------------+
@@ -21,21 +21,31 @@ Gnomonic
 +---------------------+----------------------------------------------------------+
 
 
-.. figure:: ./images/gnom.png
+.. figure:: ./images/imoll_o.png
    :width: 500 px
    :align: center
-   :alt:   Gnomonic
+   :alt:   Interrupted Mollweide Oceanic View
 
-   proj-string: ``+proj=gnom +lat_0=90 +lon_0=-50``
+   proj-string: ``+proj=imoll_o +lon_0=-160``
+
+
+The Interrupted Mollweide (Oceanic View) projection is an equal-area projection
+intended for making maps of the Earth's oceans. The projection is comprised of
+six separate Mollweide (``homolographic``) projection regions. In contrast with
+the Interrupted Goode Homolosine (Oceanic View) projection, there is no
+transition latitude, which gives greater continuity at the cost of greater
+equatorial distortion. The lobes in this projection are chosen to emphasize the
+ocean area of the Earth when used with a central longitude of -160
+degrees. This projection was first published in 1919 by J. P. Goode
+:cite:`Goode1919`.
+
 
 Parameters
 ################################################################################
 
-.. note:: All parameters are optional for the Gnomonic projection.
+.. note:: All parameters are optional for the projection. A value of +lon_0=-160 is recommended.
 
 .. include:: ../options/lon_0.rst
-
-.. include:: ../options/lat_0.rst
 
 .. include:: ../options/R.rst
 

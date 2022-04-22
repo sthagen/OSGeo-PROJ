@@ -45,7 +45,8 @@ jobs:
         run: |
             set VCPKG_INSTALLED=c:\vcpkg\installed\${{ env.ARCH }}-windows
             dir %VCPKG_INSTALLED%\bin
-            set PATH=%VCPKG_INSTALLED%\bin;%PATH%
+            dir %VCPKG_INSTALLED%\tools
+            set PATH=%VCPKG_INSTALLED%\bin;%VCPKG_INSTALLED%\tools;%PATH%
             set PROJ_BUILD=%GITHUB_WORKSPACE%\build
             mkdir %PROJ_BUILD%
             cd %PROJ_BUILD%
@@ -65,7 +66,7 @@ jobs:
             set PROJ_DIR=%GITHUB_WORKSPACE%\proj_dir
             set PROJ_BUILD=%GITHUB_WORKSPACE%\build
             cd %PROJ_BUILD%
-            ctest -V -C "${{ env.BUILD_TYPE }}"
+            ctest --output-on-failure -C "${{ env.BUILD_TYPE }}"
             set PATH=%PROJ_DIR%\bin;%PATH%
             set BUILD_MODE=shared
             if "${{ env.BUILD_SHARED_LIBS }}"=="OFF" (set BUILD_MODE=static)

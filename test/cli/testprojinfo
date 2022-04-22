@@ -148,8 +148,8 @@ echo "Testing -s EPSG:4936 -t EPSG:4978 --spatial-test intersects --summary wher
 $EXE -s EPSG:4936 -t EPSG:4978 --spatial-test intersects --summary >>${OUT} 2>&1
 echo "" >>${OUT}
 
-echo "Testing -s "+proj=longlat +datum=WGS84 +geoidgrids=@foo.gtx +type=crs" -t EPSG:4326 -o PROJ -q" >> ${OUT}
-$EXE -s "+proj=longlat +datum=WGS84 +geoidgrids=@foo.gtx +type=crs" -t EPSG:4326 -o PROJ -q >>${OUT} 2>&1
+echo "Testing -s "+proj=longlat +datum=WGS84 +geoidgrids=@foo.gtx +type=crs" -t EPSG:4979 -o PROJ -q" >> ${OUT}
+$EXE -s "+proj=longlat +datum=WGS84 +geoidgrids=@foo.gtx +type=crs" -t EPSG:4979 -o PROJ -q >>${OUT} 2>&1
 echo "" >>${OUT}
 
 echo 'Testing -s "AGD66" -t "WGS 84 (G1762)" --spatial-test intersects --summary. Should include a transformation through GDA2020' >> ${OUT}
@@ -319,12 +319,12 @@ echo 'Checks that ED50 to ETRS89 (12) is in the output (superseded transformatio
 $EXE -s EPSG:23030 -t EPSG:25830 --bbox -6,40,-5,41 --grid-check known_available --hide-ballpark --summary >>${OUT} 2>&1
 echo "" >>${OUT}
 
-echo 'Testing --list-crs | grep "EPSG:32632\|ESRI:103668\|OGC" | sort' >> ${OUT}
-$EXE --list-crs | grep "EPSG:32632\|ESRI:103668\|OGC" | sort >> ${OUT}
+echo 'Testing --list-crs | grep "EPSG:32632\|ESRI:103668\|OGC"' >> ${OUT}
+$EXE --list-crs | grep "EPSG:32632\|ESRI:103668\|OGC" >> ${OUT}
 echo "" >>${OUT}
 
-echo 'Testing --list-crs --authority OGC,EPSG | grep "EPSG:4326\|OGC" | sort' >> ${OUT}
-$EXE --list-crs --authority OGC,EPSG | grep "EPSG:4326\|OGC" | sort >> ${OUT}
+echo 'Testing --list-crs --authority OGC,EPSG | grep "EPSG:4326\|OGC"' >> ${OUT}
+$EXE --list-crs --authority OGC,EPSG | grep "EPSG:4326\|OGC" >> ${OUT}
 echo "" >>${OUT}
 
 echo 'Testing --list-crs | grep deprecated | sort' >> ${OUT}
@@ -375,6 +375,13 @@ echo "" >>${OUT}
 echo 'Testing --list-crs projected --area France | grep "RGF93 v1 / Lambert-93\|UTM zone 11N" | sort' >> ${OUT}
 $EXE --list-crs projected --area France | grep "RGF93 v1 / Lambert-93\|UTM zone 11N" | sort >> ${OUT}
 echo "" >>${OUT}
+
+# Test North-Macedonia CRS for which there are several MGI 1901 -> WGS 84 Helmert transformations
+# but only one matches the extent of the CRS
+echo 'Testing EPSG:9945 -o PROJ -q' >> ${OUT}
+$EXE EPSG:9945 -o PROJ -q >> ${OUT}
+echo "" >>${OUT}
+
 
 # do 'diff' with distribution results
 echo "diff ${OUT} with testprojinfo_out.dist"

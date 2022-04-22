@@ -73,6 +73,11 @@ elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "MSVC")
     /wd4706  # Suppress warning about assignment within conditional expression
     /wd4996  # Suppress warning about sprintf, etc., being unsafe
   )
+  if("$ENV{VSCMD_ARG_TGT_ARCH}" STREQUAL "arm64")
+    # Suppress an inaccurate warning when compiling for an MSVC/ARM64 platform
+    # It incorrectly assumes a division by zero is possible despite a check
+    set(PROJ_C_WARN_FLAGS ${PROJ_C_WARN_FLAGS} /wd4723)
+  endif()
   set(PROJ_CXX_WARN_FLAGS /EHsc ${PROJ_C_WARN_FLAGS})
 elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "Intel")
   if(MSVC)
@@ -110,7 +115,7 @@ message(STATUS "Configuring PROJ:")
 #PROJ version information
 ################################################################################
 include(ProjVersion)
-proj_version(MAJOR 9 MINOR 0 PATCH 0)
+proj_version(MAJOR 9 MINOR 1 PATCH 0)
 set(PROJ_SOVERSION 25)
 set(PROJ_BUILD_VERSION "${PROJ_SOVERSION}.${PROJ_VERSION}")
 
@@ -281,18 +286,8 @@ link_directories(${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 # Installation
 ################################################################################
 include(ProjInstallPath)
-set(BINDIR "${DEFAULT_BINDIR}"
-  CACHE PATH "The directory to install binaries into.")
-set(LIBDIR "${DEFAULT_LIBDIR}"
-  CACHE PATH "The directory to install libraries into.")
-set(DATADIR "${DEFAULT_DATADIR}"
-  CACHE PATH "The directory to install data files into.")
-set(DOCDIR "${DEFAULT_DOCDIR}"
-  CACHE PATH "The directory to install doc files into.")
-set(INCLUDEDIR "${DEFAULT_INCLUDEDIR}"
-  CACHE PATH "The directory to install includes into.")
-set(CMAKECONFIGDIR "${DEFAULT_CMAKEDIR}"
-  CACHE PATH "Parent of the directory to install cmake config files into.")
+include(GNUInstallDirs)
+set(PROJ_LIB_PATH "${CMAKE_INSTALL_FULL_DATADIR}/proj")
 
 ################################################################################
 # Tests
@@ -321,7 +316,7 @@ endif()
 
 set(docfiles COPYING NEWS AUTHORS)
 install(FILES ${docfiles}
-        DESTINATION "${DOCDIR}")
+        DESTINATION ${CMAKE_INSTALL_DOCDIR})
 
 ################################################################################
 # pkg-config support
@@ -330,7 +325,7 @@ configure_proj_pc()
 
 install(FILES
   ${CMAKE_CURRENT_BINARY_DIR}/proj.pc
-  DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
+  DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig")
 
 ################################################################################
 # "make dist" workalike

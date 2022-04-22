@@ -1408,6 +1408,10 @@ struct WKTParser::Private {
 
     CRSPtr buildCRS(const WKTNodeNNPtr &node);
 
+    CRSPtr dealWithEPSGCodeForInterpolationCRSParameter(
+        std::vector<OperationParameterNNPtr> &parameters,
+        std::vector<ParameterValueNNPtr> &values);
+
     TransformationNNPtr buildCoordinateOperation(const WKTNodeNNPtr &node);
 
     ConcatenatedOperationNNPtr
@@ -3261,6 +3265,37 @@ WKTParser::Private::buildConversion(const WKTNodeNNPtr &node,
 
 // ---------------------------------------------------------------------------
 
+CRSPtr WKTParser::Private::dealWithEPSGCodeForInterpolationCRSParameter(
+    std::vector<OperationParameterNNPtr> &parameters,
+    std::vector<ParameterValueNNPtr> &values) {
+    // Transform EPSG hacky PARAMETER["EPSG code for Interpolation CRS",
+    // crs_epsg_code] into proper interpolation CRS
+    if (dbContext_ != nullptr) {
+        for (size_t i = 0; i < parameters.size(); ++i) {
+            if (parameters[i]->nameStr() ==
+                EPSG_NAME_PARAMETER_EPSG_CODE_FOR_INTERPOLATION_CRS) {
+                const int code =
+                    static_cast<int>(values[i]->value().getSIValue());
+                try {
+                    auto authFactory = AuthorityFactory::create(
+                        NN_NO_CHECK(dbContext_), Identifier::EPSG);
+                    auto interpolationCRS =
+                        authFactory
+                            ->createGeographicCRS(internal::toString(code))
+                            .as_nullable();
+                    parameters.erase(parameters.begin() + i);
+                    values.erase(values.begin() + i);
+                    return interpolationCRS;
+                } catch (const util::Exception &) {
+                }
+            }
+        }
+    }
+    return nullptr;
+}
+
+// ---------------------------------------------------------------------------
+
 TransformationNNPtr
 WKTParser::Private::buildCoordinateOperation(const WKTNodeNNPtr &node) {
     const auto *nodeP = node->GP();
@@ -3304,6 +3339,10 @@ WKTParser::Private::buildCoordinateOperation(const WKTNodeNNPtr &node) {
     auto defaultAngularUnit = UnitOfMeasure::NONE;
     consumeParameters(node, false, parameters, values, defaultLinearUnit,
                       defaultAngularUnit);
+
+    if (interpolationCRS == nullptr)
+        interpolationCRS =
+            dealWithEPSGCodeForInterpolationCRSParameter(parameters, values);
 
     std::vector<PositionalAccuracyNNPtr> accuracies;
     auto &accuracyNode = nodeP->lookForChild(WKTConstants::OPERATIONACCURACY);
@@ -4341,10 +4380,10 @@ createBoundCRSSourceTransformationCRS(const crs::CRSPtr &sourceCRS,
             sourceCRS->extractGeographicCRS();
         sourceTransformationCRS = sourceGeographicCRS;
         if (sourceGeographicCRS) {
-            if (sourceGeographicCRS->datum() != nullptr &&
-                sourceGeographicCRS->primeMeridian()
-                        ->longitude()
-                        .getSIValue() != 0.0) {
+            const auto &sourceDatum = sourceGeographicCRS->datum();
+            if (sourceDatum != nullptr && sourceGeographicCRS->primeMeridian()
+                                                  ->longitude()
+                                                  .getSIValue() != 0.0) {
                 sourceTransformationCRS =
                     GeographicCRS::create(
                         util::PropertyMap().set(
@@ -4354,13 +4393,12 @@ createBoundCRSSourceTransformationCRS(const crs::CRSPtr &sourceCRS,
                         datum::GeodeticReferenceFrame::create(
                             util::PropertyMap().set(
                                 common::IdentifiedObject::NAME_KEY,
-                                sourceGeographicCRS->datum()->nameStr() +
+                                sourceDatum->nameStr() +
                                     " (with Greenwich prime meridian)"),
-                            sourceGeographicCRS->datum()->ellipsoid(),
+                            sourceDatum->ellipsoid(),
                             util::optional<std::string>(),
                             datum::PrimeMeridian::GREENWICH),
-                        cs::EllipsoidalCS::createLatitudeLongitude(
-                            common::UnitOfMeasure::DEGREE))
+                        sourceGeographicCRS->coordinateSystem())
                         .as_nullable();
             }
         } else {
@@ -4709,11 +4747,14 @@ BoundCRSNNPtr WKTParser::Private::buildBoundCRS(const WKTNodeNNPtr &node) {
     consumeParameters(abridgedNode, true, parameters, values, defaultLinearUnit,
                       defaultAngularUnit);
 
+    auto interpolationCRS =
+        dealWithEPSGCodeForInterpolationCRSParameter(parameters, values);
+
     const auto sourceTransformationCRS(
         createBoundCRSSourceTransformationCRS(sourceCRS, targetCRS));
     auto transformation = Transformation::create(
         buildProperties(abridgedNode), sourceTransformationCRS,
-        NN_NO_CHECK(targetCRS), nullptr, buildProperties(methodNode),
+        NN_NO_CHECK(targetCRS), interpolationCRS, buildProperties(methodNode),
         parameters, values, std::vector<PositionalAccuracyNNPtr>());
 
     return BoundCRS::create(buildProperties(node, false, false),
@@ -8189,6 +8230,125 @@ const std::string &PROJStringFormatter::toString() const {
         }
     }
 
+    {
+        auto iterCur = steps.begin();
+        if (iterCur != steps.end()) {
+            ++iterCur;
+        }
+        while (iterCur != steps.end()) {
+
+            assert(iterCur != steps.begin());
+            auto iterPrev = std::prev(iterCur);
+            auto &prevStep = *iterPrev;
+            auto &curStep = *iterCur;
+
+            const auto curStepParamCount = curStep.paramValues.size();
+            const auto prevStepParamCount = prevStep.paramValues.size();
+
+            // +step +proj=unitconvert +xy_in=rad +xy_out=deg
+            // +step +proj=axisswap +order=2,1
+            // +step +proj=push +v_1 +v_2
+            // +step +proj=axisswap +order=2,1
+            // +step +proj=unitconvert +xy_in=deg +xy_out=rad
+            // +step +proj=vgridshift ...
+            // +step +proj=unitconvert +xy_in=rad +xy_out=deg
+            // +step +proj=axisswap +order=2,1
+            // +step +proj=pop +v_1 +v_2
+            // ==>
+            // +step +proj=vgridshift ...
+            // +step +proj=unitconvert +xy_in=rad +xy_out=deg
+            // +step +proj=axisswap +order=2,1
+            if (prevStep.name == "unitconvert" && prevStepParamCount == 2 &&
+                prevStep.paramValues[0].equals("xy_in", "rad") &&
+                prevStep.paramValues[1].equals("xy_out", "deg") &&
+                curStep.name == "axisswap" && curStepParamCount == 1 &&
+                curStep.paramValues[0].equals("order", "2,1")) {
+                auto iterNext = std::next(iterCur);
+                bool ok = false;
+                if (iterNext != steps.end()) {
+                    auto &nextStep = *iterNext;
+                    if (nextStep.name == "push" &&
+                        nextStep.paramValues.size() == 2 &&
+                        nextStep.paramValues[0].keyEquals("v_1") &&
+                        nextStep.paramValues[1].keyEquals("v_2")) {
+                        ok = true;
+                        iterNext = std::next(iterNext);
+                    }
+                }
+                if (ok && iterNext != steps.end()) {
+                    ok = false;
+                    auto &nextStep = *iterNext;
+                    if (nextStep.name == "axisswap" &&
+                        nextStep.paramValues.size() == 1 &&
+                        nextStep.paramValues[0].equals("order", "2,1")) {
+                        ok = true;
+                        iterNext = std::next(iterNext);
+                    }
+                }
+                if (ok && iterNext != steps.end()) {
+                    ok = false;
+                    auto &nextStep = *iterNext;
+                    if (nextStep.name == "unitconvert" &&
+                        nextStep.paramValues.size() == 2 &&
+                        nextStep.paramValues[0].equals("xy_in", "deg") &&
+                        nextStep.paramValues[1].equals("xy_out", "rad")) {
+                        ok = true;
+                        iterNext = std::next(iterNext);
+                    }
+                }
+                auto iterVgridshift = iterNext;
+                if (ok && iterNext != steps.end()) {
+                    ok = false;
+                    auto &nextStep = *iterNext;
+                    if (nextStep.name == "vgridshift") {
+                        ok = true;
+                        iterNext = std::next(iterNext);
+                    }
+                }
+                if (ok && iterNext != steps.end()) {
+                    ok = false;
+                    auto &nextStep = *iterNext;
+                    if (nextStep.name == "unitconvert" &&
+                        nextStep.paramValues.size() == 2 &&
+                        nextStep.paramValues[0].equals("xy_in", "rad") &&
+                        nextStep.paramValues[1].equals("xy_out", "deg")) {
+                        ok = true;
+                        iterNext = std::next(iterNext);
+                    }
+                }
+                if (ok && iterNext != steps.end()) {
+                    ok = false;
+                    auto &nextStep = *iterNext;
+                    if (nextStep.name == "axisswap" &&
+                        nextStep.paramValues.size() == 1 &&
+                        nextStep.paramValues[0].equals("order", "2,1")) {
+                        ok = true;
+                        iterNext = std::next(iterNext);
+                    }
+                }
+                if (ok && iterNext != steps.end()) {
+                    ok = false;
+                    auto &nextStep = *iterNext;
+                    if (nextStep.name == "pop" &&
+                        nextStep.paramValues.size() == 2 &&
+                        nextStep.paramValues[0].keyEquals("v_1") &&
+                        nextStep.paramValues[1].keyEquals("v_2")) {
+                        ok = true;
+                    }
+                }
+                if (ok) {
+                    steps.erase(iterPrev, iterVgridshift);
+                    steps.erase(iterNext, std::next(iterNext));
+                    iterPrev = std::prev(iterVgridshift);
+                    iterCur = iterVgridshift;
+                    continue;
+                }
+            }
+
+            ++iterCur;
+        }
+    }
+
     if (steps.size() > 1 ||
         (steps.size() == 1 &&
          (steps.front().inverted || steps.front().hasKey("omit_inv") ||
@@ -9201,13 +9361,22 @@ PROJStringParser::Private::buildDatum(Step &step, const std::string &title) {
     PrimeMeridianNNPtr pm(buildPrimeMeridian(step));
     PropertyMap grfMap;
 
+    const auto &nadgrids = getParamValue(step, "nadgrids");
+    const auto &towgs84 = getParamValue(step, "towgs84");
+    std::string datumNameSuffix;
+    if (!nadgrids.empty()) {
+        datumNameSuffix = " using nadgrids=" + nadgrids;
+    } else if (!towgs84.empty()) {
+        datumNameSuffix = " using towgs84=" + towgs84;
+    }
+
     // It is arguable that we allow the prime meridian of a datum defined by
     // its name to be overridden, but this is found at least in a regression
     // test
     // of GDAL. So let's keep the ellipsoid part of the datum in that case and
     // use the specified prime meridian.
     const auto overridePmIfNeeded =
-        [&pm](const GeodeticReferenceFrameNNPtr &grf) {
+        [&pm, &datumNameSuffix](const GeodeticReferenceFrameNNPtr &grf) {
             if (pm->_isEquivalentTo(PrimeMeridian::GREENWICH.get())) {
                 return grf;
             } else {
@@ -9215,7 +9384,7 @@ PROJStringParser::Private::buildDatum(Step &step, const std::string &title) {
                     PropertyMap().set(IdentifiedObject::NAME_KEY,
                                       "Unknown based on " +
                                           grf->ellipsoid()->nameStr() +
-                                          " ellipsoid"),
+                                          " ellipsoid" + datumNameSuffix),
                     grf->ellipsoid(), grf->anchorDefinition(), pm);
             }
         };
@@ -9232,7 +9401,7 @@ PROJStringParser::Private::buildDatum(Step &step, const std::string &title) {
                                                  Length(R), guessBodyName(R));
         return GeodeticReferenceFrame::create(
             grfMap.set(IdentifiedObject::NAME_KEY,
-                       title.empty() ? "unknown" : title.c_str()),
+                       title.empty() ? "unknown" + datumNameSuffix : title),
             ellipsoid, optionalEmptyString, fixupPrimeMeridan(ellipsoid, pm));
     }
 
@@ -9281,21 +9450,23 @@ PROJStringParser::Private::buildDatum(Step &step, const std::string &title) {
     }
 
     else if (!ellpsStr.empty()) {
-        auto l_datum = [&ellpsStr, &title, &grfMap, &optionalEmptyString,
-                        &pm]() {
+        auto l_datum = [&ellpsStr, &title, &grfMap, &optionalEmptyString, &pm,
+                        &datumNameSuffix]() {
             if (ellpsStr == "WGS84") {
                 return GeodeticReferenceFrame::create(
                     grfMap.set(IdentifiedObject::NAME_KEY,
                                title.empty()
-                                   ? "Unknown based on WGS84 ellipsoid"
-                                   : title.c_str()),
+                                   ? "Unknown based on WGS84 ellipsoid" +
+                                         datumNameSuffix
+                                   : title),
                     Ellipsoid::WGS84, optionalEmptyString, pm);
             } else if (ellpsStr == "GRS80") {
                 return GeodeticReferenceFrame::create(
                     grfMap.set(IdentifiedObject::NAME_KEY,
                                title.empty()
-                                   ? "Unknown based on GRS80 ellipsoid"
-                                   : title.c_str()),
+                                   ? "Unknown based on GRS80 ellipsoid" +
+                                         datumNameSuffix
+                                   : title),
                     Ellipsoid::GRS1980, optionalEmptyString, pm);
             } else {
                 auto proj_ellps = proj_list_ellps();
@@ -9331,7 +9502,7 @@ PROJStringParser::Private::buildDatum(Step &step, const std::string &title) {
                                        title.empty()
                                            ? std::string("Unknown based on ") +
                                                  proj_ellps[i].name +
-                                                 " ellipsoid"
+                                                 " ellipsoid" + datumNameSuffix
                                            : title),
                             NN_NO_CHECK(ellipsoid), optionalEmptyString, pm);
                     }
@@ -9358,6 +9529,15 @@ PROJStringParser::Private::buildDatum(Step &step, const std::string &title) {
         }
     }
 
+    const auto createGRF = [&grfMap, &title, &optionalEmptyString,
+                            &datumNameSuffix,
+                            &pm](const EllipsoidNNPtr &ellipsoid) {
+        return GeodeticReferenceFrame::create(
+            grfMap.set(IdentifiedObject::NAME_KEY,
+                       title.empty() ? "unknown" + datumNameSuffix : title),
+            ellipsoid, optionalEmptyString, fixupPrimeMeridan(ellipsoid, pm));
+    };
+
     if (a > 0 && (b > 0 || !bStr.empty())) {
         if (!bStr.empty()) {
             try {
@@ -9370,10 +9550,7 @@ PROJStringParser::Private::buildDatum(Step &step, const std::string &title) {
             Ellipsoid::createTwoAxis(createMapWithUnknownName(), Length(a),
                                      Length(b), guessBodyName(a))
                 ->identify();
-        return GeodeticReferenceFrame::create(
-            grfMap.set(IdentifiedObject::NAME_KEY,
-                       title.empty() ? "unknown" : title.c_str()),
-            ellipsoid, optionalEmptyString, fixupPrimeMeridan(ellipsoid, pm));
+        return createGRF(ellipsoid);
     }
 
     else if (a > 0 && (rf >= 0 || !rfStr.empty())) {
@@ -9388,10 +9565,7 @@ PROJStringParser::Private::buildDatum(Step &step, const std::string &title) {
                              createMapWithUnknownName(), Length(a), Scale(rf),
                              guessBodyName(a))
                              ->identify();
-        return GeodeticReferenceFrame::create(
-            grfMap.set(IdentifiedObject::NAME_KEY,
-                       title.empty() ? "unknown" : title.c_str()),
-            ellipsoid, optionalEmptyString, fixupPrimeMeridan(ellipsoid, pm));
+        return createGRF(ellipsoid);
     }
 
     else if (a > 0 && !fStr.empty()) {
@@ -9405,10 +9579,7 @@ PROJStringParser::Private::buildDatum(Step &step, const std::string &title) {
                              createMapWithUnknownName(), Length(a),
                              Scale(f != 0.0 ? 1.0 / f : 0.0), guessBodyName(a))
                              ->identify();
-        return GeodeticReferenceFrame::create(
-            grfMap.set(IdentifiedObject::NAME_KEY,
-                       title.empty() ? "unknown" : title.c_str()),
-            ellipsoid, optionalEmptyString, fixupPrimeMeridan(ellipsoid, pm));
+        return createGRF(ellipsoid);
     }
 
     else if (a > 0 && !eStr.empty()) {
@@ -9424,10 +9595,7 @@ PROJStringParser::Private::buildDatum(Step &step, const std::string &title) {
                              createMapWithUnknownName(), Length(a),
                              Scale(f != 0.0 ? 1.0 / f : 0.0), guessBodyName(a))
                              ->identify();
-        return GeodeticReferenceFrame::create(
-            grfMap.set(IdentifiedObject::NAME_KEY,
-                       title.empty() ? "unknown" : title.c_str()),
-            ellipsoid, optionalEmptyString, fixupPrimeMeridan(ellipsoid, pm));
+        return createGRF(ellipsoid);
     }
 
     else if (a > 0 && !esStr.empty()) {
@@ -9442,10 +9610,7 @@ PROJStringParser::Private::buildDatum(Step &step, const std::string &title) {
                              createMapWithUnknownName(), Length(a),
                              Scale(f != 0.0 ? 1.0 / f : 0.0), guessBodyName(a))
                              ->identify();
-        return GeodeticReferenceFrame::create(
-            grfMap.set(IdentifiedObject::NAME_KEY,
-                       title.empty() ? "unknown" : title.c_str()),
-            ellipsoid, optionalEmptyString, fixupPrimeMeridan(ellipsoid, pm));
+        return createGRF(ellipsoid);
     }
 
     // If only a is specified, create a sphere
@@ -9453,10 +9618,7 @@ PROJStringParser::Private::buildDatum(Step &step, const std::string &title) {
         esStr.empty()) {
         auto ellipsoid = Ellipsoid::createSphere(createMapWithUnknownName(),
                                                  Length(a), guessBodyName(a));
-        return GeodeticReferenceFrame::create(
-            grfMap.set(IdentifiedObject::NAME_KEY,
-                       title.empty() ? "unknown" : title.c_str()),
-            ellipsoid, optionalEmptyString, fixupPrimeMeridan(ellipsoid, pm));
+        return createGRF(ellipsoid);
     }
 
     if (!bStr.empty() && aStr.empty()) {
@@ -9834,8 +9996,9 @@ PROJStringParser::Private::buildBoundOrCompoundCRSIfNeeded(int iStep,
 
     const auto &geoidgrids = getParamValue(step, "geoidgrids");
     if (!geoidgrids.empty()) {
-        auto vdatum =
-            VerticalReferenceFrame::create(createMapWithUnknownName());
+        auto vdatum = VerticalReferenceFrame::create(
+            PropertyMap().set(common::IdentifiedObject::NAME_KEY,
+                              "unknown using geoidgrids=" + geoidgrids));
 
         const UnitOfMeasure unit = buildUnit(step, "vunits", "vto_meter");
 
@@ -10526,12 +10689,18 @@ PROJStringParser::createFromPROJString(const std::string &projString) {
                     }
                     auto geogCRS = dynamic_cast<GeographicCRS *>(crs);
                     if (geogCRS) {
+                        const auto &cs = geogCRS->coordinateSystem();
                         // Override with longitude latitude in degrees
                         return GeographicCRS::create(
                             properties, geogCRS->datum(),
                             geogCRS->datumEnsemble(),
-                            EllipsoidalCS::createLongitudeLatitude(
-                                UnitOfMeasure::DEGREE));
+                            cs->axisList().size() == 2
+                                ? EllipsoidalCS::createLongitudeLatitude(
+                                      UnitOfMeasure::DEGREE)
+                                : EllipsoidalCS::
+                                      createLongitudeLatitudeEllipsoidalHeight(
+                                          UnitOfMeasure::DEGREE,
+                                          cs->axisList()[2]->unit()));
                     }
                     auto projCRS = dynamic_cast<ProjectedCRS *>(crs);
                     if (projCRS) {

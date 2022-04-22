@@ -3204,6 +3204,102 @@ TEST(wkt_parse, COORDINATEOPERATION) {
 
 // ---------------------------------------------------------------------------
 
+TEST(wkt_parse, COORDINATEOPERATION_with_interpolation_as_parameter) {
+    auto wkt =
+        "COORDINATEOPERATION[\"SHGD2015 to SHGD2015 + SHVD2015 height (1)\",\n"
+        "    VERSION[\"ENRD-Shn Hel\"],\n"
+        "    SOURCECRS[\n"
+        "        GEOGCRS[\"SHGD2015\",\n"
+        "            DATUM[\"St. Helena Geodetic Datum 2015\",\n"
+        "                ELLIPSOID[\"GRS 1980\",6378137,298.257222101,\n"
+        "                    LENGTHUNIT[\"metre\",1]]],\n"
+        "            PRIMEM[\"Greenwich\",0,\n"
+        "                ANGLEUNIT[\"degree\",0.0174532925199433]],\n"
+        "            CS[ellipsoidal,3],\n"
+        "                AXIS[\"latitude\",north,\n"
+        "                    ORDER[1],\n"
+        "                    ANGLEUNIT[\"degree\",0.0174532925199433]],\n"
+        "                AXIS[\"longitude\",east,\n"
+        "                    ORDER[2],\n"
+        "                    ANGLEUNIT[\"degree\",0.0174532925199433]],\n"
+        "                AXIS[\"ellipsoidal height\",up,\n"
+        "                    ORDER[3],\n"
+        "                    LENGTHUNIT[\"metre\",1]],\n"
+        "            ID[\"EPSG\",7885]]],\n"
+        "    TARGETCRS[\n"
+        "        COMPOUNDCRS[\"SHMG2015 + SHVD2015 height\",\n"
+        "            PROJCRS[\"SHMG2015\",\n"
+        "                BASEGEOGCRS[\"SHGD2015\",\n"
+        "                    DATUM[\"St. Helena Geodetic Datum 2015\",\n"
+        "                        ELLIPSOID[\"GRS "
+        "1980\",6378137,298.257222101,\n"
+        "                            LENGTHUNIT[\"metre\",1]]],\n"
+        "                    PRIMEM[\"Greenwich\",0,\n"
+        "                        ANGLEUNIT[\"degree\",0.0174532925199433]],\n"
+        "                    ID[\"EPSG\",7886]],\n"
+        "                CONVERSION[\"UTM zone 30S\",\n"
+        "                    METHOD[\"Transverse Mercator\",\n"
+        "                        ID[\"EPSG\",9807]],\n"
+        "                    PARAMETER[\"Latitude of natural origin\",0,\n"
+        "                        ANGLEUNIT[\"degree\",0.0174532925199433],\n"
+        "                        ID[\"EPSG\",8801]],\n"
+        "                    PARAMETER[\"Longitude of natural origin\",-3,\n"
+        "                        ANGLEUNIT[\"degree\",0.0174532925199433],\n"
+        "                        ID[\"EPSG\",8802]],\n"
+        "                    PARAMETER[\"Scale factor at natural "
+        "origin\",0.9996,\n"
+        "                        SCALEUNIT[\"unity\",1],\n"
+        "                        ID[\"EPSG\",8805]],\n"
+        "                    PARAMETER[\"False easting\",500000,\n"
+        "                        LENGTHUNIT[\"metre\",1],\n"
+        "                        ID[\"EPSG\",8806]],\n"
+        "                    PARAMETER[\"False northing\",10000000,\n"
+        "                        LENGTHUNIT[\"metre\",1],\n"
+        "                        ID[\"EPSG\",8807]]],\n"
+        "                CS[Cartesian,2],\n"
+        "                    AXIS[\"(E)\",east,\n"
+        "                        ORDER[1],\n"
+        "                        LENGTHUNIT[\"metre\",1]],\n"
+        "                    AXIS[\"(N)\",north,\n"
+        "                        ORDER[2],\n"
+        "                        LENGTHUNIT[\"metre\",1]]],\n"
+        "            VERTCRS[\"SHVD2015 height\",\n"
+        "                VDATUM[\"St. Helena Vertical Datum 2015\"],\n"
+        "                CS[vertical,1],\n"
+        "                    AXIS[\"gravity-related height (H)\",up,\n"
+        "                        LENGTHUNIT[\"metre\",1]]],\n"
+        "            ID[\"EPSG\",7956]]],\n"
+        "    METHOD[\"Geog3D to Geog2D+GravityRelatedHeight (EGM2008)\",\n"
+        "        ID[\"EPSG\",1092]],\n"
+        "    PARAMETERFILE[\"Geoid (height correction) model file\","
+        "\"Und_min2.5x2.5_egm2008_isw=82_WGS84_TideFree.gz\"],\n"
+        "    PARAMETER[\"EPSG code for Interpolation CRS\",7886,\n"
+        "        ID[\"EPSG\",1048]],\n"
+        "    OPERATIONACCURACY[0],\n"
+        "    ID[\"EPSG\",9617]]";
+
+    {
+        auto obj = WKTParser().createFromWKT(wkt);
+        auto transf = nn_dynamic_pointer_cast<Transformation>(obj);
+        ASSERT_TRUE(transf != nullptr);
+        EXPECT_TRUE(transf->interpolationCRS() == nullptr);
+        EXPECT_EQ(transf->parameterValues().size(), 2U);
+    }
+
+    {
+        auto dbContext = DatabaseContext::create();
+        // Need a database so that the interpolation CRS EPSG:7886 is resolved
+        auto obj =
+            WKTParser().attachDatabaseContext(dbContext).createFromWKT(wkt);
+        auto transf = nn_dynamic_pointer_cast<Transformation>(obj);
+        ASSERT_TRUE(transf != nullptr);
+        EXPECT_TRUE(transf->interpolationCRS() != nullptr);
+        EXPECT_EQ(transf->parameterValues().size(), 1U);
+    }
+}
+
+// ---------------------------------------------------------------------------
+
 TEST(wkt_parse, COORDINATEOPERATION_wkt2_2019) {
 
     std::string src_wkt;
@@ -3827,6 +3923,201 @@ TEST(
 
 // ---------------------------------------------------------------------------
 
+TEST(wkt_parse, CONCATENATEDOPERATION_with_inverse_conversion_of_compound) {
+
+    auto wkt =
+        "CONCATENATEDOPERATION[\"Inverse of RD New + Amersfoort to ETRS89 (9) "
+        "+ Inverse of ETRS89 to NAP height (2) + ETRS89 to WGS 84 (1)\",\n"
+        "    SOURCECRS[\n"
+        "        COMPOUNDCRS[\"Amersfoort / RD New + NAP height\",\n"
+        "            PROJCRS[\"Amersfoort / RD New\",\n"
+        "                BASEGEOGCRS[\"Amersfoort\",\n"
+        "                    DATUM[\"Amersfoort\",\n"
+        "                        ELLIPSOID[\"Bessel "
+        "1841\",6377397.155,299.1528128,\n"
+        "                            LENGTHUNIT[\"metre\",1]]],\n"
+        "                    PRIMEM[\"Greenwich\",0,\n"
+        "                        ANGLEUNIT[\"degree\",0.0174532925199433]],\n"
+        "                    ID[\"EPSG\",4289]],\n"
+        "                CONVERSION[\"RD New\",\n"
+        "                    METHOD[\"Oblique Stereographic\",\n"
+        "                        ID[\"EPSG\",9809]],\n"
+        "                    PARAMETER[\"Latitude of natural "
+        "origin\",52.1561605555556,\n"
+        "                        ANGLEUNIT[\"degree\",0.0174532925199433],\n"
+        "                        ID[\"EPSG\",8801]],\n"
+        "                    PARAMETER[\"Longitude of natural "
+        "origin\",5.38763888888889,\n"
+        "                        ANGLEUNIT[\"degree\",0.0174532925199433],\n"
+        "                        ID[\"EPSG\",8802]],\n"
+        "                    PARAMETER[\"Scale factor at natural "
+        "origin\",0.9999079,\n"
+        "                        SCALEUNIT[\"unity\",1],\n"
+        "                        ID[\"EPSG\",8805]],\n"
+        "                    PARAMETER[\"False easting\",155000,\n"
+        "                        LENGTHUNIT[\"metre\",1],\n"
+        "                        ID[\"EPSG\",8806]],\n"
+        "                    PARAMETER[\"False northing\",463000,\n"
+        "                        LENGTHUNIT[\"metre\",1],\n"
+        "                        ID[\"EPSG\",8807]]],\n"
+        "                CS[Cartesian,2],\n"
+        "                    AXIS[\"easting (X)\",east,\n"
+        "                        ORDER[1],\n"
+        "                        LENGTHUNIT[\"metre\",1]],\n"
+        "                    AXIS[\"northing (Y)\",north,\n"
+        "                        ORDER[2],\n"
+        "                        LENGTHUNIT[\"metre\",1]]],\n"
+        "            VERTCRS[\"NAP height\",\n"
+        "                VDATUM[\"Normaal Amsterdams Peil\"],\n"
+        "                CS[vertical,1],\n"
+        "                    AXIS[\"gravity-related height (H)\",up,\n"
+        "                        LENGTHUNIT[\"metre\",1]]],\n"
+        "            ID[\"EPSG\",7415]]],\n"
+        "    TARGETCRS[\n"
+        "        GEOGCRS[\"WGS 84 (3D)\",\n"
+        "            ENSEMBLE[\"World Geodetic System 1984 ensemble\",\n"
+        "                MEMBER[\"World Geodetic System 1984 (Transit)\"],\n"
+        "                MEMBER[\"World Geodetic System 1984 (G730)\"],\n"
+        "                MEMBER[\"World Geodetic System 1984 (G873)\"],\n"
+        "                MEMBER[\"World Geodetic System 1984 (G1150)\"],\n"
+        "                MEMBER[\"World Geodetic System 1984 (G1674)\"],\n"
+        "                MEMBER[\"World Geodetic System 1984 (G1762)\"],\n"
+        "                MEMBER[\"World Geodetic System 1984 (G2139)\"],\n"
+        "                ELLIPSOID[\"WGS 84\",6378137,298.257223563,\n"
+        "                    LENGTHUNIT[\"metre\",1]],\n"
+        "                ENSEMBLEACCURACY[2.0]],\n"
+        "            PRIMEM[\"Greenwich\",0,\n"
+        "                ANGLEUNIT[\"degree\",0.0174532925199433]],\n"
+        "            CS[ellipsoidal,3],\n"
+        "                AXIS[\"geodetic latitude (Lat)\",north,\n"
+        "                    ORDER[1],\n"
+        "                    ANGLEUNIT[\"degree minute second "
+        "hemisphere\",0.0174532925199433]],\n"
+        "                AXIS[\"geodetic longitude (Long)\",east,\n"
+        "                    ORDER[2],\n"
+        "                    ANGLEUNIT[\"degree minute second "
+        "hemisphere\",0.0174532925199433]],\n"
+        "                AXIS[\"ellipsoidal height (h)\",up,\n"
+        "                    ORDER[3],\n"
+        "                    LENGTHUNIT[\"metre\",1]],\n"
+        "            ID[\"EPSG\",4329]]],\n"
+        "    STEP[\n"
+        "        CONVERSION[\"Inverse of RD New\",\n"
+        "            METHOD[\"Inverse of Oblique Stereographic\",\n"
+        "                ID[\"INVERSE(EPSG)\",9809]],\n"
+        "            PARAMETER[\"Latitude of natural "
+        "origin\",52.1561605555556,\n"
+        "                ANGLEUNIT[\"degree\",0.0174532925199433],\n"
+        "                ID[\"EPSG\",8801]],\n"
+        "            PARAMETER[\"Longitude of natural "
+        "origin\",5.38763888888889,\n"
+        "                ANGLEUNIT[\"degree\",0.0174532925199433],\n"
+        "                ID[\"EPSG\",8802]],\n"
+        "            PARAMETER[\"Scale factor at natural origin\",0.9999079,\n"
+        "                SCALEUNIT[\"unity\",1],\n"
+        "                ID[\"EPSG\",8805]],\n"
+        "            PARAMETER[\"False easting\",155000,\n"
+        "                LENGTHUNIT[\"metre\",1],\n"
+        "                ID[\"EPSG\",8806]],\n"
+        "            PARAMETER[\"False northing\",463000,\n"
+        "                LENGTHUNIT[\"metre\",1],\n"
+        "                ID[\"EPSG\",8807]],\n"
+        "            ID[\"INVERSE(EPSG)\",19914]]],\n"
+        "    STEP[\n"
+        "        COORDINATEOPERATION[\"PROJ-based coordinate operation\",\n"
+        "            SOURCECRS[\n"
+        "                COMPOUNDCRS[\"Amersfoort + NAP height\",\n"
+        "                    GEOGCRS[\"Amersfoort\",\n"
+        "                        DATUM[\"Amersfoort\",\n"
+        "                            ELLIPSOID[\"Bessel "
+        "1841\",6377397.155,299.1528128,\n"
+        "                                LENGTHUNIT[\"metre\",1]]],\n"
+        "                        PRIMEM[\"Greenwich\",0,\n"
+        "                            "
+        "ANGLEUNIT[\"degree\",0.0174532925199433]],\n"
+        "                        CS[ellipsoidal,2],\n"
+        "                            AXIS[\"geodetic latitude (Lat)\",north,\n"
+        "                                ORDER[1],\n"
+        "                                "
+        "ANGLEUNIT[\"degree\",0.0174532925199433]],\n"
+        "                            AXIS[\"geodetic longitude (Lon)\",east,\n"
+        "                                ORDER[2],\n"
+        "                                "
+        "ANGLEUNIT[\"degree\",0.0174532925199433]],\n"
+        "                        ID[\"EPSG\",4289]],\n"
+        "                    VERTCRS[\"NAP height\",\n"
+        "                        VDATUM[\"Normaal Amsterdams Peil\"],\n"
+        "                        CS[vertical,1],\n"
+        "                            AXIS[\"gravity-related height (H)\",up,\n"
+        "                                LENGTHUNIT[\"metre\",1]],\n"
+        "                        ID[\"EPSG\",5709]]]],\n"
+        "            TARGETCRS[\n"
+        "                GEOGCRS[\"WGS 84 (3D)\",\n"
+        "                    ENSEMBLE[\"World Geodetic System 1984 "
+        "ensemble\",\n"
+        "                        MEMBER[\"World Geodetic System 1984 "
+        "(Transit)\"],\n"
+        "                        MEMBER[\"World Geodetic System 1984 "
+        "(G730)\"],\n"
+        "                        MEMBER[\"World Geodetic System 1984 "
+        "(G873)\"],\n"
+        "                        MEMBER[\"World Geodetic System 1984 "
+        "(G1150)\"],\n"
+        "                        MEMBER[\"World Geodetic System 1984 "
+        "(G1674)\"],\n"
+        "                        MEMBER[\"World Geodetic System 1984 "
+        "(G1762)\"],\n"
+        "                        MEMBER[\"World Geodetic System 1984 "
+        "(G2139)\"],\n"
+        "                        ELLIPSOID[\"WGS 84\",6378137,298.257223563,\n"
+        "                            LENGTHUNIT[\"metre\",1]],\n"
+        "                        ENSEMBLEACCURACY[2.0]],\n"
+        "                    PRIMEM[\"Greenwich\",0,\n"
+        "                        ANGLEUNIT[\"degree\",0.0174532925199433]],\n"
+        "                    CS[ellipsoidal,3],\n"
+        "                        AXIS[\"geodetic latitude (Lat)\",north,\n"
+        "                            ORDER[1],\n"
+        "                            ANGLEUNIT[\"degree minute second "
+        "hemisphere\",0.0174532925199433]],\n"
+        "                        AXIS[\"geodetic longitude (Long)\",east,\n"
+        "                            ORDER[2],\n"
+        "                            ANGLEUNIT[\"degree minute second "
+        "hemisphere\",0.0174532925199433]],\n"
+        "                        AXIS[\"ellipsoidal height (h)\",up,\n"
+        "                            ORDER[3],\n"
+        "                            LENGTHUNIT[\"metre\",1]],\n"
+        "                    ID[\"EPSG\",4329]]],\n"
+        "            METHOD[\"PROJ-based operation method: +proj=pipeline "
+        "+step +proj=axisswap +order=2,1 +step +proj=unitconvert +xy_in=deg "
+        "+xy_out=rad +step +proj=hgridshift +grids=nl_nsgi_rdtrans2018.tif "
+        "+step +proj=vgridshift +grids=nl_nsgi_nlgeo2018.tif +multiplier=1 "
+        "+step +proj=unitconvert +xy_in=rad +xy_out=deg +step +proj=axisswap "
+        "+order=2,1\"],\n"
+        "            OPERATIONACCURACY[1.002]]],\n"
+        "    USAGE[\n"
+        "        SCOPE[\"unknown\"],\n"
+        "        AREA[\"Netherlands - onshore, including Waddenzee, Dutch "
+        "Wadden Islands and 12-mile offshore coastal zone.\"],\n"
+        "        BBOX[50.75,3.2,53.7,7.22]]]";
+
+    auto obj = WKTParser().createFromWKT(wkt);
+    auto concat = nn_dynamic_pointer_cast<ConcatenatedOperation>(obj);
+    ASSERT_TRUE(concat != nullptr);
+
+    EXPECT_EQ(concat->exportToPROJString(PROJStringFormatter::create().get()),
+              "+proj=pipeline "
+              "+step +inv +proj=sterea +lat_0=52.1561605555556 "
+              "+lon_0=5.38763888888889 +k=0.9999079 +x_0=155000 +y_0=463000 "
+              "+ellps=bessel "
+              "+step +proj=hgridshift +grids=nl_nsgi_rdtrans2018.tif "
+              "+step +proj=vgridshift +grids=nl_nsgi_nlgeo2018.tif "
+              "+multiplier=1 "
+              "+step +proj=unitconvert +xy_in=rad +xy_out=deg "
+              "+step +proj=axisswap +order=2,1");
+}
+
+// ---------------------------------------------------------------------------
+
 TEST(wkt_parse, BOUNDCRS_transformation_from_names) {
 
     auto projcrs = ProjectedCRS::create(
@@ -3920,6 +4211,73 @@ TEST(wkt_parse, BOUNDCRS_transformation_from_codes) {
     ASSERT_EQ(params.size(), expected.size());
     for (int i = 0; i < 7; i++) {
         EXPECT_NEAR(params[i], expected[i], 1e-10);
+    }
+}
+
+// ---------------------------------------------------------------------------
+
+TEST(wkt_parse, BOUNDCRS_with_interpolation_as_parameter) {
+    auto wkt =
+        "BOUNDCRS[\n"
+        "    SOURCECRS[\n"
+        "        VERTCRS[\"unknown\",\n"
+        "            VDATUM[\"unknown using geoidgrids=@foo.gtx\"],\n"
+        "            CS[vertical,1],\n"
+        "                AXIS[\"gravity-related height (H)\",up,\n"
+        "                    LENGTHUNIT[\"metre\",1,\n"
+        "                        ID[\"EPSG\",9001]]]]],\n"
+        "    TARGETCRS[\n"
+        "        GEOGCRS[\"WGS 84\",\n"
+        "            DATUM[\"World Geodetic System 1984\",\n"
+        "                ELLIPSOID[\"WGS 84\",6378137,298.257223563,\n"
+        "                    LENGTHUNIT[\"metre\",1]]],\n"
+        "            PRIMEM[\"Greenwich\",0,\n"
+        "                ANGLEUNIT[\"degree\",0.0174532925199433]],\n"
+        "            CS[ellipsoidal,3],\n"
+        "                AXIS[\"latitude\",north,\n"
+        "                    ORDER[1],\n"
+        "                    ANGLEUNIT[\"degree\",0.0174532925199433]],\n"
+        "                AXIS[\"longitude\",east,\n"
+        "                    ORDER[2],\n"
+        "                    ANGLEUNIT[\"degree\",0.0174532925199433]],\n"
+        "                AXIS[\"ellipsoidal height\",up,\n"
+        "                    ORDER[3],\n"
+        "                    LENGTHUNIT[\"metre\",1]],\n"
+        "            ID[\"EPSG\",4979]]],\n"
+        "    ABRIDGEDTRANSFORMATION[\"unknown to WGS84 ellipsoidal height\",\n"
+        "        METHOD[\"GravityRelatedHeight to Geographic3D\"],\n"
+        "        PARAMETERFILE[\"Geoid (height correction) model "
+        "file\",\"@foo.gtx\",\n"
+        "            ID[\"EPSG\",8666]],\n"
+        "        PARAMETER[\"EPSG code for Interpolation CRS\",7886]]]";
+
+    {
+        auto obj = WKTParser().createFromWKT(wkt);
+        auto boundCRS = nn_dynamic_pointer_cast<BoundCRS>(obj);
+        ASSERT_TRUE(boundCRS != nullptr);
+        EXPECT_TRUE(boundCRS->transformation()->interpolationCRS() == nullptr);
+        EXPECT_EQ(boundCRS->transformation()->parameterValues().size(), 2U);
+    }
+
+    {
+        auto dbContext = DatabaseContext::create();
+        // Need a database so that the interpolation CRS EPSG:7886 is resolved
+        auto obj =
+            WKTParser().attachDatabaseContext(dbContext).createFromWKT(wkt);
+        auto boundCRS = nn_dynamic_pointer_cast<BoundCRS>(obj);
+        ASSERT_TRUE(boundCRS != nullptr);
+        EXPECT_TRUE(boundCRS->transformation()->interpolationCRS() != nullptr);
+        EXPECT_EQ(boundCRS->transformation()->parameterValues().size(), 1U);
+
+        // Check that on export, the interpolation CRS is exported as a
+        // parameter
+        auto exportedWKT = boundCRS->exportToWKT(
+            WKTFormatter::create(WKTFormatter::Convention::WKT2_2019).get());
+        EXPECT_TRUE(
+            exportedWKT.find(
+                "PARAMETER[\"EPSG code for Interpolation CRS\",7886,") !=
+            std::string::npos)
+            << exportedWKT;
     }
 }
 
@@ -9657,7 +10015,9 @@ TEST(io, projparse_merc_not_quite_google_mercator) {
     EXPECT_TRUE(wkt.find("METHOD[\"Popular Visualisation Pseudo "
                          "Mercator\",ID[\"EPSG\",1024]") != std::string::npos)
         << wkt;
-    EXPECT_TRUE(wkt.find("DATUM[\"unknown\",") != std::string::npos) << wkt;
+    EXPECT_TRUE(wkt.find("DATUM[\"unknown using nadgrids=@null\",") !=
+                std::string::npos)
+        << wkt;
 
     EXPECT_EQ(
         replaceAll(crs->exportToPROJString(PROJStringFormatter::create().get()),
