@@ -41,7 +41,7 @@ Schema
 ------
 
 A JSON schema of PROJJSON grammar is available at
-https://proj.org/schemas/v0.4/projjson.schema.json
+https://proj.org/schemas/v0.5/projjson.schema.json
 
 This schema defines a minimum set of constraints that apply to well-formed PROJJSON.
 Number of specific CRS and coordinate operation domain constraints are not expressed
@@ -52,8 +52,9 @@ in the WKT2:2019 specification also apply, as supplement to the JSON schema cons
 History of the schema
 ---------------------
 
-* v0.4: additional properties allowed in id object (version, authority_citation, uri)
-* v0.3: additional properties allowed in BoundCRS object (name, scope, area, bbox, usages, remarks, id, ids)
+* v0.5: add "meridian" member in Axis object type. Add "temporal_extent" and "vertical_extent" members in object usage. Implemented in PROJ 9.1.
+* v0.4: additional properties allowed in id object (version, authority_citation, uri). Implemented in PROJ 8.2.
+* v0.3: additional properties allowed in BoundCRS object (name, scope, area, bbox, usages, remarks, id, ids). Implemented in PROJ 8.1.
 * v0.2: addition of geoid_model in VerticalCRS object.
 * v0.1: initial version for PROJ 6.2
 
@@ -226,6 +227,15 @@ For the following cases, the unit may be omitted if it is metre:
 
 For the following cases, the unit may be omitted if it is degree:
 ``longitude`` of a prime meridian.
+
+Coordinate system
++++++++++++++++++
+
+In WKT, a `ORDER <http://docs.opengeospatial.org/is/18-010r7/18-010r7.html#49>`_
+keyword may be present in an axis definition. As the value of that element
+is equal to the index of axis in the list of axis of the coordinate system
+(with 1 as the value of the first index), it is absent from the PROJJSON encoding,
+to avoid any risk of misuse.
 
 Examples
 --------
