@@ -247,6 +247,9 @@ class PROJ_GCC_DLL WKTFormatter {
     setAllowEllipsoidalHeightAsVerticalCRS(bool allow) noexcept;
     PROJ_DLL bool isAllowedEllipsoidalHeightAsVerticalCRS() const noexcept;
 
+    PROJ_DLL WKTFormatter &setAllowLINUNITNode(bool allow) noexcept;
+    PROJ_DLL bool isAllowedLINUNITNode() const noexcept;
+
     PROJ_DLL const std::string &toString() const;
 
     PROJ_PRIVATE :
@@ -475,6 +478,8 @@ class PROJ_GCC_DLL PROJStringFormatter {
     PROJ_INTERNAL const DatabaseContextPtr &databaseContext() const;
 
     PROJ_INTERNAL Convention convention() const;
+
+    PROJ_INTERNAL size_t getStepCount() const;
 
     //! @endcond
 
