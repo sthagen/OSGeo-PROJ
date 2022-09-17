@@ -6485,6 +6485,19 @@ TEST(crs, crs_alterCSLinearUnit) {
     }
 
     {
+        auto crs = createDerivedProjectedCRS()->alterCSLinearUnit(
+            UnitOfMeasure("my unit", 2));
+        auto derivedProjCRS = dynamic_cast<DerivedProjectedCRS *>(crs.get());
+        ASSERT_TRUE(derivedProjCRS != nullptr);
+        auto cs = derivedProjCRS->coordinateSystem();
+        ASSERT_EQ(cs->axisList().size(), 2U);
+        EXPECT_EQ(cs->axisList()[0]->unit().name(), "my unit");
+        EXPECT_EQ(cs->axisList()[0]->unit().conversionToSI(), 2);
+        EXPECT_EQ(cs->axisList()[1]->unit().name(), "my unit");
+        EXPECT_EQ(cs->axisList()[1]->unit().conversionToSI(), 2);
+    }
+
+    {
         auto crs = GeodeticCRS::EPSG_4978->alterCSLinearUnit(
             UnitOfMeasure("my unit", 2));
         auto geodCRS = dynamic_cast<GeodeticCRS *>(crs.get());
@@ -6538,11 +6551,43 @@ TEST(crs, crs_alterCSLinearUnit) {
     }
 
     {
-        // Not implemented on compoundCRS
         auto crs =
             createCompoundCRS()->alterCSLinearUnit(UnitOfMeasure("my unit", 2));
-        EXPECT_TRUE(createCompoundCRS()->isEquivalentTo(crs.get()));
+        auto compoundCRS = dynamic_cast<CompoundCRS *>(crs.get());
+        ASSERT_TRUE(compoundCRS != nullptr);
+        EXPECT_EQ(compoundCRS->componentReferenceSystems().size(), 2U);
+        for (const auto &subCrs : compoundCRS->componentReferenceSystems()) {
+            auto singleCrs = dynamic_cast<SingleCRS *>(subCrs.get());
+            ASSERT_TRUE(singleCrs != nullptr);
+            auto cs = singleCrs->coordinateSystem();
+            ASSERT_GE(cs->axisList().size(), 1U);
+            EXPECT_EQ(cs->axisList()[0]->unit().name(), "my unit");
+            EXPECT_EQ(cs->axisList()[0]->unit().conversionToSI(), 2);
+        }
     }
+
+    {
+        auto crs =
+            BoundCRS::createFromTOWGS84(
+                createProjected(), std::vector<double>{1, 2, 3, 4, 5, 6, 7})
+                ->alterCSLinearUnit(UnitOfMeasure("my unit", 2));
+
+        auto boundCRS = dynamic_cast<BoundCRS *>(crs.get());
+        ASSERT_TRUE(boundCRS != nullptr);
+        auto baseCRS = boundCRS->baseCRS();
+        auto projCRS = dynamic_cast<ProjectedCRS *>(baseCRS.get());
+        ASSERT_TRUE(projCRS != nullptr);
+        auto cs = projCRS->coordinateSystem();
+        EXPECT_EQ(cs->axisList()[0]->unit().name(), "my unit");
+        EXPECT_EQ(cs->axisList()[0]->unit().conversionToSI(), 2);
+        EXPECT_EQ(cs->axisList()[1]->unit().name(), "my unit");
+        EXPECT_EQ(cs->axisList()[1]->unit().conversionToSI(), 2);
+    }
+
+    // Not implemented on parametricCRS
+    auto crs =
+        createParametricCRS()->alterCSLinearUnit(UnitOfMeasure("my unit", 2));
+    EXPECT_TRUE(createParametricCRS()->isEquivalentTo(crs.get()));
 }
 
 // ---------------------------------------------------------------------------
@@ -6783,6 +6828,32 @@ TEST(crs, promoteTo3D_and_demoteTo2D) {
                         ->isEquivalentTo(crs3DAsDerivedGeog.get()));
 
         auto demoted = crs3DAsDerivedGeog->demoteTo2D(std::string(), dbContext);
+        EXPECT_EQ(demoted->baseCRS()->coordinateSystem()->axisList().size(),
+                  2U);
+        EXPECT_EQ(demoted->coordinateSystem()->axisList().size(), 2U);
+        EXPECT_TRUE(demoted->isEquivalentTo(
+            crs.get(), IComparable::Criterion::EQUIVALENT));
+        EXPECT_TRUE(demoted->demoteTo2D(std::string(), nullptr)
+                        ->isEquivalentTo(demoted.get()));
+    }
+
+    {
+        auto crs = createDerivedProjectedCRS();
+        auto crs3D = crs->promoteTo3D(std::string(), dbContext);
+        auto crs3DAsDerivedProj =
+            nn_dynamic_pointer_cast<DerivedProjectedCRS>(crs3D);
+        ASSERT_TRUE(crs3DAsDerivedProj != nullptr);
+        EXPECT_EQ(crs3DAsDerivedProj->baseCRS()
+                      ->coordinateSystem()
+                      ->axisList()
+                      .size(),
+                  3U);
+        EXPECT_EQ(crs3DAsDerivedProj->coordinateSystem()->axisList().size(),
+                  3U);
+        EXPECT_TRUE(crs3DAsDerivedProj->promoteTo3D(std::string(), nullptr)
+                        ->isEquivalentTo(crs3DAsDerivedProj.get()));
+
+        auto demoted = crs3DAsDerivedProj->demoteTo2D(std::string(), dbContext);
         EXPECT_EQ(demoted->baseCRS()->coordinateSystem()->axisList().size(),
                   2U);
         EXPECT_EQ(demoted->coordinateSystem()->axisList().size(), 2U);
