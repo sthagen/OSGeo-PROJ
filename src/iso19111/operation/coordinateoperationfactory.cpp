@@ -2099,7 +2099,17 @@ struct MyPROJStringExportableHorizVerticalHorizPROJBased final
                               ->demoteTo2D(std::string(), nullptr)
                               .get(),
                           util::IComparable::Criterion::EQUIVALENT)) {
-            const int methodEPSGCode = transf->method()->getEPSGCode();
+            int methodEPSGCode = transf->method()->getEPSGCode();
+            if (methodEPSGCode == 0) {
+                // If the transformation is actually an inverse transformation,
+                // we will not get the EPSG code. So get the forward
+                // transformation.
+                const auto invTrans = transf->inverse();
+                const auto invTransAsTrans =
+                    dynamic_cast<Transformation *>(invTrans.get());
+                if (invTransAsTrans)
+                    methodEPSGCode = invTransAsTrans->method()->getEPSGCode();
+            }
 
             const bool bGeocentricTranslation =
                 methodEPSGCode ==
@@ -2108,7 +2118,6 @@ struct MyPROJStringExportableHorizVerticalHorizPROJBased final
                     EPSG_CODE_METHOD_GEOCENTRIC_TRANSLATION_GEOGRAPHIC_2D ||
                 methodEPSGCode ==
                     EPSG_CODE_METHOD_GEOCENTRIC_TRANSLATION_GEOGRAPHIC_3D;
-
             if ((bGeocentricTranslation &&
                  !(transf->parameterValueNumericAsSI(
                        EPSG_CODE_PARAMETER_X_AXIS_TRANSLATION) == 0 &&
@@ -2403,6 +2412,34 @@ static CoordinateOperationNNPtr createHorizVerticalHorizPROJBased(
         ops.emplace_back(opGeogCRStoDstCRS);
     }
 
+    std::vector<CoordinateOperationNNPtr> opsForRemarks;
+    std::vector<CoordinateOperationNNPtr> opsForAccuracy;
+    std::string opName;
+    if (ops.size() == 3 && opGeogCRStoDstCRS->inverse()->_isEquivalentTo(
+                               opSrcCRSToGeogCRS.get(),
+                               util::IComparable::Criterion::EQUIVALENT)) {
+        opsForRemarks.emplace_back(opSrcCRSToGeogCRS);
+        opsForRemarks.emplace_back(verticalTransform);
+
+        // Only taking into account the accuracy of the vertical transform when
+        // opSrcCRSToGeogCRS and opGeogCRStoDstCRS are reversed and cancel
+        // themselves would make sense. Unfortunately it causes
+        // EPSG:4313+5710 (BD72 + Ostend height) to EPSG:9707
+        // (WGS 84 + EGM96 height) to use a non-ideal pipeline.
+        // opsForAccuracy.emplace_back(verticalTransform);
+        opsForAccuracy = ops;
+
+        opName = verticalTransform->nameStr() + " using ";
+        if (!starts_with(opSrcCRSToGeogCRS->nameStr(), "Inverse of"))
+            opName += opSrcCRSToGeogCRS->nameStr();
+        else
+            opName += opGeogCRStoDstCRS->nameStr();
+    } else {
+        opsForRemarks = ops;
+        opsForAccuracy = ops;
+        opName = computeConcatenatedName(ops);
+    }
+
     bool hasBallparkTransformation = false;
     for (const auto &op : ops) {
         hasBallparkTransformation |= op->hasBallparkTransformation();
@@ -2416,21 +2453,20 @@ static CoordinateOperationNNPtr createHorizVerticalHorizPROJBased(
         throw InvalidOperationEmptyIntersection(msg);
     }
     auto properties = util::PropertyMap();
-    properties.set(common::IdentifiedObject::NAME_KEY,
-                   computeConcatenatedName(ops));
+    properties.set(common::IdentifiedObject::NAME_KEY, opName);
 
     if (extent) {
         properties.set(common::ObjectUsage::DOMAIN_OF_VALIDITY_KEY,
                        NN_NO_CHECK(extent));
     }
 
-    const auto remarks = getRemarks(ops);
+    const auto remarks = getRemarks(opsForRemarks);
     if (!remarks.empty()) {
         properties.set(common::IdentifiedObject::REMARKS_KEY, remarks);
     }
 
     std::vector<metadata::PositionalAccuracyNNPtr> accuracies;
-    const double accuracy = getAccuracy(ops);
+    const double accuracy = getAccuracy(opsForAccuracy);
     if (accuracy >= 0.0) {
         accuracies.emplace_back(
             metadata::PositionalAccuracy::create(toString(accuracy)));
@@ -5664,6 +5700,7 @@ void CoordinateOperationFactory::Private::createOperationsCompoundToCompound(
         const bool hasNonTrivialTargetTransf =
             hasNonTrivialTransf(opsGeogToTarget);
         double bestAccuracy = -1;
+        size_t bestStepCount = 0;
         if (hasNonTrivialSrcTransf && hasNonTrivialTargetTransf) {
             const auto opsGeogSrcToGeogDst =
                 createOperations(intermGeogSrc, intermGeogDst, context);
@@ -5705,10 +5742,15 @@ void CoordinateOperationFactory::Private::createOperationsCompoundToCompound(
                                                                             op3},
                                         disallowEmptyIntersection));
                                 const double accuracy = getAccuracy(res.back());
+                                const size_t stepCount =
+                                    getStepCount(res.back());
                                 if (accuracy >= 0 &&
                                     (bestAccuracy < 0 ||
-                                     accuracy < bestAccuracy)) {
+                                     (accuracy < bestAccuracy ||
+                                      (accuracy == bestAccuracy &&
+                                       stepCount < bestStepCount)))) {
                                     bestAccuracy = accuracy;
+                                    bestStepCount = stepCount;
                                 }
                             } catch (const std::exception &) {
                             }
@@ -5719,11 +5761,12 @@ void CoordinateOperationFactory::Private::createOperationsCompoundToCompound(
         }
 
         const auto createOpsInTwoSteps =
-            [&res,
-             bestAccuracy](const std::vector<CoordinateOperationNNPtr> &ops1,
-                           const std::vector<CoordinateOperationNNPtr> &ops2) {
+            [&res, bestAccuracy,
+             bestStepCount](const std::vector<CoordinateOperationNNPtr> &ops1,
+                            const std::vector<CoordinateOperationNNPtr> &ops2) {
                 std::vector<CoordinateOperationNNPtr> res2;
                 double bestAccuracy2 = -1;
+                size_t bestStepCount2 = 0;
 
                 // In first pass, exclude (horizontal) ballpark operations, but
                 // accept them in second pass.
@@ -5758,10 +5801,15 @@ void CoordinateOperationFactory::Private::createOperationsCompoundToCompound(
                                             disallowEmptyIntersection));
                                 const double accuracy =
                                     getAccuracy(res2.back());
+                                const size_t stepCount =
+                                    getStepCount(res2.back());
                                 if (accuracy >= 0 &&
                                     (bestAccuracy2 < 0 ||
-                                     accuracy < bestAccuracy2)) {
+                                     (accuracy < bestAccuracy2 ||
+                                      (accuracy == bestAccuracy2 &&
+                                       stepCount < bestStepCount2)))) {
                                     bestAccuracy2 = accuracy;
+                                    bestStepCount2 = stepCount;
                                 }
                             } catch (const std::exception &) {
                             }
@@ -5772,7 +5820,9 @@ void CoordinateOperationFactory::Private::createOperationsCompoundToCompound(
                 // Keep the results of this new attempt, if there are better
                 // than the previous ones
                 if (bestAccuracy2 >= 0 &&
-                    (bestAccuracy < 0 || bestAccuracy2 < bestAccuracy)) {
+                    (bestAccuracy < 0 || (bestAccuracy2 < bestAccuracy ||
+                                          (bestAccuracy2 == bestAccuracy &&
+                                           bestStepCount2 < bestStepCount)))) {
                     res = std::move(res2);
                 }
             };

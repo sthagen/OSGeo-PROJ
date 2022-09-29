@@ -4741,10 +4741,9 @@ TEST(operation, compoundCRS_to_compoundCRS_WGS84_EGM96_to_WGS84_Belfast) {
     auto list = CoordinateOperationFactory::create()->createOperations(
         NN_NO_CHECK(srcCrs), NN_NO_CHECK(destCrs), ctxt);
     ASSERT_GE(list.size(), 1U);
-    EXPECT_EQ(list[0]->nameStr(), "Inverse of WGS 84 to EGM96 height (1) + "
-                                  "Inverse of ETRS89 to WGS 84 (1) + "
-                                  "ETRS89 to Belfast height (2) + "
-                                  "ETRS89 to WGS 84 (1)");
+    EXPECT_EQ(list[0]->nameStr(),
+              "Inverse of WGS 84 to EGM96 height (1) + "
+              "ETRS89 to Belfast height (2) using ETRS89 to WGS 84 (1)");
     EXPECT_EQ(list[0]->exportToPROJString(PROJStringFormatter::create().get()),
               "+proj=pipeline +step +proj=axisswap +order=2,1 "
               "+step +proj=unitconvert +xy_in=deg +xy_out=rad "
@@ -4991,6 +4990,62 @@ TEST(operation, compoundCRS_to_compoundCRS_issue_2720) {
 
 // ---------------------------------------------------------------------------
 
+TEST(operation, compoundCRS_to_compoundCRS_issue_3328) {
+    auto authFactory =
+        AuthorityFactory::create(DatabaseContext::create(), std::string());
+    // "WGS 84 + EGM96 height"
+    auto srcObj = createFromUserInput("EPSG:4326+5773",
+                                      authFactory->databaseContext(), false);
+    auto src = nn_dynamic_pointer_cast<CRS>(srcObj);
+    ASSERT_TRUE(src != nullptr);
+
+    // "WGS 84 + CGVD28 height"
+    auto dstObj = createFromUserInput("EPSG:4326+5713",
+                                      authFactory->databaseContext(), false);
+    auto dst = nn_dynamic_pointer_cast<CRS>(dstObj);
+    ASSERT_TRUE(dst != nullptr);
+
+    auto ctxt = CoordinateOperationContext::create(authFactory, nullptr, 0.0);
+    ctxt->setGridAvailabilityUse(
+        CoordinateOperationContext::GridAvailabilityUse::
+            IGNORE_GRID_AVAILABILITY);
+    ctxt->setSpatialCriterion(
+        CoordinateOperationContext::SpatialCriterion::PARTIAL_INTERSECTION);
+    auto list = CoordinateOperationFactory::create()->createOperations(
+        NN_NO_CHECK(src), NN_NO_CHECK(dst), ctxt);
+    ASSERT_GE(list.size(), 1U);
+    EXPECT_EQ(list[0]->nameStr(), "Inverse of WGS 84 to EGM96 height (1) + "
+                                  "NAD83(CSRS) to CGVD28 height (1) "
+                                  "using NAD83(CSRS) to WGS 84 (2)");
+    EXPECT_EQ(list[0]->exportToPROJString(PROJStringFormatter::create().get()),
+              "+proj=pipeline "
+              "+step +proj=push +v_1 +v_2 "
+              "+step +proj=axisswap +order=2,1 "
+              "+step +proj=unitconvert +xy_in=deg +xy_out=rad "
+              "+step +proj=vgridshift +grids=us_nga_egm96_15.tif +multiplier=1 "
+              "+step +proj=cart +ellps=WGS84 "
+              "+step +inv +proj=helmert +x=-0.991 +y=1.9072 +z=0.5129 "
+              "+rx=-0.0257899075194932 "
+              "+ry=-0.0096500989602704 +rz=-0.0116599432323421 +s=0 "
+              "+convention=coordinate_frame "
+              "+step +inv +proj=cart +ellps=GRS80 "
+              "+step +inv +proj=vgridshift +grids=ca_nrc_HT2_2010v70.tif "
+              "+multiplier=1 "
+              "+step +proj=push +v_3 "
+              "+step +proj=cart +ellps=GRS80 "
+              "+step +proj=helmert +x=-0.991 +y=1.9072 +z=0.5129 "
+              "+rx=-0.0257899075194932 "
+              "+ry=-0.0096500989602704 +rz=-0.0116599432323421 +s=0 "
+              "+convention=coordinate_frame "
+              "+step +inv +proj=cart +ellps=WGS84 "
+              "+step +proj=pop +v_3 "
+              "+step +proj=unitconvert +xy_in=rad +xy_out=deg "
+              "+step +proj=axisswap +order=2,1 "
+              "+step +proj=pop +v_1 +v_2");
+}
+
+// ---------------------------------------------------------------------------
+
 TEST(
     operation,
     compoundCRS_to_compoundCRS_concatenated_operation_with_two_vert_transformation_and_ballpark_geog) {
@@ -5016,12 +5071,10 @@ TEST(
             NN_NO_CHECK(src), NN_NO_CHECK(dst), ctxt);
         ASSERT_GE(list.size(), 1U);
         EXPECT_EQ(list[0]->nameStr(),
-                  "Ballpark geographic offset from "
-                  "NAD83(CSRS) to NAD83(CSRS)v6 + "
                   "Inverse of NAD83(CSRS)v6 to CGVD28 height (1) + "
-                  "NAD83(CSRS)v6 to CGVD2013(CGG2013) height (1) + "
-                  "Ballpark geographic offset from "
-                  "NAD83(CSRS)v6 to NAD83(CSRS)");
+                  "NAD83(CSRS)v6 to CGVD2013(CGG2013) height (1) "
+                  "using Ballpark geographic offset "
+                  "from NAD83(CSRS) to NAD83(CSRS)v6");
     }
 #if 0
     // Note: below situation is no longer triggered since EPSG v10.066 update
