@@ -550,7 +550,7 @@ TEST(operation, geogCRS_to_geogCRS_context_helmert_geog3D_to_geocentirc) {
         authFactory->createCoordinateReferenceSystem("4939"),
         // GDA2020 geocentric
         authFactory->createCoordinateReferenceSystem("7842"), ctxt);
-    ASSERT_EQ(list.size(), 1U);
+    ASSERT_GE(list.size(), 1U);
 
     // Check there is no push / pop of v_3
     EXPECT_EQ(list[0]->exportToPROJString(PROJStringFormatter::create().get()),
@@ -1331,13 +1331,13 @@ TEST(operation, geocentricCRS_to_geogCRS_different_datum) {
         createGeocentricDatumWGS84(), GeographicCRS::EPSG_4269);
     ASSERT_TRUE(op != nullptr);
     EXPECT_EQ(op->nameStr(),
-              "Ballpark geocentric translation from WGS 84 to NAD83 "
-              "(geocentric) + Conversion from NAD83 "
-              "(geocentric) to NAD83");
+              "Conversion from WGS 84 to WGS 84 (geographic) + "
+              "Ballpark geographic offset from WGS 84 (geographic) to NAD83");
     EXPECT_EQ(op->exportToPROJString(PROJStringFormatter::create().get()),
-              "+proj=pipeline +step +inv +proj=cart +ellps=GRS80 +step "
-              "+proj=unitconvert +xy_in=rad +xy_out=deg +step +proj=axisswap "
-              "+order=2,1");
+              "+proj=pipeline "
+              "+step +inv +proj=cart +ellps=WGS84 "
+              "+step +proj=unitconvert +xy_in=rad +xy_out=deg "
+              "+step +proj=axisswap +order=2,1");
 }
 
 // ---------------------------------------------------------------------------
@@ -1347,13 +1347,14 @@ TEST(operation, geogCRS_to_geocentricCRS_different_datum) {
     auto op = CoordinateOperationFactory::create()->createOperation(
         GeographicCRS::EPSG_4269, createGeocentricDatumWGS84());
     ASSERT_TRUE(op != nullptr);
-    EXPECT_EQ(op->nameStr(), "Conversion from NAD83 to NAD83 (geocentric) + "
-                             "Ballpark geocentric translation from NAD83 "
-                             "(geocentric) to WGS 84");
+    EXPECT_EQ(op->nameStr(),
+              "Ballpark geographic offset from NAD83 to WGS 84 (geographic) + "
+              "Conversion from WGS 84 (geographic) to WGS 84");
     EXPECT_EQ(op->exportToPROJString(PROJStringFormatter::create().get()),
-              "+proj=pipeline +step +proj=axisswap +order=2,1 +step "
-              "+proj=unitconvert +xy_in=deg +xy_out=rad +step +proj=cart "
-              "+ellps=GRS80");
+              "+proj=pipeline "
+              "+step +proj=axisswap +order=2,1 "
+              "+step +proj=unitconvert +xy_in=deg +z_in=m +xy_out=rad +z_out=m "
+              "+step +proj=cart +ellps=WGS84");
 }
 
 // ---------------------------------------------------------------------------
@@ -1761,6 +1762,87 @@ TEST(operation, geogCRS_to_geogCRS_WGS84_to_GDA2020) {
             authFactory->createCoordinateReferenceSystem("7844"), ctxt);
         ASSERT_GE(list.size(), 1U);
         EXPECT_EQ(list[0]->nameStr(), "Inverse of GDA2020 to WGS 84 (2)");
+    }
+}
+
+// ---------------------------------------------------------------------------
+
+TEST(operation, geogCRS_to_geogCRS_with_intermediate_no_ids) {
+
+    auto dbContext = DatabaseContext::create();
+    auto authFactory = AuthorityFactory::create(dbContext, std::string());
+    auto ctxt = CoordinateOperationContext::create(authFactory, nullptr, 0.0);
+    ctxt->setSpatialCriterion(
+        CoordinateOperationContext::SpatialCriterion::PARTIAL_INTERSECTION);
+    ctxt->setGridAvailabilityUse(
+        CoordinateOperationContext::GridAvailabilityUse::
+            IGNORE_GRID_AVAILABILITY);
+
+    auto objSrc = WKTParser().createFromWKT(
+        "GEOGCRS[\"input\",\n"
+        "    DATUM[\"International Terrestrial Reference Frame 2014\",\n"
+        "        ELLIPSOID[\"GRS 1980\",6378137,298.257222101,\n"
+        "            LENGTHUNIT[\"metre\",1]],\n"
+        "        ID[\"EPSG\",1165]],\n"
+        "    PRIMEM[\"Greenwich\",0,\n"
+        "        ANGLEUNIT[\"degree\",0.0174532925199433],\n"
+        "        ID[\"EPSG\",8901]],\n"
+        "    CS[ellipsoidal,3],\n"
+        "        AXIS[\"longitude\",east,\n"
+        "            ORDER[1],\n"
+        "            ANGLEUNIT[\"degree\",0.0174532925199433,\n"
+        "                ID[\"EPSG\",9122]]],\n"
+        "        AXIS[\"latitude\",north,\n"
+        "            ORDER[2],\n"
+        "            ANGLEUNIT[\"degree\",0.0174532925199433,\n"
+        "                ID[\"EPSG\",9122]]],\n"
+        "        AXIS[\"ellipsoidal height (h)\",up,\n"
+        "            ORDER[3],\n"
+        "            LENGTHUNIT[\"metre\",1]]]");
+    auto src = nn_dynamic_pointer_cast<CRS>(objSrc);
+    ASSERT_TRUE(src != nullptr);
+
+    auto objDest = WKTParser().createFromWKT(
+        "GEOGCRS[\"output\",\n"
+        "    DATUM[\"Estonia 1997\",\n"
+        "        ELLIPSOID[\"GRS 1980\",6378137,298.257222101,\n"
+        "            LENGTHUNIT[\"metre\",1]],\n"
+        "        ID[\"EPSG\",6180]],\n"
+        "    PRIMEM[\"Greenwich\",0,\n"
+        "        ANGLEUNIT[\"degree\",0.0174532925199433],\n"
+        "        ID[\"EPSG\",8901]],\n"
+        "    CS[ellipsoidal,3],\n"
+        "        AXIS[\"longitude\",east,\n"
+        "            ORDER[1],\n"
+        "            ANGLEUNIT[\"degree\",0.0174532925199433,\n"
+        "                ID[\"EPSG\",9122]]],\n"
+        "        AXIS[\"latitude\",north,\n"
+        "            ORDER[2],\n"
+        "            ANGLEUNIT[\"degree\",0.0174532925199433,\n"
+        "                ID[\"EPSG\",9122]]],\n"
+        "        AXIS[\"ellipsoidal height (h)\",up,\n"
+        "            ORDER[3],\n"
+        "            LENGTHUNIT[\"metre\",1]]]");
+    auto dest = nn_dynamic_pointer_cast<CRS>(objDest);
+    ASSERT_TRUE(dest != nullptr);
+
+    {
+        auto list = CoordinateOperationFactory::create()->createOperations(
+            NN_NO_CHECK(src), NN_NO_CHECK(dest), ctxt);
+        ASSERT_GE(list.size(), 1U);
+        // Test that a non-noop operation is returned
+        EXPECT_EQ(
+            list[0]->nameStr(),
+            "axis order change (geographic3D horizontal) + "
+            "Conversion from ITRF2014 (geog3D) to ITRF2014 (geocentric) + "
+            "ITRF2014 to ETRF2014 (1) + "
+            "Inverse of NKG_ETRF14 to ETRF2014 + "
+            "NKG_ETRF14 to ETRF96@2000.0 + "
+            "ETRF96@2000.0 to ETRF96@1997.56 + "
+            "Conversion from ETRS89 (geocentric) to ETRS89 (geog2D) + "
+            "Inverse of EST97 to ETRS89 (1) + "
+            "Null geographic offset from EST97 (geog2D) to EST97 (geog3D) + "
+            "axis order change (geographic3D horizontal)");
     }
 }
 
