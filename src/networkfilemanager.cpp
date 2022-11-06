@@ -30,7 +30,7 @@
 #endif
 #define LRU11_DO_NOT_DEFINE_OUT_OF_CLASS_METHODS
 
-#if !defined(_WIN32) && !defined(_GNU_SOURCE)
+#if !defined(_WIN32) && !defined(__APPLE__) && !defined(_GNU_SOURCE)
 // For usleep() on Cygwin
 #define _GNU_SOURCE
 #endif
@@ -39,13 +39,13 @@
 
 #include <algorithm>
 #include <limits>
+#include <mutex>
 #include <string>
 
 #include "filemanager.hpp"
 #include "proj.h"
 #include "proj/internal/internal.hpp"
 #include "proj/internal/lru_cache.hpp"
-#include "proj/internal/mutex.hpp"
 #include "proj_internal.h"
 #include "sqlite3_utils.hpp"
 
@@ -142,7 +142,7 @@ class NetworkChunkCache {
     };
 
     lru11::Cache<
-        Key, std::shared_ptr<std::vector<unsigned char>>, NS_PROJ::mutex,
+        Key, std::shared_ptr<std::vector<unsigned char>>, std::mutex,
         std::unordered_map<
             Key,
             typename std::list<lru11::KeyValuePair<
@@ -166,7 +166,7 @@ class NetworkFilePropertiesCache {
     void clearMemoryCache();
 
   private:
-    lru11::Cache<std::string, FileProperties, NS_PROJ::mutex> cache_{};
+    lru11::Cache<std::string, FileProperties, std::mutex> cache_{};
 };
 
 // ---------------------------------------------------------------------------
@@ -2374,7 +2374,7 @@ int proj_download_file(PJ_CONTEXT *ctx, const char *url_or_filename,
     const int nPID = getpid();
 #endif
     char szUniqueSuffix[128];
-    snprintf(szUniqueSuffix, sizeof(szUniqueSuffix), "%d_%p", nPID, &url);
+    snprintf(szUniqueSuffix, sizeof(szUniqueSuffix), "%d_%p", nPID, static_cast<const void*>(&url));
     const auto localFilenameTmp(localFilename + szUniqueSuffix);
     auto f = NS_PROJ::FileManager::open(ctx, localFilenameTmp.c_str(),
                                         NS_PROJ::FileAccess::CREATE);

@@ -40,7 +40,10 @@
 #  ifndef _CRT_NONSTDC_NO_DEPRECATE
 #    define _CRT_NONSTDC_NO_DEPRECATE
 #  endif
-/* enable predefined math constants M_* for MS Visual Studio workaround */
+#endif
+
+/* enable predefined math constants M_* for MS Visual Studio */
+#if defined(_MSC_VER) || defined(_WIN32)
 #  ifndef _USE_MATH_DEFINES
 #     define _USE_MATH_DEFINES
 #  endif
@@ -729,7 +732,7 @@ struct pj_ctx{
 };
 
 /* Generate pj_list external or make list from include file */
-#ifndef PJ_DATUMS__
+#ifndef PJ_DATUMS_
 C_NAMESPACE_VAR struct PJ_DATUMS pj_datums[];
 #endif
 
@@ -737,7 +740,7 @@ C_NAMESPACE_VAR struct PJ_DATUMS pj_datums[];
 
 
 
-#ifdef PJ_LIB__
+#ifdef PJ_LIB_
 #define PROJ_HEAD(name, desc) static const char des_##name [] = desc
 
 #define OPERATION(name, NEED_ELLPS)                          \
@@ -770,7 +773,7 @@ PJ *pj_projection_specific_setup_##name (PJ *P)
 /* In PROJ.4 a projection is a conversion taking angular input and giving scaled linear output */
 #define PROJECTION(name) CONVERSION (name, 1)
 
-#endif /* def PJ_LIB__ */
+#endif /* def PJ_LIB_ */
 
 /* procedure prototypes */
 double PROJ_DLL dmstor(const char *, char **);
@@ -919,7 +922,6 @@ char *pj_strdup(const char *str);
 const char PROJ_DLL *pj_get_release(void);
 void pj_acquire_lock(void);
 void pj_release_lock(void);
-void pj_cleanup_lock(void);
 
 bool pj_log_active( PJ_CONTEXT *ctx, int level );
 void pj_log( PJ_CONTEXT * ctx, int level, const char *fmt, ... );

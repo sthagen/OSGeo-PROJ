@@ -20,7 +20,6 @@
 #endif
 
 #define MAX_LINE 1000
-#define MAX_PARGS 100
 #define PJ_INVERSE(P) (P->inv ? 1 : 0)
 
 static PJ *Proj;
@@ -445,7 +444,7 @@ int main(int argc, char **argv) {
                 continue;
               case 'd':
                 if (--argc <= 0) goto noargument;
-                sprintf(oform_buffer, "%%.%df", atoi(*++argv));
+                snprintf(oform_buffer, sizeof(oform_buffer), "%%.%df", atoi(*++argv));
                 oform = oform_buffer;
                 break;
               case 'r': /* reverse input */
