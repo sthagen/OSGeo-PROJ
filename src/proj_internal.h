@@ -779,7 +779,7 @@ PJ *pj_projection_specific_setup_##name (PJ *P)
 double PROJ_DLL dmstor(const char *, char **);
 double dmstor_ctx(PJ_CONTEXT *ctx, const char *, char **);
 void   PROJ_DLL set_rtodms(int, int);
-char  PROJ_DLL *rtodms(char *, double, int, int);
+char  PROJ_DLL *rtodms(char *, size_t, double, int, int);
 double PROJ_DLL adjlon(double);
 double aacos(PJ_CONTEXT *,double);
 double aasin(PJ_CONTEXT *,double);
@@ -875,7 +875,7 @@ void pj_clear_vgridshift_knowngrids_cache();
 
 void pj_clear_sqlite_cache();
 
-PJ_LP pj_generic_inverse_2d(PJ_XY xy, PJ *P, PJ_LP lpInitial);
+PJ_LP pj_generic_inverse_2d(PJ_XY xy, PJ *P, PJ_LP lpInitial, double deltaXYTolerance);
 
 
 

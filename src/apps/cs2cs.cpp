@@ -99,16 +99,16 @@ static void process(FILE *fid)
 {
     char line[MAX_LINE + 3], *s, pline[40];
     PJ_UV data;
-    bool bFirstLine = true;
+    int nLineNumber = 0;
 
-    for (;; bFirstLine = false ) {
+    while(true) {
         double z;
-
+        ++nLineNumber;
         ++emess_dat.File_line;
         if (!(s = fgets(line, MAX_LINE, fid)))
             break;
 
-        if( bFirstLine &&
+        if( nLineNumber == 1 &&
             static_cast<uint8_t>(s[0]) == 0xEF &&
             static_cast<uint8_t>(s[1]) == 0xBB &&
             static_cast<uint8_t>(s[2]) == 0xBF )
@@ -199,22 +199,22 @@ static void process(FILE *fid)
 
             if (destIsLatLong) {
                 if (reverseout) {
-                    fputs(rtodms(pline, data.v, 'E', 'W'), stdout);
+                    fputs(rtodms(pline, sizeof(pline), data.v, 'E', 'W'), stdout);
                     putchar('\t');
-                    fputs(rtodms(pline, data.u, 'N', 'S'), stdout);
+                    fputs(rtodms(pline, sizeof(pline), data.u, 'N', 'S'), stdout);
                 } else {
-                    fputs(rtodms(pline, data.u, 'N', 'S'), stdout);
+                    fputs(rtodms(pline, sizeof(pline), data.u, 'N', 'S'), stdout);
                     putchar('\t');
-                    fputs(rtodms(pline, data.v, 'E', 'W'), stdout);
+                    fputs(rtodms(pline, sizeof(pline), data.v, 'E', 'W'), stdout);
                 }
             } else if (reverseout) {
-                fputs(rtodms(pline, data.v, 'N', 'S'), stdout);
+                fputs(rtodms(pline, sizeof(pline), data.v, 'N', 'S'), stdout);
                 putchar('\t');
-                fputs(rtodms(pline, data.u, 'E', 'W'), stdout);
+                fputs(rtodms(pline, sizeof(pline), data.u, 'E', 'W'), stdout);
             } else {
-                fputs(rtodms(pline, data.u, 'E', 'W'), stdout);
+                fputs(rtodms(pline, sizeof(pline), data.u, 'E', 'W'), stdout);
                 putchar('\t');
-                fputs(rtodms(pline, data.v, 'N', 'S'), stdout);
+                fputs(rtodms(pline, sizeof(pline), data.v, 'N', 'S'), stdout);
             }
 
         } else { /* x-y or decimal degree ascii output */
@@ -574,11 +574,13 @@ int main(int argc, char **argv) {
                 case 'w': /* -W for constant field width */
                 {
                     char c = arg[1];
-                    if (c != 0 && isdigit(c)) {
+                    // Check that the value is in the [0, 8] range
+                    if (c >= '0' && c <= '8' &&
+                        ((arg[2] == 0 || !(arg[2] >= '0' && arg[2] <= '9')))) {
                         set_rtodms(c - '0', *arg == 'W');
                         ++arg;
                     } else
-                        emess(1, "-W argument missing or non-digit");
+                        emess(1, "-W argument missing or not in range [0,8]");
                     continue;
                 }
                 case 'f': /* alternate output format degrees or xy */

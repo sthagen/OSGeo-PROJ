@@ -3733,8 +3733,7 @@ bool VerticalCRS::_isEquivalentTo(
         return false;
     }
     // TODO test geoidModel and velocityModel
-    return otherVertCRS != nullptr &&
-           SingleCRS::baseIsEquivalentTo(other, criterion, dbContext);
+    return SingleCRS::baseIsEquivalentTo(other, criterion, dbContext);
 }
 //! @endcond
 
@@ -4607,7 +4606,8 @@ void ProjectedCRS::addUnitConvertAndAxisSwap(
             if (order[0] && order[1]) {
                 formatter->addStep("axisswap");
                 char orderStr[10];
-                snprintf(orderStr, sizeof(orderStr), "%.2s,%.2s", order[0], order[1]);
+                snprintf(orderStr, sizeof(orderStr), "%.2s,%.2s", order[0],
+                         order[1]);
                 formatter->addParam("order", orderStr);
             }
         } else {
@@ -4827,6 +4827,7 @@ ProjectedCRS::identify(const io::AuthorityFactoryPtr &authorityFactory) const {
         } else {
             res.emplace_back(crs, 25);
         }
+        return res.back();
     };
 
     if (authorityFactory) {
@@ -4872,8 +4873,7 @@ ProjectedCRS::identify(const io::AuthorityFactoryPtr &authorityFactory) const {
                         thisName.c_str(), pairObjName.second.c_str());
                     foundEquivalentName |= eqName;
 
-                    addCRS(crsNN, eqName);
-                    if (res.back().second == 100) {
+                    if (addCRS(crsNN, eqName).second == 100) {
                         return res;
                     }
                 }
