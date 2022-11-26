@@ -9,8 +9,7 @@ Introduction
 
 PROJJSON is a JSON encoding of
 `WKT2:2019 / ISO-19162:2019: Geographic information - Well-known text representation of coordinate reference systems <http://docs.opengeospatial.org/is/18-010r7/18-010r7.html>`_,
-which itself implements the model of
-`OGC Topic 2: Referencing by coordinates abstract specification / ISO-19111:2019 <http://docs.opengeospatial.org/as/18-005r4/18-005r4.html>`_.
+which itself implements the model of :cite:`ISO19111`.
 Apart from the difference of encodings, the semantics is intended to be exactly
 the same as WKT2:2019, and PROJJSON can be morphed losslessly from/into WKT2:2019.
 
@@ -41,7 +40,7 @@ Schema
 ------
 
 A JSON schema of PROJJSON grammar is available at
-https://proj.org/schemas/v0.5/projjson.schema.json
+https://proj.org/schemas/v0.6/projjson.schema.json
 
 This schema defines a minimum set of constraints that apply to well-formed PROJJSON.
 Number of specific CRS and coordinate operation domain constraints are not expressed
@@ -52,6 +51,7 @@ in the WKT2:2019 specification also apply, as supplement to the JSON schema cons
 History of the schema
 ---------------------
 
+* v0.6: additional optional "source_crs" property in "abridged_transformation". Implemented in PROJ 9.2
 * v0.5:
     - Implemented in PROJ 9.1:
         + add "meridian" member in Axis object type.

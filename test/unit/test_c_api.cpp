@@ -105,6 +105,20 @@ class CApi : public ::testing::Test {
             CartesianCS::createEastingNorthing(UnitOfMeasure::METRE));
     }
 
+    static DerivedProjectedCRSNNPtr createDerivedProjectedCRS() {
+        auto derivingConversion = Conversion::create(
+            PropertyMap().set(IdentifiedObject::NAME_KEY, "unnamed"),
+            PropertyMap().set(IdentifiedObject::NAME_KEY, "PROJ unimplemented"),
+            std::vector<OperationParameterNNPtr>{},
+            std::vector<ParameterValueNNPtr>{});
+
+        return DerivedProjectedCRS::create(
+            PropertyMap().set(IdentifiedObject::NAME_KEY,
+                              "derived projectedCRS"),
+            createProjectedCRS(), derivingConversion,
+            CartesianCS::createEastingNorthing(UnitOfMeasure::METRE));
+    }
+
     static VerticalCRSNNPtr createVerticalCRS() {
         PropertyMap propertiesVDatum;
         propertiesVDatum.set(Identifier::CODESPACE_KEY, "EPSG")
@@ -819,6 +833,19 @@ TEST_F(CApi, proj_get_type) {
         ObjectKeeper keeper(obj);
         ASSERT_NE(obj, nullptr);
         EXPECT_EQ(proj_get_type(obj), PJ_TYPE_PROJECTED_CRS);
+    }
+    {
+        auto obj = proj_create_from_wkt(
+            m_ctxt,
+            createDerivedProjectedCRS()
+                ->exportToWKT(
+                    WKTFormatter::create(WKTFormatter::Convention::WKT2_2019)
+                        .get())
+                .c_str(),
+            nullptr, nullptr, nullptr);
+        ObjectKeeper keeper(obj);
+        ASSERT_NE(obj, nullptr);
+        EXPECT_EQ(proj_get_type(obj), PJ_TYPE_DERIVED_PROJECTED_CRS);
     }
     {
         auto obj =
@@ -4442,7 +4469,7 @@ TEST_F(CApi, proj_as_projjson) {
         EXPECT_EQ(std::string(projjson),
                   "{\n"
                   "  \"$schema\": "
-                  "\"https://proj.org/schemas/v0.5/projjson.schema.json\",\n"
+                  "\"https://proj.org/schemas/v0.6/projjson.schema.json\",\n"
                   "  \"type\": \"Ellipsoid\",\n"
                   "  \"name\": \"WGS 84\",\n"
                   "  \"semi_major_axis\": 6378137,\n"

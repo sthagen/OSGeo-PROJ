@@ -107,10 +107,10 @@ NS_PROJ_START
 namespace io {
 
 //! @cond Doxygen_Suppress
-const char *JSONFormatter::PROJJSON_v0_5 =
-    "https://proj.org/schemas/v0.5/projjson.schema.json";
+const char *JSONFormatter::PROJJSON_v0_6 =
+    "https://proj.org/schemas/v0.6/projjson.schema.json";
 
-#define PROJJSON_DEFAULT_VERSION JSONFormatter::PROJJSON_v0_5
+#define PROJJSON_DEFAULT_VERSION JSONFormatter::PROJJSON_v0_6
 
 //! @endcond
 
@@ -6287,9 +6287,27 @@ BoundCRSNNPtr JSONParser::buildBoundCRS(const json &j) {
         values.emplace_back(ParameterValue::create(getMeasure(param)));
     }
 
-    const auto transformation = buildTransformationForBoundCRS(
-        dbContext_, buildProperties(transformationJ), buildProperties(methodJ),
-        sourceCRS, targetCRS, parameters, values);
+    const auto transformation = [&]() {
+        // Unofficial extension / mostly for testing purposes.
+        // Allow to explicitly specify the source_crs of the transformation of
+        // the boundCRS if it is not the source_crs of the BoundCRS. Cf
+        // https://github.com/OSGeo/PROJ/issues/3428 use case
+        if (transformationJ.contains("source_crs")) {
+            auto sourceTransformationCRS =
+                buildCRS(getObject(transformationJ, "source_crs"));
+            auto interpolationCRS =
+                dealWithEPSGCodeForInterpolationCRSParameter(
+                    dbContext_, parameters, values);
+            return Transformation::create(
+                buildProperties(transformationJ), sourceTransformationCRS,
+                targetCRS, interpolationCRS, buildProperties(methodJ),
+                parameters, values, std::vector<PositionalAccuracyNNPtr>());
+        }
+
+        return buildTransformationForBoundCRS(
+            dbContext_, buildProperties(transformationJ),
+            buildProperties(methodJ), sourceCRS, targetCRS, parameters, values);
+    }();
 
     return BoundCRS::create(buildProperties(j,
                                             /* removeInverseOf= */ false,
@@ -7415,7 +7433,14 @@ static BaseObjectNNPtr createFromUserInput(const std::string &text,
         // Second pass: exact match on other objects
         // Third pass: approximate match on CRS objects
         // Fourth pass: approximate match on other objects
-        for (int pass = 0; pass <= 3; ++pass) {
+        // But only allow approximate matching if the size of the text is
+        // large enough (>= 5), otherwise we get a lot of false positives:
+        // "foo" -> "Amersfoort", "bar" -> "Barbados 1938"
+        // Also only accept approximate matching if the ratio between the
+        // input and match size is not too small, so that "omerc" doesn't match
+        // with "WGS 84 / Pseudo-Mercator"
+        const int maxNumberPasses = text.size() <= 4 ? 2 : 4;
+        for (int pass = 0; pass < maxNumberPasses; ++pass) {
             const bool approximateMatch = (pass >= 2);
             auto ret = searchObject(
                 text, approximateMatch,
@@ -7429,10 +7454,14 @@ static BaseObjectNNPtr createFromUserInput(const std::string &text,
                           AuthorityFactory::ObjectType::DATUM_ENSEMBLE,
                           AuthorityFactory::ObjectType::COORDINATE_OPERATION});
             if (ret) {
-                return NN_NO_CHECK(ret);
+                if (!approximateMatch ||
+                    ret->nameStr().size() < 2 * text.size())
+                    return NN_NO_CHECK(ret);
             }
             if (compoundCRS) {
-                return NN_NO_CHECK(compoundCRS);
+                if (!approximateMatch ||
+                    compoundCRS->nameStr().size() < 2 * text.size())
+                    return NN_NO_CHECK(compoundCRS);
             }
         }
     }
@@ -11666,6 +11695,7 @@ struct JSONFormatter::Private {
     bool allowIDInImmediateChild_ = false;
     bool omitTypeInImmediateChild_ = false;
     bool abridgedTransformation_ = false;
+    bool abridgedTransformationWriteSourceCRS_ = false;
     std::string schema_ = PROJJSON_DEFAULT_VERSION;
 
     std::string result_{};
@@ -11812,6 +11842,18 @@ void JSONFormatter::setAbridgedTransformation(bool outputIn) {
 
 bool JSONFormatter::abridgedTransformation() const {
     return d->abridgedTransformation_;
+}
+
+// ---------------------------------------------------------------------------
+
+void JSONFormatter::setAbridgedTransformationWriteSourceCRS(bool writeCRS) {
+    d->abridgedTransformationWriteSourceCRS_ = writeCRS;
+}
+
+// ---------------------------------------------------------------------------
+
+bool JSONFormatter::abridgedTransformationWriteSourceCRS() const {
+    return d->abridgedTransformationWriteSourceCRS_;
 }
 
 //! @endcond

@@ -275,20 +275,27 @@ createPropertyMap(const common::IdentifiedObject *obj) {
 
 //! @cond Doxygen_Suppress
 CRSNNPtr CRS::alterGeodeticCRS(const GeodeticCRSNNPtr &newGeodCRS) const {
-    auto geodCRS = dynamic_cast<const GeodeticCRS *>(this);
-    if (geodCRS) {
+    if (dynamic_cast<const GeodeticCRS *>(this)) {
         return newGeodCRS;
     }
 
-    auto projCRS = dynamic_cast<const ProjectedCRS *>(this);
-    if (projCRS) {
+    if (auto projCRS = dynamic_cast<const ProjectedCRS *>(this)) {
         return ProjectedCRS::create(createPropertyMap(this), newGeodCRS,
                                     projCRS->derivingConversion(),
                                     projCRS->coordinateSystem());
     }
 
-    auto compoundCRS = dynamic_cast<const CompoundCRS *>(this);
-    if (compoundCRS) {
+    if (auto derivedProjCRS = dynamic_cast<const DerivedProjectedCRS *>(this)) {
+        auto newProjCRS =
+            NN_CHECK_ASSERT(util::nn_dynamic_pointer_cast<ProjectedCRS>(
+                derivedProjCRS->baseCRS()->alterGeodeticCRS(newGeodCRS)));
+
+        return DerivedProjectedCRS::create(createPropertyMap(this), newProjCRS,
+                                           derivedProjCRS->derivingConversion(),
+                                           derivedProjCRS->coordinateSystem());
+    }
+
+    if (auto compoundCRS = dynamic_cast<const CompoundCRS *>(this)) {
         std::vector<CRSNNPtr> components;
         for (const auto &subCrs : compoundCRS->componentReferenceSystems()) {
             components.emplace_back(subCrs->alterGeodeticCRS(newGeodCRS));
@@ -728,8 +735,7 @@ CRSNNPtr CRS::stripVerticalComponent() const {
     auto self = NN_NO_CHECK(
         std::dynamic_pointer_cast<CRS>(shared_from_this().as_nullable()));
 
-    auto geogCRS = dynamic_cast<const GeographicCRS *>(this);
-    if (geogCRS) {
+    if (auto geogCRS = dynamic_cast<const GeographicCRS *>(this)) {
         const auto &axisList = geogCRS->coordinateSystem()->axisList();
         if (axisList.size() == 3) {
             auto cs = cs::EllipsoidalCS::create(util::PropertyMap(),
@@ -740,8 +746,8 @@ CRSNNPtr CRS::stripVerticalComponent() const {
                 geogCRS->datum(), geogCRS->datumEnsemble(), cs));
         }
     }
-    auto projCRS = dynamic_cast<const ProjectedCRS *>(this);
-    if (projCRS) {
+
+    if (auto projCRS = dynamic_cast<const ProjectedCRS *>(this)) {
         const auto &axisList = projCRS->coordinateSystem()->axisList();
         if (axisList.size() == 3) {
             auto cs = cs::CartesianCS::create(util::PropertyMap(), axisList[0],
@@ -752,6 +758,21 @@ CRSNNPtr CRS::stripVerticalComponent() const {
                 projCRS->baseCRS(), projCRS->derivingConversion(), cs));
         }
     }
+
+    if (auto derivedProjCRS = dynamic_cast<const DerivedProjectedCRS *>(this)) {
+        const auto &axisList = derivedProjCRS->coordinateSystem()->axisList();
+        if (axisList.size() == 3) {
+            auto cs = cs::CartesianCS::create(util::PropertyMap(), axisList[0],
+                                              axisList[1]);
+            return util::nn_static_pointer_cast<CRS>(
+                DerivedProjectedCRS::create(
+                    util::PropertyMap().set(common::IdentifiedObject::NAME_KEY,
+                                            nameStr()),
+                    derivedProjCRS->baseCRS(),
+                    derivedProjCRS->derivingConversion(), cs));
+        }
+    }
+
     return self;
 }
 
@@ -893,24 +914,30 @@ static bool mustAxisOrderBeSwitchedForVisualizationInternal(
 
 bool CRS::mustAxisOrderBeSwitchedForVisualization() const {
 
-    const CompoundCRS *compoundCRS = dynamic_cast<const CompoundCRS *>(this);
-    if (compoundCRS) {
+    if (const CompoundCRS *compoundCRS =
+            dynamic_cast<const CompoundCRS *>(this)) {
         const auto &comps = compoundCRS->componentReferenceSystems();
         if (!comps.empty()) {
             return comps[0]->mustAxisOrderBeSwitchedForVisualization();
         }
     }
 
-    const GeographicCRS *geogCRS = dynamic_cast<const GeographicCRS *>(this);
-    if (geogCRS) {
+    if (const GeographicCRS *geogCRS =
+            dynamic_cast<const GeographicCRS *>(this)) {
         return mustAxisOrderBeSwitchedForVisualizationInternal(
             geogCRS->coordinateSystem()->axisList());
     }
 
-    const ProjectedCRS *projCRS = dynamic_cast<const ProjectedCRS *>(this);
-    if (projCRS) {
+    if (const ProjectedCRS *projCRS =
+            dynamic_cast<const ProjectedCRS *>(this)) {
         return mustAxisOrderBeSwitchedForVisualizationInternal(
             projCRS->coordinateSystem()->axisList());
+    }
+
+    if (const DerivedProjectedCRS *derivedProjCRS =
+            dynamic_cast<const DerivedProjectedCRS *>(this)) {
+        return mustAxisOrderBeSwitchedForVisualizationInternal(
+            derivedProjCRS->coordinateSystem()->axisList());
     }
 
     return false;
@@ -1031,8 +1058,8 @@ CRSNNPtr CRS::applyAxisOrderReversal(const char *nameSuffix) const {
             return props;
         };
 
-    const CompoundCRS *compoundCRS = dynamic_cast<const CompoundCRS *>(this);
-    if (compoundCRS) {
+    if (const CompoundCRS *compoundCRS =
+            dynamic_cast<const CompoundCRS *>(this)) {
         const auto &comps = compoundCRS->componentReferenceSystems();
         if (!comps.empty()) {
             std::vector<CRSNNPtr> newComps;
@@ -1048,8 +1075,8 @@ CRSNNPtr CRS::applyAxisOrderReversal(const char *nameSuffix) const {
         }
     }
 
-    const GeographicCRS *geogCRS = dynamic_cast<const GeographicCRS *>(this);
-    if (geogCRS) {
+    if (const GeographicCRS *geogCRS =
+            dynamic_cast<const GeographicCRS *>(this)) {
         const auto &axisList = geogCRS->coordinateSystem()->axisList();
         auto cs =
             axisList.size() == 2
@@ -1062,8 +1089,8 @@ CRSNNPtr CRS::applyAxisOrderReversal(const char *nameSuffix) const {
                                   geogCRS->datumEnsemble(), cs));
     }
 
-    const ProjectedCRS *projCRS = dynamic_cast<const ProjectedCRS *>(this);
-    if (projCRS) {
+    if (const ProjectedCRS *projCRS =
+            dynamic_cast<const ProjectedCRS *>(this)) {
         const auto &axisList = projCRS->coordinateSystem()->axisList();
         auto cs =
             axisList.size() == 2
@@ -1076,6 +1103,20 @@ CRSNNPtr CRS::applyAxisOrderReversal(const char *nameSuffix) const {
                                  projCRS->derivingConversion(), cs));
     }
 
+    if (const DerivedProjectedCRS *derivedProjCRS =
+            dynamic_cast<const DerivedProjectedCRS *>(this)) {
+        const auto &axisList = derivedProjCRS->coordinateSystem()->axisList();
+        auto cs =
+            axisList.size() == 2
+                ? cs::CartesianCS::create(util::PropertyMap(), axisList[1],
+                                          axisList[0])
+                : cs::CartesianCS::create(util::PropertyMap(), axisList[1],
+                                          axisList[0], axisList[2]);
+        return util::nn_static_pointer_cast<CRS>(DerivedProjectedCRS::create(
+            createProperties(), derivedProjCRS->baseCRS(),
+            derivedProjCRS->derivingConversion(), cs));
+    }
+
     throw util::UnsupportedOperationException(
         "axis order reversal not supported on this type of CRS");
 }
@@ -1084,8 +1125,8 @@ CRSNNPtr CRS::applyAxisOrderReversal(const char *nameSuffix) const {
 
 CRSNNPtr CRS::normalizeForVisualization() const {
 
-    const CompoundCRS *compoundCRS = dynamic_cast<const CompoundCRS *>(this);
-    if (compoundCRS) {
+    if (const CompoundCRS *compoundCRS =
+            dynamic_cast<const CompoundCRS *>(this)) {
         const auto &comps = compoundCRS->componentReferenceSystems();
         if (!comps.empty() &&
             comps[0]->mustAxisOrderBeSwitchedForVisualization()) {
@@ -1093,17 +1134,25 @@ CRSNNPtr CRS::normalizeForVisualization() const {
         }
     }
 
-    const GeographicCRS *geogCRS = dynamic_cast<const GeographicCRS *>(this);
-    if (geogCRS) {
+    if (const GeographicCRS *geogCRS =
+            dynamic_cast<const GeographicCRS *>(this)) {
         const auto &axisList = geogCRS->coordinateSystem()->axisList();
         if (mustAxisOrderBeSwitchedForVisualizationInternal(axisList)) {
             return applyAxisOrderReversal(NORMALIZED_AXIS_ORDER_SUFFIX_STR);
         }
     }
 
-    const ProjectedCRS *projCRS = dynamic_cast<const ProjectedCRS *>(this);
-    if (projCRS) {
+    if (const ProjectedCRS *projCRS =
+            dynamic_cast<const ProjectedCRS *>(this)) {
         const auto &axisList = projCRS->coordinateSystem()->axisList();
+        if (mustAxisOrderBeSwitchedForVisualizationInternal(axisList)) {
+            return applyAxisOrderReversal(NORMALIZED_AXIS_ORDER_SUFFIX_STR);
+        }
+    }
+
+    if (const DerivedProjectedCRS *derivedProjCRS =
+            dynamic_cast<const DerivedProjectedCRS *>(this)) {
+        const auto &axisList = derivedProjCRS->coordinateSystem()->axisList();
         if (mustAxisOrderBeSwitchedForVisualizationInternal(axisList)) {
             return applyAxisOrderReversal(NORMALIZED_AXIS_ORDER_SUFFIX_STR);
         }
@@ -5114,7 +5163,7 @@ CompoundCRSNNPtr CompoundCRS::create(const util::PropertyMap &properties,
     auto comp1Vert = dynamic_cast<const VerticalCRS *>(comp1);
     auto comp1Eng = dynamic_cast<const EngineeringCRS *>(comp1);
     // Loose validation based on
-    // http://docs.opengeospatial.org/as/18-005r4/18-005r4.html#34
+    // http://docs.opengeospatial.org/as/18-005r5/18-005r5.html#34
     bool ok = false;
     const bool comp1IsVertOrEng1 =
         comp1Vert ||
@@ -5147,7 +5196,7 @@ CompoundCRSNNPtr CompoundCRS::create(const util::PropertyMap &properties,
         throw InvalidCompoundCRSException(
             "components of the compound CRS do not belong to one of the "
             "allowed combinations of "
-            "http://docs.opengeospatial.org/as/18-005r4/18-005r4.html#34");
+            "http://docs.opengeospatial.org/as/18-005r5/18-005r5.html#34");
     }
 
     auto compoundCRS(CompoundCRS::nn_make_shared<CompoundCRS>(components));
@@ -5918,22 +5967,42 @@ void BoundCRS::_exportToJSON(
 
     auto objectContext(formatter->MakeObjectContext("BoundCRS", false));
 
-    if (!l_name.empty() && l_name != d->baseCRS()->nameStr()) {
+    const auto &l_sourceCRS = d->baseCRS();
+
+    if (!l_name.empty() && l_name != l_sourceCRS->nameStr()) {
         writer->AddObjKey("name");
         writer->Add(l_name);
     }
 
     writer->AddObjKey("source_crs");
-    d->baseCRS()->_exportToJSON(formatter);
+    l_sourceCRS->_exportToJSON(formatter);
 
     writer->AddObjKey("target_crs");
-    d->hubCRS()->_exportToJSON(formatter);
+    const auto &l_targetCRS = d->hubCRS();
+    l_targetCRS->_exportToJSON(formatter);
 
     writer->AddObjKey("transformation");
     formatter->setOmitTypeInImmediateChild();
     formatter->setAbridgedTransformation(true);
+    // Only write the source_crs of the transformation if it is different from
+    // the source_crs of the BoundCRS. But don't do it for projectedCRS if its
+    // base CRS matches the source_crs of the transformation and the targetCRS
+    // is geographic
+    const auto sourceCRSAsProjectedCRS =
+        dynamic_cast<const ProjectedCRS *>(l_sourceCRS.get());
+    if (!l_sourceCRS->_isEquivalentTo(
+            d->transformation()->sourceCRS().get(),
+            util::IComparable::Criterion::EQUIVALENT) &&
+        (sourceCRSAsProjectedCRS == nullptr ||
+         (dynamic_cast<GeographicCRS *>(l_targetCRS.get()) &&
+          !sourceCRSAsProjectedCRS->baseCRS()->_isEquivalentTo(
+              d->transformation()->sourceCRS().get(),
+              util::IComparable::Criterion::EQUIVALENT)))) {
+        formatter->setAbridgedTransformationWriteSourceCRS(true);
+    }
     d->transformation()->_exportToJSON(formatter);
     formatter->setAbridgedTransformation(false);
+    formatter->setAbridgedTransformationWriteSourceCRS(false);
 
     ObjectUsage::baseExportToJSON(formatter);
 }
