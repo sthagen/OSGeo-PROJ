@@ -157,6 +157,10 @@ test_projjson EPSG:32631
 test_projjson EPSG:4326+3855
 test_projjson "+proj=longlat +ellps=GRS80 +nadgrids=@foo +type=crs"
 test_projjson -s EPSG:3111 -t GDA2020
+# Dynamic geographic CRS "WGS 84 (G1762)"
+test_projjson EPSG:9057
+# Dynamic vertical CRS "RH2000 height"
+test_projjson EPSG:5613
 
 validate_json $TRAVIS_BUILD_DIR/schemas/v0.5/examples/point_motion_operation.json
 
@@ -173,7 +177,8 @@ set +e
 /tmp/proj_static_install_from_dist_renamed/subdir/bin/projsync --source-id ? --dry-run --system-directory 2>/dev/null 1>static.out
 set -e
 if [ "$TRAVIS_OS_NAME" == "osx" ]; then
-    # on macOS /tmp is a symblink to /private/tmp only for the shared build
+    # on macOS 11 /tmp is resolved by PROJ as a symlink to /private/tmp only for the shared build.
+    # on macOS 12 for both static and shared builds
     INST=/private/tmp
 else
     INST=/tmp
@@ -181,7 +186,7 @@ fi
 cat shared.out
 grep "Downloading from https://cdn.proj.org into $INST/proj_shared_install_from_dist_renamed/subdir/share/proj" shared.out
 cat static.out
-grep "Downloading from https://cdn.proj.org into /tmp/proj_static_install_from_dist_renamed/subdir/share/proj" static.out
+grep "Downloading from https://cdn.proj.org into \($INST\|/tmp\)/proj_static_install_from_dist_renamed/subdir/share/proj" static.out
 rm shared.out static.out
 
 sed -i'.bak' -e '1c\

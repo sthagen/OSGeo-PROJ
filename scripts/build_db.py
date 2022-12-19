@@ -294,7 +294,7 @@ def create_datumensemble_transformations(proj_db_cursor):
                 # Insert a null transformation between the representative CRS of the datum ensemble
                 # and each representative CRS of its members.
                 crs_code, crs_name, crs_extent = find_crs_code_name_extent_from_geodetic_datum_code(proj_db_cursor, member_code)
-                assert crs_extent == ensemble_crs_extent, (ensemble_crs_code, ensemble_crs_name, ensemble_crs_extent, crs_code, crs_name, crs_extent)
+                assert crs_extent == ensemble_crs_extent or (crs_extent in (2830, 1262) and ensemble_crs_extent in (2830, 1262)), (ensemble_crs_code, ensemble_crs_name, ensemble_crs_extent, crs_code, crs_name, crs_extent)
 
                 code = '%s_TO_%s' % (ensemble_crs_name, crs_name)
                 code = code.replace(' ', '')
@@ -688,7 +688,7 @@ def fill_helmert_transformation(proj_db_cursor):
             '?,?,?, ?, ?,?,?, ?,?, ?,?, ?, ?,?,?,?,?, ?,?,?,?,?, ?,?,?, ?,?,?,?,?, ?,?,?,?,?, ?,?,?, ?,?,?, ?,?,?,?,?, ?,?)', arg)
 
 def fill_grid_transformation(proj_db_cursor):
-    proj_db_cursor.execute("SELECT coord_op_code, coord_op_name, coord_op_method_code, coord_op_method_name, source_crs_code, target_crs_code, coord_op_accuracy, coord_tfm_version, epsg_coordoperation.deprecated, epsg_coordoperation.remarks FROM epsg.epsg_coordoperation LEFT JOIN epsg.epsg_coordoperationmethod USING (coord_op_method_code) WHERE coord_op_type IN ('transformation', 'point motion operation') AND (coord_op_method_name LIKE 'Geographic3D to%' OR coord_op_method_name LIKE 'Geog3D to%' OR coord_op_method_name LIKE 'Point motion by grid%' OR coord_op_method_name LIKE 'Vertical Offset by Grid Interpolation%' OR coord_op_method_name IN ('NADCON', 'NADCON5 (2D)', 'NTv1', 'NTv2', 'VERTCON', 'Geocentric translation by Grid Interpolation (IGN)'))")
+    proj_db_cursor.execute("SELECT coord_op_code, coord_op_name, coord_op_method_code, coord_op_method_name, source_crs_code, target_crs_code, coord_op_accuracy, coord_tfm_version, epsg_coordoperation.deprecated, epsg_coordoperation.remarks FROM epsg.epsg_coordoperation LEFT JOIN epsg.epsg_coordoperationmethod USING (coord_op_method_code) WHERE coord_op_type IN ('transformation', 'point motion operation') AND (coord_op_method_name LIKE 'Geographic3D to%' OR coord_op_method_name LIKE 'Geog3D to%' OR coord_op_method_name LIKE 'Point motion by grid%' OR coord_op_method_name LIKE 'Vertical Offset by Grid Interpolation%' OR coord_op_method_name IN ('NADCON', 'NADCON5 (2D)', 'NADCON5 (3D)', 'NTv1', 'NTv2', 'VERTCON', 'Geocentric translation by Grid Interpolation (IGN)'))")
     for (code, name, method_code, method_name, source_crs_code, target_crs_code, coord_op_accuracy, coord_tfm_version, deprecated, remarks) in proj_db_cursor.fetchall():
         expected_order = 1
         max_n_params = 3 if method_name == 'Geocentric translation by Grid Interpolation (IGN)' else 2
@@ -708,7 +708,12 @@ def fill_grid_transformation(proj_db_cursor):
                 order_inc = 1
             order += order_inc
             first = False
-            assert order <= max_n_params
+            # NADCON5 lists 3 grids (lat_shift, lon_shift, ellipsoidal_height_shift). Our database
+            # can only list 2. Truncate. Not critical as we ultimately have one GeoTIFF
+            # grid for the 3 original grids
+            if method_name == "NADCON5 (3D)" and order > max_n_params:
+                break
+            assert order <= max_n_params, (code, name)
             assert order == expected_order, (code, name, method_code, method_name, param_code, param_name, order)
             if parameter_value is not None:
                 assert param_value_file_ref is None or len(param_value_file_ref) == 0, (order, parameter_code, parameter_name, parameter_value, param_value_file_ref, uom_code)
@@ -737,7 +742,7 @@ def fill_grid_transformation(proj_db_cursor):
             grid2_param_code = param_code[1]
             grid2_param_name = param_name[1]
             grid2_value = param_value[1]
-        elif method_code == 1074: # NADCON5 (2D)
+        elif method_code in (1074, 1075): # NADCON5 (2D) and NADCON5 (3D)
             assert param_code[1] == 8658, param_code[1]
             grid2_param_auth_name = EPSG_AUTHORITY
             grid2_param_code = param_code[1]
@@ -768,7 +773,8 @@ def fill_grid_transformation(proj_db_cursor):
         # 1105: Geog3D to Geog2D+GravityRelatedHeight (ITAL2005)
         # 1110: Geog3D to Geog2D+Depth (Gravsoft)
         # 1112: Vertical Offset by Grid Interpolation (NRCan byn)
-        elif method_code in (1071, 1080, 1081, 1083, 1084, 1085, 1088, 1089, 1090, 1091, 1092, 1093, 1094, 1095, 1096, 1097, 1098, 1100, 1101, 1103, 1105, 1110, 1112) and n_params == 2:
+        # 1115: Geog3D to Geog2D+Depth (txt)
+        elif method_code in (1071, 1080, 1081, 1083, 1084, 1085, 1088, 1089, 1090, 1091, 1092, 1093, 1094, 1095, 1096, 1097, 1098, 1100, 1101, 1103, 1105, 1110, 1112, 1115) and n_params == 2:
             assert param_code[1] == 1048, (code, method_code, param_code[1])
             interpolation_crs_auth_name = EPSG_AUTHORITY
             interpolation_crs_code = str(int(param_value[1])) # needed to avoid codes like XXXX.0

@@ -194,8 +194,8 @@ struct projCppContext;
 /* not sure why we need to export it, but mingw needs it */
 void PROJ_DLL proj_context_delete_cpp_context(struct projCppContext* cppContext);
 
-PJ_COORD pj_fwd4d (PJ_COORD coo, PJ *P);
-PJ_COORD pj_inv4d (PJ_COORD coo, PJ *P);
+bool pj_fwd4d (PJ_COORD& coo, PJ *P);
+bool pj_inv4d (PJ_COORD& coo, PJ *P);
 
 PJ_COORD PROJ_DLL pj_approx_2D_trans (PJ *P, PJ_DIRECTION direction, PJ_COORD coo);
 PJ_COORD PROJ_DLL pj_approx_3D_trans (PJ *P, PJ_DIRECTION direction, PJ_COORD coo);
@@ -277,13 +277,13 @@ PJ_DESTRUCTOR:
 
 PJ_OPERATOR:
 
-    A function taking a PJ_COORD and a pointer-to-PJ as args, applying the
-    PJ to the PJ_COORD, and returning the resulting PJ_COORD.
+    A function taking a reference to a PJ_COORD and a pointer-to-PJ as args, applying the
+    PJ to the PJ_COORD, and modifying in-place the passed PJ_COORD.
 
 *****************************************************************************/
 typedef    PJ       *(* PJ_CONSTRUCTOR) (PJ *);
 typedef    PJ       *(* PJ_DESTRUCTOR)  (PJ *, int);
-typedef    PJ_COORD  (* PJ_OPERATOR)    (PJ_COORD, PJ *);
+typedef    void      (* PJ_OPERATOR)    (PJ_COORD&, PJ *);
 /****************************************************************************/
 
 
@@ -577,6 +577,7 @@ struct PJconsts {
     **************************************************************************************/
 
     NS_PROJ::common::IdentifiedObjectPtr iso_obj{};
+    bool                                 iso_obj_is_coordinate_operation = false;
 
     // cached results
     mutable std::string lastWKT{};
@@ -814,7 +815,7 @@ void     *free_params (PJ_CONTEXT *ctx, paralist *start, int errlev);
 
 double *pj_enfn(double);
 double  pj_mlfn(double, double, double, const double *);
-double  pj_inv_mlfn(PJ_CONTEXT *, double, double, const double *);
+double  pj_inv_mlfn(double, const double *);
 double  pj_qsfn(double, double, double);
 double  pj_tsfn(double, double, double);
 double  pj_msfn(double, double, double);
@@ -880,6 +881,7 @@ const PJ_UNITS *pj_list_angular_units();
 
 void pj_clear_hgridshift_knowngrids_cache();
 void pj_clear_vgridshift_knowngrids_cache();
+void pj_clear_gridshift_knowngrids_cache();
 
 void pj_clear_sqlite_cache();
 

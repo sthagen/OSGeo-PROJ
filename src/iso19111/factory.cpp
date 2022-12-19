@@ -3243,8 +3243,16 @@ bool DatabaseContext::lookForGridInfo(
     std::string &fullFilename, std::string &packageName, std::string &url,
     bool &directDownload, bool &openLicense, bool &gridAvailable) const {
     Private::GridInfoCache info;
-    const std::string key(projFilename +
-                          (considerKnownGridsAsAvailable ? "true" : "false"));
+
+    auto ctxt = d->pjCtxt();
+    if (ctxt == nullptr) {
+        ctxt = pj_get_default_ctx();
+        d->setPjCtxt(ctxt);
+    }
+
+    std::string key(projFilename);
+    key += proj_context_is_network_enabled(ctxt) ? "true" : "false";
+    key += considerKnownGridsAsAvailable ? "true" : "false";
     if (d->getGridInfoFromCache(key, info)) {
         fullFilename = info.fullFilename;
         packageName = info.packageName;
@@ -3262,11 +3270,6 @@ bool DatabaseContext::lookForGridInfo(
     directDownload = false;
 
     fullFilename.resize(2048);
-    auto ctxt = d->pjCtxt();
-    if (ctxt == nullptr) {
-        ctxt = pj_get_default_ctx();
-        d->setPjCtxt(ctxt);
-    }
     int errno_before = proj_context_errno(ctxt);
     gridAvailable = NS_PROJ::FileManager::open_resource_file(
                         ctxt, projFilename.c_str(), &fullFilename[0],
@@ -3867,26 +3870,40 @@ util::PropertyMap AuthorityFactory::Private::createPropertiesSearchUsages(
     const std::string &table_name, const std::string &code,
     const std::string &name, bool deprecated) {
 
-    const std::string sql(
-        "SELECT extent.description, extent.south_lat, "
-        "extent.north_lat, extent.west_lon, extent.east_lon, "
-        "scope.scope, "
-        "(CASE WHEN scope.scope LIKE '%large scale%' THEN 0 ELSE 1 END) "
-        "AS score "
-        "FROM usage "
-        "JOIN extent ON usage.extent_auth_name = extent.auth_name AND "
-        "usage.extent_code = extent.code "
-        "JOIN scope ON usage.scope_auth_name = scope.auth_name AND "
-        "usage.scope_code = scope.code "
-        "WHERE object_table_name = ? AND object_auth_name = ? AND "
-        "object_code = ? AND "
-        // We voluntary exclude extent and scope with a specific code
-        "NOT (usage.extent_auth_name = 'PROJ' AND "
-        "usage.extent_code = 'EXTENT_UNKNOWN') AND "
-        "NOT (usage.scope_auth_name = 'PROJ' AND "
-        "usage.scope_code = 'SCOPE_UNKNOWN') "
-        "ORDER BY score, usage.auth_name, usage.code");
-    auto res = run(sql, {table_name, authority(), code});
+    SQLResultSet res;
+    if (table_name == "geodetic_crs" && code == "4326" &&
+        authority() == "EPSG") {
+        // EPSG v10.077 has changed the extent from 1262 to 2830, whose
+        // description is super verbose.
+        // Cf https://epsg.org/closed-change-request/browse/id/2022.086
+        // To avoid churn in our WKT2 output, hot patch to the usage of
+        // 10.076 and earlier
+        res = run("SELECT extent.description, extent.south_lat, "
+                  "extent.north_lat, extent.west_lon, extent.east_lon, "
+                  "scope.scope, 0 AS score FROM extent, scope WHERE "
+                  "extent.code = 1262 and scope.code = 1183");
+    } else {
+        const std::string sql(
+            "SELECT extent.description, extent.south_lat, "
+            "extent.north_lat, extent.west_lon, extent.east_lon, "
+            "scope.scope, "
+            "(CASE WHEN scope.scope LIKE '%large scale%' THEN 0 ELSE 1 END) "
+            "AS score "
+            "FROM usage "
+            "JOIN extent ON usage.extent_auth_name = extent.auth_name AND "
+            "usage.extent_code = extent.code "
+            "JOIN scope ON usage.scope_auth_name = scope.auth_name AND "
+            "usage.scope_code = scope.code "
+            "WHERE object_table_name = ? AND object_auth_name = ? AND "
+            "object_code = ? AND "
+            // We voluntary exclude extent and scope with a specific code
+            "NOT (usage.extent_auth_name = 'PROJ' AND "
+            "usage.extent_code = 'EXTENT_UNKNOWN') AND "
+            "NOT (usage.scope_auth_name = 'PROJ' AND "
+            "usage.scope_code = 'SCOPE_UNKNOWN') "
+            "ORDER BY score, usage.auth_name, usage.code");
+        res = run(sql, {table_name, authority(), code});
+    }
     std::vector<ObjectDomainNNPtr> usages;
     for (const auto &row : res) {
         try {

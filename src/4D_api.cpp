@@ -201,6 +201,16 @@ double proj_roundtrip (PJ *P, PJ_DIRECTION direction, int n, PJ_COORD *coord) {
     return proj_xyz_dist (org, t);
 }
 
+// Returns true if the passed operation uses NADCON5 grids for NAD83 to NAD83(HARN)
+static bool isSpecialCaseForNAD83_to_NAD83HARN(const PJCoordOperation& op)
+{
+    return op.name.find("NAD83 to NAD83(HARN) (47)") != std::string::npos ||
+           op.name.find("NAD83 to NAD83(HARN) (48)") != std::string::npos ||
+           op.name.find("NAD83 to NAD83(HARN) (49)") != std::string::npos ||
+           op.name.find("NAD83 to NAD83(HARN) (50)") != std::string::npos;
+}
+
+
 /**************************************************************************************/
 int pj_get_suggested_operation(PJ_CONTEXT*,
                                const std::vector<PJCoordOperation>& opList,
@@ -248,10 +258,11 @@ int pj_get_suggested_operation(PJ_CONTEXT*,
                  // If two operations have the same accuracy, use the one that
                  // is contained within a larger one
                  (alt.accuracy == bestAccuracy &&
-                  alt.minxSrc > opList[iBest].minxSrc &&
-                  alt.minySrc > opList[iBest].minySrc &&
-                  alt.maxxSrc < opList[iBest].maxxSrc &&
-                  alt.maxySrc < opList[iBest].maxySrc)) &&
+                  alt.minxSrc >= opList[iBest].minxSrc &&
+                  alt.minySrc >= opList[iBest].minySrc &&
+                  alt.maxxSrc <= opList[iBest].maxxSrc &&
+                  alt.maxySrc <= opList[iBest].maxySrc &&
+                  !isSpecialCaseForNAD83_to_NAD83HARN(opList[iBest]))) &&
                 !alt.isOffshore) ) {
                 iBest = i;
                 bestAccuracy = alt.accuracy;
@@ -277,7 +288,7 @@ similarly, but prefers the 2D resp. 3D interfaces if available.
         direction = opposite_direction(direction);
 
     if (P->iso_obj != nullptr &&
-        dynamic_cast<NS_PROJ::operation::CoordinateOperation*>(P->iso_obj.get()) == nullptr ) {
+        !P->iso_obj_is_coordinate_operation ) {
         pj_log(P->ctx, PJ_LOG_ERROR, "Object is not a coordinate operation");
         proj_errno_set (P, PROJ_ERR_INVALID_OP_ILLEGAL_ARG_VALUE);
         return proj_coord_error ();
@@ -326,8 +337,11 @@ similarly, but prefers the 2D resp. 3D interfaces if available.
                 }
                 P->iCurCoordOp = iBest;
             }
-            PJ_COORD res = direction == PJ_FWD ?
-                        pj_fwd4d( coord, alt.pj ) : pj_inv4d( coord, alt.pj );
+            PJ_COORD res = coord;
+            if( direction == PJ_FWD )
+                pj_fwd4d( res, alt.pj );
+            else
+                pj_inv4d( res, alt.pj );
             if( proj_errno(alt.pj) == PROJ_ERR_OTHER_NETWORK_ERROR ) {
                 return proj_coord_error ();
             }
@@ -368,11 +382,12 @@ similarly, but prefers the 2D resp. 3D interfaces if available.
                         P->iCurCoordOp = i;
                     }
                     if( direction == PJ_FWD ) {
-                        return pj_fwd4d( coord, alt.pj );
+                        pj_fwd4d( coord, alt.pj );
                     }
                     else {
-                        return pj_inv4d( coord, alt.pj );
+                        pj_inv4d( coord, alt.pj );
                     }
+                    return coord;
                 }
             }
         }
@@ -383,9 +398,10 @@ similarly, but prefers the 2D resp. 3D interfaces if available.
 
     P->iCurCoordOp = 0; // dummy value, to be used by proj_trans_get_last_used_operation()
     if (direction == PJ_FWD)
-        return pj_fwd4d (coord, P);
+        pj_fwd4d (coord, P);
     else
-        return pj_inv4d (coord, P);
+        pj_inv4d (coord, P);
+    return coord;
 }
 
 /*****************************************************************************/
