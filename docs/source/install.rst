@@ -102,14 +102,14 @@ On Debian and similar systems (e.g. Ubuntu) the APT package manager is used::
 Fedora
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-On Fedora the :program:`dnf` package manager is used::
+On Fedora the ``dnf`` package manager is used::
 
     sudo dnf install proj
 
 Red Hat
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-On Red Hat based system packages are installed with :program:`yum`::
+On Red Hat based system packages are installed with ``yum``::
 
     sudo yum install proj
 
@@ -206,8 +206,8 @@ can be modified to suit the users needs. See :ref:`projsync` for more options.
 
     As an alternative on systems where network access is disabled, the
     :ref:`proj-data <datumgrid>`
-    package can be downloaded and added to the :envvar:`PROJ_DATA` directory
-    (called ``PROJ_LIB`` before PROJ 9.1)
+    package can be downloaded and its content decompressed into one of the
+    directories where PROJ looks for :ref:`resources <resource_files>`
 
 Starting with PROJ 9.2, a ``uninstall`` target is available to remove files
 installed by the ``install`` target::
