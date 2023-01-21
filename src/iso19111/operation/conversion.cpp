@@ -484,13 +484,43 @@ Conversion::createTwoPointEquidistant(const util::PropertyMap &properties,
  * @param falseEasting See \ref false_easting
  * @param falseNorthing See \ref false_northing
  * @return a new Conversion.
+ * @deprecated. Use createTunisiaMiningGrid() instead
  */
 ConversionNNPtr Conversion::createTunisiaMappingGrid(
     const util::PropertyMap &properties, const common::Angle &centerLat,
     const common::Angle &centerLong, const common::Length &falseEasting,
     const common::Length &falseNorthing) {
     return create(
-        properties, EPSG_CODE_METHOD_TUNISIA_MAPPING_GRID,
+        properties, EPSG_CODE_METHOD_TUNISIA_MINING_GRID,
+        createParams(centerLat, centerLong, falseEasting, falseNorthing));
+}
+
+// ---------------------------------------------------------------------------
+
+/** \brief Instantiate a conversion based on the Tunisia Mining Grid projection
+ * method.
+ *
+ * This method is defined as
+ * <a href="https://epsg.org/coord-operation-method_9816/index.html">
+ * EPSG:9816</a>.
+ *
+ * \note There is currently no implementation of the method formulas in PROJ.
+ *
+ * @param properties See \ref general_properties of the conversion. If the name
+ * is not provided, it is automatically set.
+ * @param centerLat See \ref center_latitude
+ * @param centerLong See \ref center_longitude
+ * @param falseEasting See \ref false_easting
+ * @param falseNorthing See \ref false_northing
+ * @return a new Conversion.
+ * @since 9.2
+ */
+ConversionNNPtr Conversion::createTunisiaMiningGrid(
+    const util::PropertyMap &properties, const common::Angle &centerLat,
+    const common::Angle &centerLong, const common::Length &falseEasting,
+    const common::Length &falseNorthing) {
+    return create(
+        properties, EPSG_CODE_METHOD_TUNISIA_MINING_GRID,
         createParams(centerLat, centerLong, falseEasting, falseNorthing));
 }
 
@@ -1629,9 +1659,10 @@ ConversionNNPtr Conversion::createMercatorVariantA(
  * <a href="../../../operations/projections/merc.html">
  * Mercator (variant B)</a> projection method.
  *
- * This is the B variant, also known as Mercator (2SP), defined with the latitude
- * of the first standard parallel (the second standard parallel is implicitly
- * the opposite value). The latitude of natural origin is fixed to zero.
+ * This is the B variant, also known as Mercator (2SP), defined with the
+ * latitude of the first standard parallel (the second standard parallel is
+ * implicitly the opposite value). The latitude of natural origin is fixed to
+ * zero.
  *
  * This method is defined as
  * <a href="https://epsg.org/coord-operation-method_9805/index.html">
@@ -3871,7 +3902,7 @@ void Conversion::_exportToPROJString(
         double southPoleLat = parameterValueNumeric(
             PROJ_WKT2_NAME_PARAMETER_SOUTH_POLE_LATITUDE_GRIB_CONVENTION,
             common::UnitOfMeasure::DEGREE);
-        double southPoleLon = parameterValueNumeric(
+        double southPoleLong = parameterValueNumeric(
             PROJ_WKT2_NAME_PARAMETER_SOUTH_POLE_LONGITUDE_GRIB_CONVENTION,
             common::UnitOfMeasure::DEGREE);
         double rotation = parameterValueNumeric(
@@ -3881,7 +3912,7 @@ void Conversion::_exportToPROJString(
         formatter->addParam("o_proj", "longlat");
         formatter->addParam("o_lon_p", -rotation);
         formatter->addParam("o_lat_p", -southPoleLat);
-        formatter->addParam("lon_0", southPoleLon);
+        formatter->addParam("lon_0", southPoleLong);
         bConversionDone = true;
     } else if (ci_equal(
                    methodName,
@@ -4030,14 +4061,14 @@ void Conversion::_exportToPROJString(
         const auto latOrigin = parameterValueNumeric(
             EPSG_CODE_PARAMETER_LATITUDE_TOPOGRAPHIC_ORIGIN,
             common::UnitOfMeasure::DEGREE);
-        const auto lonOrigin = parameterValueNumeric(
+        const auto longOrigin = parameterValueNumeric(
             EPSG_CODE_PARAMETER_LONGITUDE_TOPOGRAPHIC_ORIGIN,
             common::UnitOfMeasure::DEGREE);
         const auto heightOrigin = parameterValueNumeric(
             EPSG_CODE_PARAMETER_ELLIPSOIDAL_HEIGHT_TOPOCENTRIC_ORIGIN,
             common::UnitOfMeasure::METRE);
         formatter->addParam("lat_0", latOrigin);
-        formatter->addParam("lon_0", lonOrigin);
+        formatter->addParam("lon_0", longOrigin);
         formatter->addParam("h_0", heightOrigin);
         bConversionDone = true;
     }
@@ -4358,20 +4389,20 @@ ConversionNNPtr Conversion::identify() const {
  * @param properties See \ref general_properties of the conversion.
  * At minimum the name should be defined.
  * @param offsetLat Latitude offset to add.
- * @param offsetLon Longitude offset to add.
+ * @param offsetLong Longitude offset to add.
  * @return new conversion.
  */
 ConversionNNPtr
 Conversion::createGeographic2DOffsets(const util::PropertyMap &properties,
                                       const common::Angle &offsetLat,
-                                      const common::Angle &offsetLon) {
+                                      const common::Angle &offsetLong) {
     return create(
         properties,
         createMethodMapNameEPSGCode(EPSG_CODE_METHOD_GEOGRAPHIC2D_OFFSETS),
         VectorOfParameters{
             createOpParamNameEPSGCode(EPSG_CODE_PARAMETER_LATITUDE_OFFSET),
             createOpParamNameEPSGCode(EPSG_CODE_PARAMETER_LONGITUDE_OFFSET)},
-        VectorOfValues{offsetLat, offsetLon});
+        VectorOfValues{offsetLat, offsetLong});
 }
 
 // ---------------------------------------------------------------------------
@@ -4385,13 +4416,13 @@ Conversion::createGeographic2DOffsets(const util::PropertyMap &properties,
  * @param properties See \ref general_properties of the Conversion.
  * At minimum the name should be defined.
  * @param offsetLat Latitude offset to add.
- * @param offsetLon Longitude offset to add.
+ * @param offsetLong Longitude offset to add.
  * @param offsetHeight Height offset to add.
  * @return new Conversion.
  */
 ConversionNNPtr Conversion::createGeographic3DOffsets(
     const util::PropertyMap &properties, const common::Angle &offsetLat,
-    const common::Angle &offsetLon, const common::Length &offsetHeight) {
+    const common::Angle &offsetLong, const common::Length &offsetHeight) {
     return create(
         properties,
         createMethodMapNameEPSGCode(EPSG_CODE_METHOD_GEOGRAPHIC3D_OFFSETS),
@@ -4399,7 +4430,7 @@ ConversionNNPtr Conversion::createGeographic3DOffsets(
             createOpParamNameEPSGCode(EPSG_CODE_PARAMETER_LATITUDE_OFFSET),
             createOpParamNameEPSGCode(EPSG_CODE_PARAMETER_LONGITUDE_OFFSET),
             createOpParamNameEPSGCode(EPSG_CODE_PARAMETER_VERTICAL_OFFSET)},
-        VectorOfValues{offsetLat, offsetLon, offsetHeight});
+        VectorOfValues{offsetLat, offsetLong, offsetHeight});
 }
 
 // ---------------------------------------------------------------------------
@@ -4415,13 +4446,13 @@ ConversionNNPtr Conversion::createGeographic3DOffsets(
  * @param properties See \ref general_properties of the Conversion.
  * At minimum the name should be defined.
  * @param offsetLat Latitude offset to add.
- * @param offsetLon Longitude offset to add.
+ * @param offsetLong Longitude offset to add.
  * @param offsetHeight Geoid undulation to add.
  * @return new Conversion.
  */
 ConversionNNPtr Conversion::createGeographic2DWithHeightOffsets(
     const util::PropertyMap &properties, const common::Angle &offsetLat,
-    const common::Angle &offsetLon, const common::Length &offsetHeight) {
+    const common::Angle &offsetLong, const common::Length &offsetHeight) {
     return create(
         properties,
         createMethodMapNameEPSGCode(
@@ -4430,7 +4461,7 @@ ConversionNNPtr Conversion::createGeographic2DWithHeightOffsets(
             createOpParamNameEPSGCode(EPSG_CODE_PARAMETER_LATITUDE_OFFSET),
             createOpParamNameEPSGCode(EPSG_CODE_PARAMETER_LONGITUDE_OFFSET),
             createOpParamNameEPSGCode(EPSG_CODE_PARAMETER_GEOID_UNDULATION)},
-        VectorOfValues{offsetLat, offsetLon, offsetHeight});
+        VectorOfValues{offsetLat, offsetLong, offsetHeight});
 }
 
 // ---------------------------------------------------------------------------
