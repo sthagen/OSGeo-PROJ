@@ -549,6 +549,13 @@ CRSNNPtr CRS::createBoundCRSToWGS84IfPossible(
     const auto &l_domains = domains();
     metadata::ExtentPtr extent;
     if (!l_domains.empty()) {
+        if (l_domains.size() > 1) {
+            // If there are several domains of validity, then it is extremely
+            // unlikely, we could get a single transformation valid for all.
+            // At least, in the current state of the code of createOperations()
+            // which returns a single extent, this can't happen.
+            return thisAsCRS;
+        }
         extent = l_domains[0]->domainOfValidity();
     }
 
@@ -663,42 +670,29 @@ CRSNNPtr CRS::createBoundCRSToWGS84IfPossible(
                     ->createOperations(NN_NO_CHECK(geodCRS), hubCRS, ctxt);
             CRSPtr candidateBoundCRS;
             int candidateCount = 0;
-            bool candidateHasExactlyMatchingExtent = false;
+
+            const auto takeIntoAccountCandidate =
+                [&](const operation::TransformationNNPtr &transf) {
+                    try {
+                        transf->getTOWGS84Parameters();
+                    } catch (const std::exception &) {
+                        return;
+                    }
+                    candidateCount++;
+                    if (candidateBoundCRS == nullptr) {
+                        candidateCount = 1;
+                        candidateBoundCRS =
+                            BoundCRS::create(thisAsCRS, hubCRS, transf)
+                                .as_nullable();
+                    }
+                };
+
             for (const auto &op : list) {
                 auto transf =
                     util::nn_dynamic_pointer_cast<operation::Transformation>(
                         op);
                 if (transf && !starts_with(transf->nameStr(), "Ballpark geo")) {
-                    try {
-                        transf->getTOWGS84Parameters();
-                    } catch (const std::exception &) {
-                        continue;
-                    }
-                    bool unused = false;
-                    auto opExtent =
-                        getExtent(NN_NO_CHECK(transf), false, unused);
-                    const bool exactlyMatchingExtent =
-                        opExtent && extentResolved &&
-                        opExtent->contains(NN_NO_CHECK(extentResolved)) &&
-                        extentResolved->contains(NN_NO_CHECK(opExtent));
-                    if (candidateBoundCRS) {
-                        if (exactlyMatchingExtent &&
-                            !candidateHasExactlyMatchingExtent) {
-                            candidateBoundCRS = nullptr;
-                        } else if (exactlyMatchingExtent ==
-                                   candidateHasExactlyMatchingExtent) {
-                            candidateCount++;
-                        }
-                    }
-                    if (candidateBoundCRS == nullptr) {
-                        candidateCount = 1;
-                        candidateHasExactlyMatchingExtent =
-                            exactlyMatchingExtent;
-                        candidateBoundCRS =
-                            BoundCRS::create(thisAsCRS, hubCRS,
-                                             NN_NO_CHECK(transf))
-                                .as_nullable();
-                    }
+                    takeIntoAccountCandidate(NN_NO_CHECK(transf));
                 } else {
                     auto concatenated =
                         dynamic_cast<const operation::ConcatenatedOperation *>(
@@ -724,40 +718,8 @@ CRSNNPtr CRS::createBoundCRSToWGS84IfPossible(
                                     operation::Transformation>(subops[1]);
                                 if (transf && !starts_with(transf->nameStr(),
                                                            "Ballpark geo")) {
-                                    try {
-                                        transf->getTOWGS84Parameters();
-                                    } catch (const std::exception &) {
-                                        continue;
-                                    }
-                                    bool unused = false;
-                                    auto opExtent = getExtent(
-                                        NN_NO_CHECK(transf), false, unused);
-                                    const bool exactlyMatchingExtent =
-                                        opExtent && extentResolved &&
-                                        opExtent->contains(
-                                            NN_NO_CHECK(extentResolved)) &&
-                                        extentResolved->contains(
-                                            NN_NO_CHECK(opExtent));
-                                    if (candidateBoundCRS) {
-                                        if (exactlyMatchingExtent &&
-                                            !candidateHasExactlyMatchingExtent) {
-                                            candidateBoundCRS = nullptr;
-                                        } else if (
-                                            exactlyMatchingExtent ==
-                                            candidateHasExactlyMatchingExtent) {
-                                            candidateCount++;
-                                        }
-                                    }
-                                    if (candidateBoundCRS == nullptr) {
-                                        candidateCount = 1;
-                                        candidateHasExactlyMatchingExtent =
-                                            exactlyMatchingExtent;
-                                        candidateBoundCRS =
-                                            BoundCRS::create(
-                                                thisAsCRS, hubCRS,
-                                                NN_NO_CHECK(transf))
-                                                .as_nullable();
-                                    }
+                                    takeIntoAccountCandidate(
+                                        NN_NO_CHECK(transf));
                                 }
                             }
                         }
@@ -2210,8 +2172,8 @@ void GeodeticCRS::_exportToWKT(io::WKTFormatter *formatter) const {
                              ? ((formatter->use2019Keywords() && isGeographic)
                                     ? io::WKTConstants::GEOGCRS
                                     : io::WKTConstants::GEODCRS)
-                             : isGeocentric() ? io::WKTConstants::GEOCCS
-                                              : io::WKTConstants::GEOGCS,
+                         : isGeocentric() ? io::WKTConstants::GEOCCS
+                                          : io::WKTConstants::GEOGCS,
                          !l_identifiers.empty());
 
     if (isESRIExport) {
@@ -3521,9 +3483,9 @@ VerticalCRS::datumNonNull(const io::DatabaseContextPtr &dbContext) const {
 void VerticalCRS::_exportToWKT(io::WKTFormatter *formatter) const {
     const bool isWKT2 = formatter->version() == io::WKTFormatter::Version::WKT2;
     formatter->startNode(isWKT2 ? io::WKTConstants::VERTCRS
-                                : formatter->useESRIDialect()
-                                      ? io::WKTConstants::VERTCS
-                                      : io::WKTConstants::VERT_CS,
+                         : formatter->useESRIDialect()
+                             ? io::WKTConstants::VERTCS
+                             : io::WKTConstants::VERT_CS,
                          !identifiers().empty());
 
     auto l_name = nameStr();
@@ -4804,10 +4766,10 @@ ProjectedCRS::identify(const io::AuthorityFactoryPtr &authorityFactory) const {
 
     auto computeConfidence = [&thisName](const std::string &crsName) {
         return crsName == thisName ? 100
-                                   : metadata::Identifier::isEquivalentName(
-                                         crsName.c_str(), thisName.c_str())
-                                         ? 90
-                                         : 70;
+               : metadata::Identifier::isEquivalentName(crsName.c_str(),
+                                                        thisName.c_str())
+                   ? 90
+                   : 70;
     };
 
     const auto &conv = derivingConversionRef();
@@ -5655,7 +5617,8 @@ CompoundCRS::identify(const io::AuthorityFactoryPtr &authorityFactory) const {
                 res.emplace_back(
                     newCRS,
                     std::min(thisName == newCRS->nameStr() ? 100
-                                                           : eqName ? 90 : 70,
+                             : eqName                      ? 90
+                                                           : 70,
                              std::min(candidatesHorizCRS.front().second,
                                       candidatesVertCRS.front().second)));
             }

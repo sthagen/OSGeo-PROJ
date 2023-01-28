@@ -60,8 +60,8 @@
 #include "proj_internal.h"
 #include "proj_experimental.h"
 // clang-format on
-#include "proj_constants.h"
 #include "geodesic.h"
+#include "proj_constants.h"
 
 using namespace NS_PROJ::common;
 using namespace NS_PROJ::coordinates;
@@ -1830,6 +1830,29 @@ const char *proj_as_projjson(PJ_CONTEXT *ctx, const PJ *obj,
 
 // ---------------------------------------------------------------------------
 
+/** \brief Get the number of domains/usages for a given object.
+ *
+ * Most objects have a single domain/usage, but for some of them, there might
+ * be multiple.
+ *
+ * @param obj Object (must not be NULL)
+ * @return the number of domains, or 0 in case of error.
+ * @since 9.2
+ */
+int proj_get_domain_count(const PJ *obj) {
+    if (!obj || !obj->iso_obj) {
+        return 0;
+    }
+    auto objectUsage = dynamic_cast<const ObjectUsage *>(obj->iso_obj.get());
+    if (!objectUsage) {
+        return 0;
+    }
+    const auto &domains = objectUsage->domains();
+    return static_cast<int>(domains.size());
+}
+
+// ---------------------------------------------------------------------------
+
 /** \brief Get the scope of an object.
  *
  * In case of multiple usages, this will be the one of first usage.
@@ -1839,7 +1862,20 @@ const char *proj_as_projjson(PJ_CONTEXT *ctx, const PJ *obj,
  * @param obj Object (must not be NULL)
  * @return a string, or NULL in case of error or missing scope.
  */
-const char *proj_get_scope(const PJ *obj) {
+const char *proj_get_scope(const PJ *obj) { return proj_get_scope_ex(obj, 0); }
+
+// ---------------------------------------------------------------------------
+
+/** \brief Get the scope of an object.
+ *
+ * The lifetime of the returned string is the same as the input obj parameter.
+ *
+ * @param obj Object (must not be NULL)
+ * @param domainIdx Index of the domain/usage. In [0,proj_get_domain_count(obj)[
+ * @return a string, or NULL in case of error or missing scope.
+ * @since 9.2
+ */
+const char *proj_get_scope_ex(const PJ *obj, int domainIdx) {
     if (!obj || !obj->iso_obj) {
         return nullptr;
     }
@@ -1848,10 +1884,10 @@ const char *proj_get_scope(const PJ *obj) {
         return nullptr;
     }
     const auto &domains = objectUsage->domains();
-    if (domains.empty()) {
+    if (domainIdx < 0 || static_cast<size_t>(domainIdx) >= domains.size()) {
         return nullptr;
     }
-    const auto &scope = domains[0]->scope();
+    const auto &scope = domains[domainIdx]->scope();
     if (!scope.has_value()) {
         return nullptr;
     }
@@ -1891,6 +1927,43 @@ int proj_get_area_of_use(PJ_CONTEXT *ctx, const PJ *obj,
                          double *out_east_lon_degree,
                          double *out_north_lat_degree,
                          const char **out_area_name) {
+    return proj_get_area_of_use_ex(ctx, obj, 0, out_west_lon_degree,
+                                   out_south_lat_degree, out_east_lon_degree,
+                                   out_north_lat_degree, out_area_name);
+}
+
+// ---------------------------------------------------------------------------
+
+/** \brief Return the area of use of an object.
+ *
+ * In case of multiple usages, this will be the one of first usage.
+ *
+ * @param ctx PROJ context, or NULL for default context
+ * @param obj Object (must not be NULL)
+ * @param domainIdx Index of the domain/usage. In [0,proj_get_domain_count(obj)[
+ * @param out_west_lon_degree Pointer to a double to receive the west longitude
+ * (in degrees). Or NULL. If the returned value is -1000, the bounding box is
+ * unknown.
+ * @param out_south_lat_degree Pointer to a double to receive the south latitude
+ * (in degrees). Or NULL. If the returned value is -1000, the bounding box is
+ * unknown.
+ * @param out_east_lon_degree Pointer to a double to receive the east longitude
+ * (in degrees). Or NULL. If the returned value is -1000, the bounding box is
+ * unknown.
+ * @param out_north_lat_degree Pointer to a double to receive the north latitude
+ * (in degrees). Or NULL. If the returned value is -1000, the bounding box is
+ * unknown.
+ * @param out_area_name Pointer to a string to receive the name of the area of
+ * use. Or NULL. *p_area_name is valid while obj is valid itself.
+ * @return TRUE in case of success, FALSE in case of error or if the area
+ * of use is unknown.
+ */
+int proj_get_area_of_use_ex(PJ_CONTEXT *ctx, const PJ *obj, int domainIdx,
+                            double *out_west_lon_degree,
+                            double *out_south_lat_degree,
+                            double *out_east_lon_degree,
+                            double *out_north_lat_degree,
+                            const char **out_area_name) {
     (void)ctx;
     if (out_area_name) {
         *out_area_name = nullptr;
@@ -1900,10 +1973,10 @@ int proj_get_area_of_use(PJ_CONTEXT *ctx, const PJ *obj,
         return false;
     }
     const auto &domains = objectUsage->domains();
-    if (domains.empty()) {
+    if (domainIdx < 0 || static_cast<size_t>(domainIdx) >= domains.size()) {
         return false;
     }
-    const auto &extent = domains[0]->domainOfValidity();
+    const auto &extent = domains[domainIdx]->domainOfValidity();
     if (!extent) {
         return false;
     }
@@ -3267,15 +3340,13 @@ static UnitOfMeasure createLinearUnit(const char *name, double convFactor,
 static UnitOfMeasure createAngularUnit(const char *name, double convFactor,
                                        const char *unit_auth_name = nullptr,
                                        const char *unit_code = nullptr) {
-    return name ? (ci_equal(name, "degree")
-                       ? UnitOfMeasure::DEGREE
-                       : ci_equal(name, "grad")
-                             ? UnitOfMeasure::GRAD
-                             : UnitOfMeasure(name, convFactor,
-                                             UnitOfMeasure::Type::ANGULAR,
-                                             unit_auth_name ? unit_auth_name
-                                                            : "",
-                                             unit_code ? unit_code : ""))
+    return name ? (ci_equal(name, "degree") ? UnitOfMeasure::DEGREE
+                   : ci_equal(name, "grad")
+                       ? UnitOfMeasure::GRAD
+                       : UnitOfMeasure(name, convFactor,
+                                       UnitOfMeasure::Type::ANGULAR,
+                                       unit_auth_name ? unit_auth_name : "",
+                                       unit_code ? unit_code : ""))
                 : UnitOfMeasure::DEGREE;
 }
 
@@ -3300,14 +3371,12 @@ static GeodeticReferenceFrameNNPtr createGeodeticReferenceFrame(
     auto pm = PrimeMeridian::create(
         PropertyMap().set(
             common::IdentifiedObject::NAME_KEY,
-            prime_meridian_name
-                ? prime_meridian_name
-                : prime_meridian_offset == 0.0
-                      ? (ellps->celestialBody() == Ellipsoid::EARTH
-                             ? PrimeMeridian::GREENWICH->nameStr().c_str()
-                             : PrimeMeridian::REFERENCE_MERIDIAN->nameStr()
-                                   .c_str())
-                      : "unnamed"),
+            prime_meridian_name ? prime_meridian_name
+            : prime_meridian_offset == 0.0
+                ? (ellps->celestialBody() == Ellipsoid::EARTH
+                       ? PrimeMeridian::GREENWICH->nameStr().c_str()
+                       : PrimeMeridian::REFERENCE_MERIDIAN->nameStr().c_str())
+                : "unnamed"),
         Angle(prime_meridian_offset, angUnit));
 
     std::string datumName(datum_name ? datum_name : "unnamed");
@@ -4330,12 +4399,12 @@ static void setSingleOperationElements(
             params[i].unit_type == PJ_UT_ANGULAR
                 ? createAngularUnit(params[i].unit_name,
                                     params[i].unit_conv_factor)
-                : params[i].unit_type == PJ_UT_LINEAR
-                      ? createLinearUnit(params[i].unit_name,
-                                         params[i].unit_conv_factor)
-                      : UnitOfMeasure(params[i].unit_name ? params[i].unit_name
-                                                          : "unnamed",
-                                      params[i].unit_conv_factor, unit_type));
+            : params[i].unit_type == PJ_UT_LINEAR
+                ? createLinearUnit(params[i].unit_name,
+                                   params[i].unit_conv_factor)
+                : UnitOfMeasure(params[i].unit_name ? params[i].unit_name
+                                                    : "unnamed",
+                                params[i].unit_conv_factor, unit_type));
         values.emplace_back(ParameterValue::create(measure));
     }
 }
@@ -4582,13 +4651,12 @@ static CoordinateSystemAxisNNPtr createAxis(const PJ_AXIS_DESCRIPTION &axis) {
         unit_type = UnitOfMeasure::Type::PARAMETRIC;
         break;
     }
-    auto unit =
-        axis.unit_type == PJ_UT_ANGULAR
-            ? createAngularUnit(axis.unit_name, axis.unit_conv_factor)
-            : axis.unit_type == PJ_UT_LINEAR
-                  ? createLinearUnit(axis.unit_name, axis.unit_conv_factor)
-                  : UnitOfMeasure(axis.unit_name ? axis.unit_name : "unnamed",
-                                  axis.unit_conv_factor, unit_type);
+    auto unit = axis.unit_type == PJ_UT_ANGULAR
+                    ? createAngularUnit(axis.unit_name, axis.unit_conv_factor)
+                : axis.unit_type == PJ_UT_LINEAR
+                    ? createLinearUnit(axis.unit_name, axis.unit_conv_factor)
+                    : UnitOfMeasure(axis.unit_name ? axis.unit_name : "unnamed",
+                                    axis.unit_conv_factor, unit_type);
 
     return CoordinateSystemAxis::create(
         createPropertyMapName(axis.name),
@@ -8345,20 +8413,19 @@ proj_create_operations(PJ_CONTEXT *ctx, const PJ *source_crs,
     try {
         auto factory = CoordinateOperationFactory::create();
         std::vector<IdentifiedObjectNNPtr> objects;
-        auto ops =
-            sourceCoordinateMetadata != nullptr
-                ? factory->createOperations(
-                      NN_NO_CHECK(sourceCoordinateMetadata),
-                      NN_NO_CHECK(targetCRS),
-                      operationContext->operationContext)
-                : targetCoordinateMetadata != nullptr
-                      ? factory->createOperations(
-                            NN_NO_CHECK(sourceCRS),
-                            NN_NO_CHECK(targetCoordinateMetadata),
-                            operationContext->operationContext)
-                      : factory->createOperations(
-                            NN_NO_CHECK(sourceCRS), NN_NO_CHECK(targetCRS),
-                            operationContext->operationContext);
+        auto ops = sourceCoordinateMetadata != nullptr
+                       ? factory->createOperations(
+                             NN_NO_CHECK(sourceCoordinateMetadata),
+                             NN_NO_CHECK(targetCRS),
+                             operationContext->operationContext)
+                   : targetCoordinateMetadata != nullptr
+                       ? factory->createOperations(
+                             NN_NO_CHECK(sourceCRS),
+                             NN_NO_CHECK(targetCoordinateMetadata),
+                             operationContext->operationContext)
+                       : factory->createOperations(
+                             NN_NO_CHECK(sourceCRS), NN_NO_CHECK(targetCRS),
+                             operationContext->operationContext);
         for (const auto &op : ops) {
             objects.emplace_back(op);
         }
@@ -9151,7 +9218,7 @@ PJ *proj_concatoperation_get_step(PJ_CONTEXT *ctx, const PJ *concatoperation,
 struct PJ_INSERT_SESSION {
     //! @cond Doxygen_Suppress
     PJ_CONTEXT *ctx = nullptr;
-    //! @endcond
+    //!  @endcond
 };
 
 // ---------------------------------------------------------------------------

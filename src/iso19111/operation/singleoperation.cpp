@@ -2087,10 +2087,9 @@ TransformationNNPtr SingleOperation::substitutePROJAlternativeGridNames(
             lasFilename = latitudeFileParameter->valueFile();
         }
     }
-    const auto &horizontalGridName =
-        !NTv1Filename.empty()
-            ? NTv1Filename
-            : !NTv2Filename.empty() ? NTv2Filename : lasFilename;
+    const auto &horizontalGridName = !NTv1Filename.empty()   ? NTv1Filename
+                                     : !NTv2Filename.empty() ? NTv2Filename
+                                                             : lasFilename;
     const auto l_interpolationCRS = interpolationCRS();
 
     if (!horizontalGridName.empty() && databaseContext->lookForGridAlternative(
@@ -2883,6 +2882,36 @@ bool SingleOperation::exportToPROJStringGeneric(
         return true;
     }
 
+    if (methodEPSGCode == EPSG_CODE_METHOD_SIMILARITY_TRANSFORMATION) {
+        const double XT0 =
+            parameterValueMeasure(
+                EPSG_CODE_PARAMETER_ORDINATE_1_EVAL_POINT_TARGET_CRS)
+                .value();
+        const double YT0 =
+            parameterValueMeasure(
+                EPSG_CODE_PARAMETER_ORDINATE_2_EVAL_POINT_TARGET_CRS)
+                .value();
+        const double M =
+            parameterValueMeasure(
+                EPSG_CODE_PARAMETER_SCALE_FACTOR_FOR_SOURCE_CRS_AXES)
+                .value();
+        const double q = parameterValueNumeric(
+            EPSG_CODE_PARAMETER_ROTATION_ANGLE_OF_SOURCE_CRS_AXES,
+            common::UnitOfMeasure::RADIAN);
+
+        // Do not mess with axis unit and order for that transformation
+
+        formatter->addStep("affine");
+        formatter->addParam("xoff", XT0);
+        formatter->addParam("s11", M * cos(q));
+        formatter->addParam("s12", M * sin(q));
+        formatter->addParam("yoff", YT0);
+        formatter->addParam("s21", -M * sin(q));
+        formatter->addParam("s22", M * cos(q));
+
+        return true;
+    }
+
     if (isAxisOrderReversal(methodEPSGCode)) {
         formatter->addStep("axisswap");
         formatter->addParam("order", "2,1");
@@ -3532,12 +3561,11 @@ bool SingleOperation::exportToPROJStringGeneric(
     const auto &CTABLE2Filename = _getCTABLE2Filename(this, true);
     const auto &HorizontalShiftGTIFFFilename =
         _getHorizontalShiftGTIFFFilename(this, true);
-    const auto &hGridShiftFilename =
-        !HorizontalShiftGTIFFFilename.empty()
-            ? HorizontalShiftGTIFFFilename
-            : !NTv1Filename.empty()
-                  ? NTv1Filename
-                  : !NTv2Filename.empty() ? NTv2Filename : CTABLE2Filename;
+    const auto &hGridShiftFilename = !HorizontalShiftGTIFFFilename.empty()
+                                         ? HorizontalShiftGTIFFFilename
+                                     : !NTv1Filename.empty() ? NTv1Filename
+                                     : !NTv2Filename.empty() ? NTv2Filename
+                                                             : CTABLE2Filename;
     if (!hGridShiftFilename.empty()) {
         auto l_sourceCRS = sourceCRS();
         auto sourceCRSGeog =
