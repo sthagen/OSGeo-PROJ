@@ -48,6 +48,7 @@
 #include "proj.h"
 #include "proj_experimental.h"
 #include "proj_internal.h"
+#include <cmath> /* for isnan */
 #include <math.h>
 
 #include "proj/common.hpp"
@@ -161,6 +162,16 @@ double proj_xyz_dist(PJ_COORD a, PJ_COORD b) {
     return hypot(proj_xy_dist(a, b), a.xyz.z - b.xyz.z);
 }
 
+static bool inline coord_is_all_nans(PJ_COORD coo) {
+    return std::isnan(coo.v[0]) && std::isnan(coo.v[1]) &&
+           std::isnan(coo.v[2]) && std::isnan(coo.v[3]);
+}
+
+static bool inline coord_has_nans(PJ_COORD coo) {
+    return std::isnan(coo.v[0]) || std::isnan(coo.v[1]) ||
+           std::isnan(coo.v[2]) || std::isnan(coo.v[3]);
+}
+
 /* Measure numerical deviation after n roundtrips fwd-inv (or inv-fwd) */
 double proj_roundtrip(PJ *P, PJ_DIRECTION direction, int n, PJ_COORD *coord) {
     int i;
@@ -189,6 +200,11 @@ double proj_roundtrip(PJ *P, PJ_DIRECTION direction, int n, PJ_COORD *coord) {
     /* finally, we take the last half-step */
     t = proj_trans(P, opposite_direction(direction), t);
 
+    /* if we start with any NaN, we expect all NaN as output */
+    if (coord_has_nans(org) && coord_is_all_nans(t)) {
+        return 0.0;
+    }
+
     /* checking for angular *input* since we do a roundtrip, and end where we
      * begin */
     if (proj_angular_input(P, direction))
@@ -209,8 +225,8 @@ static bool isSpecialCaseForNAD83_to_NAD83HARN(const PJCoordOperation &op) {
 /**************************************************************************************/
 int pj_get_suggested_operation(PJ_CONTEXT *,
                                const std::vector<PJCoordOperation> &opList,
-                               const int iExcluded[2], PJ_DIRECTION direction,
-                               PJ_COORD coord)
+                               const int iExcluded[2], bool skipNonInstantiable,
+                               PJ_DIRECTION direction, PJ_COORD coord)
 /**************************************************************************************/
 {
     const auto normalizeLongitude = [](double x) {
@@ -295,6 +311,11 @@ int pj_get_suggested_operation(PJ_CONTEXT *,
                    alt.maxySrc <= opList[iBest].maxySrc &&
                    !isSpecialCaseForNAD83_to_NAD83HARN(opList[iBest]))) &&
                  !alt.isOffshore)) {
+
+                if (skipNonInstantiable &&
+                    !proj_coordoperation_is_instantiable(alt.pj->ctx, alt.pj)) {
+                    continue;
+                }
                 iBest = i;
                 bestAccuracy = alt.accuracy;
             }
@@ -363,6 +384,9 @@ PJ_COORD proj_trans(PJ *P, PJ_DIRECTION direction, PJ_COORD coord) {
         constexpr int N_MAX_RETRY = 2;
         int iExcluded[N_MAX_RETRY] = {-1, -1};
 
+        bool skipNonInstantiable = P->skipNonInstantiable &&
+                                   !P->warnIfBestTransformationNotAvailable &&
+                                   !P->errorIfBestTransformationNotAvailable;
         const int nOperations =
             static_cast<int>(P->alternativeCoordinateOperations.size());
 
@@ -376,7 +400,7 @@ PJ_COORD proj_trans(PJ *P, PJ_DIRECTION direction, PJ_COORD coord) {
             // use and has the best accuracy.
             int iBest = pj_get_suggested_operation(
                 P->ctx, P->alternativeCoordinateOperations, iExcluded,
-                direction, coord);
+                skipNonInstantiable, direction, coord);
             if (iBest < 0) {
                 break;
             }
@@ -417,6 +441,8 @@ PJ_COORD proj_trans(PJ *P, PJ_DIRECTION direction, PJ_COORD coord) {
                 warnAboutMissingGrid(alt.pj);
                 if (P->errorIfBestTransformationNotAvailable)
                     return res;
+                P->warnIfBestTransformationNotAvailable = false;
+                skipNonInstantiable = true;
             }
             if (iRetry == N_MAX_RETRY) {
                 break;
@@ -471,7 +497,10 @@ PJ_COORD proj_trans(PJ *P, PJ_DIRECTION direction, PJ_COORD coord) {
         0; // dummy value, to be used by proj_trans_get_last_used_operation()
     if (P->hasCoordinateEpoch)
         coord.xyzt.t = P->coordinateEpoch;
-    if (direction == PJ_FWD)
+    if (coord_has_nans(coord))
+        coord.v[0] = coord.v[1] = coord.v[2] = coord.v[3] =
+            std::numeric_limits<double>::quiet_NaN();
+    else if (direction == PJ_FWD)
         pj_fwd4d(coord, P);
     else
         pj_inv4d(coord, P);
@@ -2019,6 +2048,7 @@ PJ *proj_create_crs_to_crs_from_pj(PJ_CONTEXT *ctx, const PJ *source_crs,
             errorIfBestTransformationNotAvailable;
         P->warnIfBestTransformationNotAvailable =
             warnIfBestTransformationNotAvailable;
+        P->skipNonInstantiable = warnIfBestTransformationNotAvailable;
     }
 
     if (P == nullptr || op_count == 1 ||
@@ -2059,12 +2089,96 @@ PJ *proj_create_crs_to_crs_from_pj(PJ_CONTEXT *ctx, const PJ *source_crs,
         return nullptr;
     }
 
+    const bool mayNeedToReRunWithDiscardMissing =
+        (errorIfBestTransformationNotAvailable ||
+         warnIfBestTransformationNotAvailable) &&
+        !proj_context_is_network_enabled(ctx);
+    bool foundInstanciableAndNonBallpark = false;
+
     for (auto &op : preparedOpList) {
         op.pj->over = forceOver;
         op.pj->errorIfBestTransformationNotAvailable =
             errorIfBestTransformationNotAvailable;
         op.pj->warnIfBestTransformationNotAvailable =
             warnIfBestTransformationNotAvailable;
+        if (mayNeedToReRunWithDiscardMissing &&
+            !foundInstanciableAndNonBallpark) {
+            if (!proj_coordoperation_has_ballpark_transformation(op.pj->ctx,
+                                                                 op.pj) &&
+                proj_coordoperation_is_instantiable(op.pj->ctx, op.pj)) {
+                foundInstanciableAndNonBallpark = true;
+            }
+        }
+    }
+    if (mayNeedToReRunWithDiscardMissing && !foundInstanciableAndNonBallpark) {
+        // Re-run proj_create_operations with
+        // PROJ_GRID_AVAILABILITY_DISCARD_OPERATION_IF_MISSING_GRID
+        // Can happen for example for NAD27->NAD83 transformation when we
+        // have no grid and thus have fallback to Helmert transformation and
+        // a WGS84 intermediate.
+        operation_ctx = proj_create_operation_factory_context(ctx, authority);
+        if (operation_ctx) {
+            proj_operation_factory_context_set_allow_ballpark_transformations(
+                ctx, operation_ctx, allowBallparkTransformations);
+
+            if (accuracy >= 0) {
+                proj_operation_factory_context_set_desired_accuracy(
+                    ctx, operation_ctx, accuracy);
+            }
+
+            if (area && area->bbox_set) {
+                proj_operation_factory_context_set_area_of_interest(
+                    ctx, operation_ctx, area->west_lon_degree,
+                    area->south_lat_degree, area->east_lon_degree,
+                    area->north_lat_degree);
+
+                if (!area->name.empty()) {
+                    proj_operation_factory_context_set_area_of_interest_name(
+                        ctx, operation_ctx, area->name.c_str());
+                }
+            }
+
+            proj_operation_factory_context_set_spatial_criterion(
+                ctx, operation_ctx,
+                PROJ_SPATIAL_CRITERION_PARTIAL_INTERSECTION);
+            proj_operation_factory_context_set_grid_availability_use(
+                ctx, operation_ctx,
+                PROJ_GRID_AVAILABILITY_DISCARD_OPERATION_IF_MISSING_GRID);
+
+            op_list = proj_create_operations(ctx, source_crs, target_crs,
+                                             operation_ctx);
+            if (op_list) {
+                ctx->forceOver = forceOver;
+                ctx->debug_level = PJ_LOG_NONE;
+                auto preparedOpList2 = pj_create_prepared_operations(
+                    ctx, source_crs, target_crs, op_list);
+                ctx->debug_level = old_debug_level;
+                ctx->forceOver = false;
+                proj_list_destroy(op_list);
+
+                if (!preparedOpList2.empty()) {
+                    // Append new lists of operations to previous one
+                    std::vector<PJCoordOperation> newOpList;
+                    for (auto &&op : preparedOpList) {
+                        if (!proj_coordoperation_has_ballpark_transformation(
+                                op.pj->ctx, op.pj)) {
+                            newOpList.emplace_back(std::move(op));
+                        }
+                    }
+                    for (auto &&op : preparedOpList2) {
+                        op.pj->over = forceOver;
+                        op.pj->errorIfBestTransformationNotAvailable =
+                            errorIfBestTransformationNotAvailable;
+                        op.pj->warnIfBestTransformationNotAvailable =
+                            warnIfBestTransformationNotAvailable;
+                        newOpList.emplace_back(std::move(op));
+                    }
+                    preparedOpList = std::move(newOpList);
+                }
+            }
+
+            proj_operation_factory_context_destroy(operation_ctx);
+        }
     }
 
     // If there's finally juste a single result, return it directly
