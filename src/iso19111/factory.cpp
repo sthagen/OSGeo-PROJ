@@ -1931,7 +1931,10 @@ void DatabaseContext::Private::identifyOrInsertUsages(
                 scopeCode = row[1];
             } else {
                 scopeAuthName = authName;
-                scopeCode = "SCOPE_" + tableName + "_" + code;
+                scopeCode = "SCOPE_";
+                scopeCode += tableName;
+                scopeCode += '_';
+                scopeCode += code;
                 const auto sqlToInsert = formatStatement(
                     "INSERT INTO scope VALUES('%q','%q','%q',0);",
                     scopeAuthName.c_str(), scopeCode.c_str(), scope->c_str());
@@ -1972,7 +1975,10 @@ void DatabaseContext::Private::identifyOrInsertUsages(
                         extentCode = row[1];
                     } else {
                         extentAuthName = authName;
-                        extentCode = "EXTENT_" + tableName + "_" + code;
+                        extentCode = "EXTENT_";
+                        extentCode += tableName;
+                        extentCode += '_';
+                        extentCode += code;
                         std::string description(*(extent->description()));
                         if (description.empty()) {
                             description = "unknown";
@@ -3416,7 +3422,11 @@ DatabaseContext::getAliasFromOfficialName(const std::string &officialName,
     }
     sql += " ORDER BY deprecated";
     auto res = d->run(sql, {officialName});
-    if (res.empty()) {
+    // Sorry for the hack excluding NAD83 + geographic_3D_crs, but otherwise
+    // EPSG has a weird alias from NAD83 to EPSG:4152 which happens to be
+    // NAD83(HARN), and that's definitely not desirable.
+    if (res.empty() &&
+        !(officialName == "NAD83" && tableName == "geographic_3D_crs")) {
         res = d->run(
             "SELECT auth_name, code FROM alias_name WHERE table_name = ? AND "
             "alt_name = ? AND source IN ('EPSG', 'PROJ')",
@@ -7545,7 +7555,8 @@ AuthorityFactory::createBetweenGeodeticCRSWithDatumBasedIntermediates(
             trfm.south = c_locale_stod(row[8]);
             trfm.east = c_locale_stod(row[9]);
             trfm.north = c_locale_stod(row[10]);
-            const std::string key = datum_auth_name + ':' + datum_code;
+            const std::string key =
+                std::string(datum_auth_name).append(":").append(datum_code);
             if (trfm.situation == "src_is_tgt" ||
                 trfm.situation == "src_is_src")
                 mapIntermDatumOfSource[key].emplace_back(std::move(trfm));
