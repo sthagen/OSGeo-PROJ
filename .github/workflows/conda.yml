@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  conda:
     name: Conda ${{ matrix.platform }}
     if: github.repository == 'OSGeo/PROJ'
 
@@ -25,12 +25,12 @@ jobs:
       PLATFORM: ${{ matrix.platform }}
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - uses: conda-incubator/setup-miniconda@v2
       with:
-        channels: conda-forge
-        auto-update-conda: true
+        miniforge-variant: Mambaforge
+        miniforge-version: latest
 
     - name: Setup
       shell: bash -l {0}
@@ -44,7 +44,7 @@ jobs:
       working-directory: ./proj.4-feedstock
 
 
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v3
       with:
         name: ${{ matrix.platform }}-conda-package
         path: ./proj.4-feedstock/packages/

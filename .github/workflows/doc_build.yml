@@ -15,7 +15,7 @@ jobs:
         shell: bash -l {0}
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Install PROJ build dependencies
         run: |
@@ -49,7 +49,7 @@ jobs:
             export PROJ_DATA=/opt/proj/share/proj
             ./plot.py plotdefs.json images/
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: Images
           path: docs/plot/images
@@ -65,7 +65,7 @@ jobs:
     container: osgeo/proj-docs
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Print versions
       shell: bash -l {0}
       run: |
@@ -73,7 +73,7 @@ jobs:
           sphinx-build --version
           python3 -m pip list --not-required --format=columns
 
-    - uses: actions/download-artifact@v2
+    - uses: actions/download-artifact@v3
       name: Images
       with:
         name: Images
@@ -103,15 +103,15 @@ jobs:
       run: |
         make spelling
       working-directory: ./docs
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v3
       with:
         name: PDF
         path: docs/build/latex/proj.pdf
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v3
       with:
         name: HTML
         path: docs/build/html/*
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v3
       with:
         name: Misspelled
         path: docs/build/spelling/output.txt
