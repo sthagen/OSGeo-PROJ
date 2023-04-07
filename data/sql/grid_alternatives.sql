@@ -102,6 +102,9 @@ VALUES
 -- de_geosn - Staatsbetrieb Geobasisinformation und Vermessung Sachsen GeoSN
 ('NTv2_SN.gsb','de_geosn_NTv2_SN.tif','NTv2_SN.gsb','GTiff','hgridshift',0,NULL,'https://cdn.proj.org/de_geosn_NTv2_SN.tif',1,1,NULL),
 
+-- de_hvbg - Hessische Verwaltung für Bodenmanagement und Geoinformation
+('HeTa2010.gsb','de_hvbg_hessen_HeTA2010.tif',NULL,'GTiff','hgridshift',0,NULL,'https://cdn.proj.org/de_hvbg_hessen_HeTA2010.tif',1,1,NULL),
+
 -- de_lgl_bw - LGL Baden-Württemberg
 ('BWTA2017.gsb','de_lgl_bw_BWTA2017.tif','BWTA2017.gsb','GTiff','hgridshift',0,NULL,'https://cdn.proj.org/de_lgl_bw_BWTA2017.tif',1,1,NULL),
 
@@ -204,9 +207,11 @@ VALUES
 
 -- nc_dittt - Gouvernement de Nouvelle Calédonie - DITTT
 ('Ranc08_Circe.mnt','nc_dittt_Ranc08_Circe.tif',NULL,'GTiff','geoid_like',0,NULL,'https://cdn.proj.org/nc_dittt_Ranc08_Circe.tif',1,1,NULL),
+('RANC15.tac','nc_dittt_RANC15.tif',NULL,'GTiff','geoid_like',0,NULL,'https://cdn.proj.org/nc_dittt_RANC15.tif',1,1,NULL),
 ('gr3dnc01b.mnt','nc_dittt_gr3dnc01b.tif',NULL,'GTiff','geocentricoffset',0,NULL,'https://cdn.proj.org/nc_dittt_gr3dnc01b.tif',1,1,NULL),
 ('gr3dnc02b.mnt','nc_dittt_gr3dnc02b.tif',NULL,'GTiff','geocentricoffset',0,NULL,'https://cdn.proj.org/nc_dittt_gr3dnc02b.tif',1,1,NULL),
 ('gr3dnc03a.mnt','nc_dittt_gr3dnc03a.tif',NULL,'GTiff','geocentricoffset',0,NULL,'https://cdn.proj.org/nc_dittt_gr3dnc03a.tif',1,1,NULL),
+('gr3dncl08.tac','nc_dittt_gr3dncI08.tif',NULL,'GTiff','geocentricoffset',0,NULL,'https://cdn.proj.org/nc_dittt_gr3dncI08.tif',1,1,NULL),
 
 -- Netherlands / RDNAP (non-free grids). See https://salsa.debian.org/debian-gis-team/proj-rdnap/raw/master/debian/copyright
 -- Netherlands / RDNAP 2018
