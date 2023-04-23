@@ -2027,6 +2027,18 @@ TEST(operation, geogCRS_to_projCRS) {
               "+proj=pipeline +step +proj=axisswap +order=2,1 +step "
               "+proj=unitconvert +xy_in=deg +xy_out=rad +step +proj=utm "
               "+zone=31 +ellps=WGS84");
+
+    PJ_CONTEXT *ctx = proj_context_create();
+    auto transformer = op->coordinateTransformer(ctx);
+    PJ_COORD c;
+    c.v[0] = 49;
+    c.v[1] = 2;
+    c.v[2] = 0;
+    c.v[3] = HUGE_VAL;
+    c = transformer->transform(c);
+    EXPECT_NEAR(c.v[0], 426857.98771728, 1e-8);
+    EXPECT_NEAR(c.v[1], 5427937.52346492, 1e-8);
+    proj_context_destroy(ctx);
 }
 
 // ---------------------------------------------------------------------------
@@ -5976,7 +5988,7 @@ TEST(operation, vertCRS_to_vertCRS_context) {
         authFactory->createCoordinateReferenceSystem("7968"),
         // NAVD88 height (1)
         authFactory->createCoordinateReferenceSystem("5703"), ctxt);
-    ASSERT_EQ(list.size(), 3U);
+    ASSERT_EQ(list.size(), 4U);
     EXPECT_EQ(list[0]->nameStr(), "NGVD29 height (m) to NAVD88 height (3)");
     EXPECT_EQ(list[0]->exportToPROJString(PROJStringFormatter::create().get()),
               "+proj=vgridshift +grids=us_noaa_vertcone.tif +multiplier=1");
@@ -5993,7 +6005,7 @@ TEST(operation, vertCRS_to_vertCRS_New_Zealand_context) {
         authFactory->createCoordinateReferenceSystem("7839"),
         // Auckland 1946 height
         authFactory->createCoordinateReferenceSystem("5759"), ctxt);
-    ASSERT_EQ(list.size(), 1U);
+    ASSERT_EQ(list.size(), 2U);
     EXPECT_EQ(list[0]->exportToPROJString(PROJStringFormatter::create().get()),
               "+proj=vgridshift +grids=nz_linz_auckht1946-nzvd2016.tif "
               "+multiplier=1");
