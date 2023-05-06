@@ -371,6 +371,11 @@ All cached entries can be viewed using ``cmake -LAH`` from a build directory.
     `clcache <https://github.com/frerich/clcache>`_ for MSVC)
     to build C/C++ objects.
 
+.. option:: PROJ_DB_CACHE_DIR
+
+    Path to an existing directory used to cache :file:`proj.db` to speed-up
+    subsequent builds without modifications to source SQL files.
+
 
 Building on Windows with vcpkg and Visual Studio 2017 or 2019
 --------------------------------------------------------------------------------
@@ -400,8 +405,8 @@ Install PROJ dependencies
 
 ::
 
-    vcpkg.exe install sqlite3[core,tool]:x86-windows tiff:x86-windows curl:x86-windows
-    vcpkg.exe install sqlite3[core,tool]:x64-windows tiff:x64-windows curl:x64-windows
+    vcpkg install sqlite3[core,tool] tiff curl --triplet=x86-windows
+    vcpkg install sqlite3[core,tool] tiff curl --triplet=x64-windows
 
 .. note:: The tiff and curl dependencies are only needed since PROJ 7.0
 
