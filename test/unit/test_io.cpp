@@ -7307,6 +7307,7 @@ TEST(wkt_parse, wkt1_esri_normalize_unit) {
 // ---------------------------------------------------------------------------
 
 TEST(wkt_parse, wkt1_esri_ups_north) {
+    // EPSG:32661
     auto wkt = "PROJCS[\"UPS_North\",GEOGCS[\"GCS_WGS_1984\","
                "DATUM[\"D_WGS_1984\","
                "SPHEROID[\"WGS_1984\",6378137.0,298.257223563]],"
@@ -7319,24 +7320,32 @@ TEST(wkt_parse, wkt1_esri_ups_north) {
                "PARAMETER[\"Latitude_Of_Origin\",90.0],"
                "UNIT[\"Meter\",1.0]]";
 
-    auto obj = WKTParser()
-                   .attachDatabaseContext(DatabaseContext::create())
-                   .createFromWKT(wkt);
+    auto dbContext = DatabaseContext::create();
+    auto obj = WKTParser().attachDatabaseContext(dbContext).createFromWKT(wkt);
     auto crs = nn_dynamic_pointer_cast<ProjectedCRS>(obj);
     ASSERT_TRUE(crs != nullptr);
 
-    EXPECT_EQ(crs->nameStr(), "WGS 84 / UPS North (E,N)");
+    EXPECT_EQ(crs->nameStr(), "WGS 84 / UPS North (N,E)");
     EXPECT_EQ(crs->coordinateSystem()->axisList()[0]->direction(),
               AxisDirection::SOUTH);
+    // Yes, inconsistency between the name (coming from EPSG) and the fact
+    // that with ESRI CRS, we always output E, N axis order
     EXPECT_EQ(crs->coordinateSystem()->axisList()[0]->abbreviation(), "E");
     EXPECT_EQ(crs->coordinateSystem()->axisList()[1]->direction(),
               AxisDirection::SOUTH);
     EXPECT_EQ(crs->coordinateSystem()->axisList()[1]->abbreviation(), "N");
+
+    EXPECT_EQ(
+        crs->exportToWKT(
+            WKTFormatter::create(WKTFormatter::Convention::WKT1_ESRI, dbContext)
+                .get()),
+        wkt);
 }
 
 // ---------------------------------------------------------------------------
 
 TEST(wkt_parse, wkt1_esri_ups_south) {
+    // EPSG:32671
     auto wkt = "PROJCS[\"UPS_South\",GEOGCS[\"GCS_WGS_1984\","
                "DATUM[\"D_WGS_1984\","
                "SPHEROID[\"WGS_1984\",6378137.0,298.257223563]],"
@@ -7349,9 +7358,84 @@ TEST(wkt_parse, wkt1_esri_ups_south) {
                "PARAMETER[\"Latitude_Of_Origin\",-90.0],"
                "UNIT[\"Meter\",1.0]]";
 
-    auto obj = WKTParser()
-                   .attachDatabaseContext(DatabaseContext::create())
-                   .createFromWKT(wkt);
+    auto dbContext = DatabaseContext::create();
+    auto obj = WKTParser().attachDatabaseContext(dbContext).createFromWKT(wkt);
+    auto crs = nn_dynamic_pointer_cast<ProjectedCRS>(obj);
+    ASSERT_TRUE(crs != nullptr);
+
+    EXPECT_EQ(crs->nameStr(), "WGS 84 / UPS South (N,E)");
+    EXPECT_EQ(crs->coordinateSystem()->axisList()[0]->direction(),
+              AxisDirection::NORTH);
+    // Yes, inconsistency between the name (coming from EPSG) and the fact
+    // that with ESRI CRS, we always output E, N axis order
+    EXPECT_EQ(crs->coordinateSystem()->axisList()[0]->abbreviation(), "E");
+    EXPECT_EQ(crs->coordinateSystem()->axisList()[1]->direction(),
+              AxisDirection::NORTH);
+    EXPECT_EQ(crs->coordinateSystem()->axisList()[1]->abbreviation(), "N");
+
+    EXPECT_EQ(
+        crs->exportToWKT(
+            WKTFormatter::create(WKTFormatter::Convention::WKT1_ESRI, dbContext)
+                .get()),
+        wkt);
+}
+
+// ---------------------------------------------------------------------------
+
+TEST(wkt_parse, wkt1_esri_wgs_1984_ups_north_E_N) {
+    // EPSG:5041
+    auto wkt = "PROJCS[\"WGS_1984_UPS_North_(E-N)\","
+               "GEOGCS[\"GCS_WGS_1984\",DATUM[\"D_WGS_1984\","
+               "SPHEROID[\"WGS_1984\",6378137.0,298.257223563]],"
+               "PRIMEM[\"Greenwich\",0.0],"
+               "UNIT[\"Degree\",0.0174532925199433]],"
+               "PROJECTION[\"Polar_Stereographic_Variant_A\"],"
+               "PARAMETER[\"False_Easting\",2000000.0],"
+               "PARAMETER[\"False_Northing\",2000000.0],"
+               "PARAMETER[\"Central_Meridian\",0.0],"
+               "PARAMETER[\"Scale_Factor\",0.994],"
+               "PARAMETER[\"Latitude_Of_Origin\",90.0],"
+               "UNIT[\"Meter\",1.0]]";
+
+    auto dbContext = DatabaseContext::create();
+    auto obj = WKTParser().attachDatabaseContext(dbContext).createFromWKT(wkt);
+    auto crs = nn_dynamic_pointer_cast<ProjectedCRS>(obj);
+    ASSERT_TRUE(crs != nullptr);
+
+    EXPECT_EQ(crs->nameStr(), "WGS 84 / UPS North (E,N)");
+    EXPECT_EQ(crs->coordinateSystem()->axisList()[0]->direction(),
+              AxisDirection::SOUTH);
+    EXPECT_EQ(crs->coordinateSystem()->axisList()[0]->abbreviation(), "E");
+    EXPECT_EQ(crs->coordinateSystem()->axisList()[1]->direction(),
+              AxisDirection::SOUTH);
+    EXPECT_EQ(crs->coordinateSystem()->axisList()[1]->abbreviation(), "N");
+
+    EXPECT_EQ(
+        crs->exportToWKT(
+            WKTFormatter::create(WKTFormatter::Convention::WKT1_ESRI, dbContext)
+                .get()),
+        wkt);
+}
+
+// ---------------------------------------------------------------------------
+
+TEST(wkt_parse, wkt1_esri_wgs_1984_ups_south_E_N) {
+    // EPSG:5042
+    auto wkt = "PROJCS[\"WGS_1984_UPS_South_(E-N)\","
+               "GEOGCS[\"GCS_WGS_1984\",DATUM[\"D_WGS_1984\","
+               "SPHEROID[\"WGS_1984\",6378137.0,298.257223563]],"
+               "PRIMEM[\"Greenwich\",0.0],"
+               "UNIT[\"Degree\",0.0174532925199433]],"
+               "PROJECTION[\"Polar_Stereographic_Variant_A\"],"
+               "PARAMETER[\"False_Easting\",2000000.0],"
+               "PARAMETER[\"False_Northing\",2000000.0],"
+               "PARAMETER[\"Central_Meridian\",0.0],"
+               "PARAMETER[\"Scale_Factor\",0.994],"
+               "PARAMETER[\"Latitude_Of_Origin\",-90.0],"
+               "UNIT[\"Meter\",1.0]]";
+
+    auto dbContext = DatabaseContext::create();
+    auto obj = WKTParser().attachDatabaseContext(dbContext).createFromWKT(wkt);
     auto crs = nn_dynamic_pointer_cast<ProjectedCRS>(obj);
     ASSERT_TRUE(crs != nullptr);
 
@@ -7362,6 +7446,12 @@ TEST(wkt_parse, wkt1_esri_ups_south) {
     EXPECT_EQ(crs->coordinateSystem()->axisList()[1]->direction(),
               AxisDirection::NORTH);
     EXPECT_EQ(crs->coordinateSystem()->axisList()[1]->abbreviation(), "N");
+
+    EXPECT_EQ(
+        crs->exportToWKT(
+            WKTFormatter::create(WKTFormatter::Convention::WKT1_ESRI, dbContext)
+                .get()),
+        wkt);
 }
 
 // ---------------------------------------------------------------------------
@@ -9566,7 +9656,7 @@ TEST(io, projparse_longlat_ellps_WGS84) {
     f->simulCurNodeHasId();
     crs->exportToWKT(f.get());
     auto expected = "GEODCRS[\"unknown\",\n"
-                    "    DATUM[\"Unknown based on WGS84 ellipsoid\",\n"
+                    "    DATUM[\"Unknown based on WGS 84 ellipsoid\",\n"
                     "        ELLIPSOID[\"WGS 84\",6378137,298.257223563,\n"
                     "            LENGTHUNIT[\"metre\",1]]],\n"
                     "    PRIMEM[\"Greenwich\",0,\n"
@@ -9592,7 +9682,7 @@ TEST(io, projparse_longlat_ellps_GRS80) {
     f->simulCurNodeHasId();
     crs->exportToWKT(f.get());
     auto expected = "GEODCRS[\"unknown\",\n"
-                    "    DATUM[\"Unknown based on GRS80 ellipsoid\",\n"
+                    "    DATUM[\"Unknown based on GRS 1980 ellipsoid\",\n"
                     "        ELLIPSOID[\"GRS 1980\",6378137,298.257222101,\n"
                     "            LENGTHUNIT[\"metre\",1]]],\n"
                     "    PRIMEM[\"Greenwich\",0,\n"
@@ -9645,7 +9735,7 @@ TEST(io, projparse_longlat_a_rf_WGS84) {
     f->simulCurNodeHasId();
     crs->exportToWKT(f.get());
     auto expected = "GEODCRS[\"unknown\",\n"
-                    "    DATUM[\"unknown\",\n"
+                    "    DATUM[\"Unknown based on WGS 84 ellipsoid\",\n"
                     "        ELLIPSOID[\"WGS 84\",6378137,298.257223563,\n"
                     "            LENGTHUNIT[\"metre\",1]]],\n"
                     "    PRIMEM[\"Greenwich\",0,\n"
@@ -11531,7 +11621,7 @@ TEST(io, projparse_geocent) {
     f->setMultiLine(false);
     crs->exportToWKT(f.get());
     auto wkt = f->toString();
-    EXPECT_EQ(wkt, "GEODCRS[\"unknown\",DATUM[\"Unknown based on WGS84 "
+    EXPECT_EQ(wkt, "GEODCRS[\"unknown\",DATUM[\"Unknown based on WGS 84 "
                    "ellipsoid\",ELLIPSOID[\"WGS "
                    "84\",6378137,298.257223563,LENGTHUNIT[\"metre\",1]]],"
                    "PRIMEM[\"Greenwich\",0,ANGLEUNIT[\"degree\",0."
