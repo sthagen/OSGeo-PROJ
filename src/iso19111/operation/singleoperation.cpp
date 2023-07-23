@@ -2022,6 +2022,7 @@ bool Transformation::isGeographic3DToGravityRelatedHeight(
         "1110", // Geog3D to Geog2D+Depth (Gravsoft)
         "1115", // Geog3D to Geog2D+Depth (txt)
         "1118", // Geog3D to Geog2D+GravityRelatedHeight (ISG)
+        "1122", // Geog3D to Geog2D+Depth (gtx)
         "9661", // Geographic3D to GravityRelatedHeight (EGM)
         "9662", // Geographic3D to GravityRelatedHeight (Ausgeoid98)
         "9663", // Geographic3D to GravityRelatedHeight (OSGM-GB)
@@ -3730,9 +3731,11 @@ bool SingleOperation::exportToPROJStringGeneric(
                 concat("Can apply ", methodName, " only to GeographicCRS"));
         }
 
-        formatter->startInversion();
-        sourceCRSGeog->addAngularUnitConvertAndAxisSwap(formatter);
-        formatter->stopInversion();
+        if (!formatter->omitHorizontalConversionInVertTransformation()) {
+            formatter->startInversion();
+            sourceCRSGeog->addAngularUnitConvertAndAxisSwap(formatter);
+            formatter->stopInversion();
+        }
 
         if (isMethodInverseOf) {
             formatter->startInversion();
@@ -3753,7 +3756,9 @@ bool SingleOperation::exportToPROJStringGeneric(
             formatter->stopInversion();
         }
 
-        targetCRSGeog->addAngularUnitConvertAndAxisSwap(formatter);
+        if (!formatter->omitHorizontalConversionInVertTransformation()) {
+            targetCRSGeog->addAngularUnitConvertAndAxisSwap(formatter);
+        }
 
         return true;
     }

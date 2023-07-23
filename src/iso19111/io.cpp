@@ -3641,7 +3641,7 @@ WKTParser::Private::buildConcatenatedOperation(const WKTNodeNNPtr &node) {
     }
 
     ConcatenatedOperation::fixStepsDirection(
-        NN_NO_CHECK(sourceCRS), NN_NO_CHECK(targetCRS), operations);
+        NN_NO_CHECK(sourceCRS), NN_NO_CHECK(targetCRS), operations, dbContext_);
 
     std::vector<PositionalAccuracyNNPtr> accuracies;
     auto &accuracyNode = nodeP->lookForChild(WKTConstants::OPERATIONACCURACY);
@@ -6580,7 +6580,8 @@ JSONParser::buildConcatenatedOperation(const json &j) {
         operations.emplace_back(NN_NO_CHECK(op));
     }
 
-    ConcatenatedOperation::fixStepsDirection(sourceCRS, targetCRS, operations);
+    ConcatenatedOperation::fixStepsDirection(sourceCRS, targetCRS, operations,
+                                             dbContext_);
 
     std::vector<PositionalAccuracyNNPtr> accuracies;
     if (j.contains("accuracy")) {
@@ -10778,16 +10779,11 @@ SphericalCSNNPtr PROJStringParser::Private::buildSphericalCS(
 
 static double getNumericValue(const std::string &paramValue,
                               bool *pHasError = nullptr) {
-    try {
-        double value = c_locale_stod(paramValue);
-        if (pHasError)
-            *pHasError = false;
-        return value;
-    } catch (const std::invalid_argument &) {
-        if (pHasError)
-            *pHasError = true;
-        return 0.0;
-    }
+    bool success;
+    double value = c_locale_stod(paramValue, success);
+    if (pHasError)
+        *pHasError = !success;
+    return value;
 }
 
 // ---------------------------------------------------------------------------
