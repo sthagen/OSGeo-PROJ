@@ -2227,7 +2227,7 @@ TEST_F(CApi, proj_context_guess_wkt_dialect) {
 
     EXPECT_EQ(proj_context_guess_wkt_dialect(
                   nullptr,
-                  "GEOGCRS[\"WGS 84\",\n"
+                  " \n\t\rGEOGCRS[\"WGS 84\",\n"
                   "    DATUM[\"World Geodetic System 1984\",\n"
                   "        ELLIPSOID[\"WGS 84\",6378137,298.257223563]],\n"
                   "    CS[ellipsoidal,2],\n"
@@ -3524,6 +3524,13 @@ TEST_F(CApi, proj_alter_id) {
 
     EXPECT_EQ(std::string(proj_get_id_auth_name(alteredObj, 0)), "auth");
     EXPECT_EQ(std::string(proj_get_id_code(alteredObj, 0)), "code");
+
+    auto alteredObj2 = proj_alter_id(m_ctxt, alteredObj, "auth2", "code2");
+    ObjectKeeper keeper_alteredObj2(alteredObj2);
+    ASSERT_NE(alteredObj2, nullptr);
+
+    EXPECT_EQ(std::string(proj_get_id_auth_name(alteredObj2, 0)), "auth2");
+    EXPECT_EQ(std::string(proj_get_id_code(alteredObj2, 0)), "code2");
 }
 
 // ---------------------------------------------------------------------------
