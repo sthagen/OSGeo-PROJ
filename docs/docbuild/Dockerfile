@@ -1,15 +1,15 @@
-FROM ubuntu:20.04
+FROM ubuntu:22.04
 
 RUN apt-get -y update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
     python3-dev python3-pip g++ doxygen dvipng latexmk \
     cmake libjpeg8-dev zlib1g-dev texlive-latex-base \
     texlive-latex-extra git latex-cjk-all texlive-lang-all \
-    graphviz python3-matplotlib wget unzip enchant locales
+    graphviz python3-matplotlib wget unzip enchant-2 locales
 
-RUN python3 -m pip install Sphinx breathe \
-    sphinx_bootstrap_theme awscli sphinxcontrib-bibtex \
+RUN python3 -m pip install "Sphinx<7" breathe \
+    sphinx_bootstrap_theme sphinxcontrib-bibtex \
     sphinx_rtd_theme recommonmark sphinx-markdown-tables \
-    sphinxcontrib-spelling!=7.4.0
+    "sphinxcontrib-spelling!=7.4.0,<8"
 
 # Set the locale for spelling
 RUN sed -i -e 's/# en_GB.UTF-8 UTF-8/en_GB.UTF-8 UTF-8/' /etc/locale.gen && \

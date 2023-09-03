@@ -1732,6 +1732,8 @@ PropertyMap &WKTParser::Private::buildProperties(const WKTNodeNNPtr &node,
                 esriStyle_ = true;
                 if (name == "GCS_WGS_1984") {
                     name = "WGS 84";
+                } else if (name == "GCS_unknown") {
+                    name = "unknown";
                 } else {
                     tableNameForAlias = "geodetic_crs";
                 }
@@ -2376,6 +2378,8 @@ GeodeticReferenceFrameNNPtr WKTParser::Private::buildGeodeticReferenceFrame(
             name = "European Terrestrial Reference System 1989";
             authNameFromAlias = Identifier::EPSG;
             codeFromAlias = "6258";
+        } else if (name == "D_unknown") {
+            name = "unknown";
         } else {
             tableNameForAlias = "geodetic_datum";
         }
@@ -3123,6 +3127,21 @@ WKTParser::Private::buildGeodeticCRS(const WKTNodeNNPtr &node) {
     // No explicit AXIS node ? (WKT1)
     if (isNull(nodeP->lookForChild(WKTConstants::AXIS))) {
         props.set("IMPLICIT_CS", true);
+    }
+
+    const std::string crsName = stripQuotes(nodeP->children()[0]);
+    if (esriStyle_ && dbContext_) {
+        std::string outTableName;
+        std::string authNameFromAlias;
+        std::string codeFromAlias;
+        auto authFactory =
+            AuthorityFactory::create(NN_NO_CHECK(dbContext_), std::string());
+        auto officialName = authFactory->getOfficialNameFromAlias(
+            crsName, "geodetic_crs", "ESRI", false, outTableName,
+            authNameFromAlias, codeFromAlias);
+        if (!officialName.empty()) {
+            props.set(IdentifiedObject::NAME_KEY, officialName);
+        }
     }
 
     auto datum =
@@ -5966,7 +5985,7 @@ IdentifierNNPtr JSONParser::buildId(const json &j, bool removeInverseOf) {
                 static_cast<int>(dblVersion) == dblVersion) {
                 version = internal::toString(static_cast<int>(dblVersion));
             } else {
-                version = internal::toString(dblVersion);
+                version = internal::toString(dblVersion, /*precision=*/15);
             }
         } else {
             throw ParsingException("Unexpected type for value of \"version\"");
