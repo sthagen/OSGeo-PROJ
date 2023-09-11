@@ -124,6 +124,12 @@ TEST(datum, ellipsoid_from_inverse_flattening) {
 
     EXPECT_FALSE(Ellipsoid::WGS84->isEquivalentTo(
         Ellipsoid::GRS1980.get(), IComparable::Criterion::EQUIVALENT));
+
+    auto sphere = Ellipsoid::createSphere(PropertyMap(), Length(6378137));
+    EXPECT_FALSE(Ellipsoid::WGS84->isEquivalentTo(
+        sphere.get(), IComparable::Criterion::EQUIVALENT));
+    EXPECT_FALSE(sphere->isEquivalentTo(Ellipsoid::WGS84.get(),
+                                        IComparable::Criterion::EQUIVALENT));
 }
 
 // ---------------------------------------------------------------------------
@@ -285,6 +291,28 @@ TEST(datum, datum_with_ANCHOREPOCH) {
         datum->exportToWKT(
             WKTFormatter::create(WKTFormatter::Convention::WKT2_2019).get()),
         expected);
+}
+
+// ---------------------------------------------------------------------------
+
+TEST(datum, unknown_datum) {
+    auto datum = GeodeticReferenceFrame::create(
+        PropertyMap().set(IdentifiedObject::NAME_KEY, "my_datum"),
+        Ellipsoid::GRS1980, optional<std::string>(), optional<Measure>(),
+        PrimeMeridian::GREENWICH);
+    auto unknown_datum = GeodeticReferenceFrame::create(
+        PropertyMap().set(IdentifiedObject::NAME_KEY, "unknown"),
+        Ellipsoid::GRS1980, optional<std::string>(), optional<Measure>(),
+        PrimeMeridian::GREENWICH);
+
+    EXPECT_FALSE(datum->isEquivalentTo(unknown_datum.get(),
+                                       IComparable::Criterion::STRICT));
+    EXPECT_TRUE(datum->isEquivalentTo(unknown_datum.get(),
+                                      IComparable::Criterion::EQUIVALENT));
+    EXPECT_FALSE(unknown_datum->isEquivalentTo(datum.get(),
+                                               IComparable::Criterion::STRICT));
+    EXPECT_TRUE(unknown_datum->isEquivalentTo(
+        datum.get(), IComparable::Criterion::EQUIVALENT));
 }
 
 // ---------------------------------------------------------------------------

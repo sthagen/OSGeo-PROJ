@@ -636,16 +636,18 @@ CRSNNPtr CRS::createBoundCRSToWGS84IfPossible(
     auto geogCRS = extractGeographicCRS();
     auto hubCRS = util::nn_static_pointer_cast<CRS>(GeographicCRS::EPSG_4326);
     if (geodCRS && !geogCRS) {
-        if (geodCRS->_isEquivalentTo(GeographicCRS::EPSG_4978.get(),
+        if (geodCRS->datumNonNull(dbContext)->nameStr() != "unknown" &&
+            geodCRS->_isEquivalentTo(GeographicCRS::EPSG_4978.get(),
                                      util::IComparable::Criterion::EQUIVALENT,
                                      dbContext)) {
             return thisAsCRS;
         }
         hubCRS = util::nn_static_pointer_cast<CRS>(GeodeticCRS::EPSG_4978);
     } else if (!geogCRS ||
-               geogCRS->_isEquivalentTo(
-                   GeographicCRS::EPSG_4326.get(),
-                   util::IComparable::Criterion::EQUIVALENT, dbContext)) {
+               (geogCRS->datumNonNull(dbContext)->nameStr() != "unknown" &&
+                geogCRS->_isEquivalentTo(
+                    GeographicCRS::EPSG_4326.get(),
+                    util::IComparable::Criterion::EQUIVALENT, dbContext))) {
         return thisAsCRS;
     } else {
         geodCRS = geogCRS;
@@ -2432,7 +2434,7 @@ void GeodeticCRS::addDatumInfoToPROJString(
     const auto &nadgrids = formatter->getHDatumExtension();
     const auto l_datum = datumNonNull(formatter->databaseContext());
     if (formatter->getCRSExport() && TOWGS84Params.empty() &&
-        nadgrids.empty()) {
+        nadgrids.empty() && l_datum->nameStr() != "unknown") {
         if (l_datum->_isEquivalentTo(
                 datum::GeodeticReferenceFrame::EPSG_6326.get(),
                 util::IComparable::Criterion::EQUIVALENT)) {
@@ -3135,12 +3137,20 @@ bool GeographicCRS::_isEquivalentTo(
     const auto standardCriterion = getStandardCriterion(criterion);
     if (GeodeticCRS::_isEquivalentToNoTypeCheck(other, standardCriterion,
                                                 dbContext)) {
+        // Make sure GeoPackage "Undefined geographic SRS" != EPSG:4326
+        const auto otherGeogCRS = dynamic_cast<const GeographicCRS *>(other);
+        if ((nameStr() == "Undefined geographic SRS" ||
+             otherGeogCRS->nameStr() == "Undefined geographic SRS") &&
+            otherGeogCRS->nameStr() != nameStr()) {
+            return false;
+        }
         return true;
     }
     if (criterion !=
         util::IComparable::Criterion::EQUIVALENT_EXCEPT_AXIS_ORDER_GEOGCRS) {
         return false;
     }
+
     const auto axisOrder = coordinateSystem()->axisOrder();
     if (axisOrder == cs::EllipsoidalCS::AxisOrder::LONG_EAST_LAT_NORTH ||
         axisOrder == cs::EllipsoidalCS::AxisOrder::LAT_NORTH_LONG_EAST) {
@@ -4846,22 +4856,28 @@ ProjectedCRS::identify(const io::AuthorityFactoryPtr &authorityFactory) const {
     const auto addCRS = [&](const ProjectedCRSNNPtr &crs, const bool eqName,
                             bool hasNonMatchingId) {
         const auto &l_unit = cs->axisList()[0]->unit();
-        if (_isEquivalentTo(crs.get(),
-                            util::IComparable::Criterion::
-                                EQUIVALENT_EXCEPT_AXIS_ORDER_GEOGCRS,
-                            dbContext) ||
-            (l_implicitCS &&
-             l_unit._isEquivalentTo(
-                 crs->coordinateSystem()->axisList()[0]->unit(),
-                 util::IComparable::Criterion::EQUIVALENT) &&
-             l_baseCRS->_isEquivalentTo(
-                 crs->baseCRS().get(),
-                 util::IComparable::Criterion::
-                     EQUIVALENT_EXCEPT_AXIS_ORDER_GEOGCRS,
-                 dbContext) &&
-             derivingConversionRef()->_isEquivalentTo(
-                 crs->derivingConversionRef().get(),
-                 util::IComparable::Criterion::EQUIVALENT, dbContext))) {
+        if ((_isEquivalentTo(crs.get(),
+                             util::IComparable::Criterion::
+                                 EQUIVALENT_EXCEPT_AXIS_ORDER_GEOGCRS,
+                             dbContext) ||
+             (l_implicitCS &&
+              l_unit._isEquivalentTo(
+                  crs->coordinateSystem()->axisList()[0]->unit(),
+                  util::IComparable::Criterion::EQUIVALENT) &&
+              l_baseCRS->_isEquivalentTo(
+                  crs->baseCRS().get(),
+                  util::IComparable::Criterion::
+                      EQUIVALENT_EXCEPT_AXIS_ORDER_GEOGCRS,
+                  dbContext) &&
+              derivingConversionRef()->_isEquivalentTo(
+                  crs->derivingConversionRef().get(),
+                  util::IComparable::Criterion::EQUIVALENT, dbContext))) &&
+            !((baseCRS()->datumNonNull(dbContext)->nameStr() == "unknown" &&
+               crs->baseCRS()->datumNonNull(dbContext)->nameStr() !=
+                   "unknown") ||
+              (baseCRS()->datumNonNull(dbContext)->nameStr() != "unknown" &&
+               crs->baseCRS()->datumNonNull(dbContext)->nameStr() ==
+                   "unknown"))) {
             if (crs->nameStr() == thisName) {
                 res.clear();
                 res.emplace_back(crs, hasNonMatchingId ? 70 : 100);
