@@ -85,6 +85,10 @@ projections are limiting forms of the Oblique Mercator
     $ echo 12 55 | proj +proj=omerc +alpha=0 +R=6400000
     766869.97 6209742.96
 
+    # Same, with azimuth given indirectly via two points:
+    $ echo 12 55 | proj +proj=omerc +lon_1=0 +lat_1=-1 +lon_2=0 +lat_2=0 +R=6400000
+    766869.97 6209742.96
+
     $ echo 12 55 | proj +proj=tmerc +R=6400000
     766869.97 6209742.96
     
@@ -93,7 +97,11 @@ Example: Second case - indirectly given azimuth
 ::
 
     $ echo 12 55 | proj +proj=omerc +lon_1=-1 +lat_1=1 +lon_2=0 +lat_2=0 +ellps=GRS80
-      349567.57   6839490.50
+    349567.57 6839490.50
+
+    # Same, with directly given azimuth, (via: echo 0 0 1 -1|geod -I -f %.7f +ellps=GRS80):
+    $ echo 12 55 | proj +proj=omerc +alpha=-45.1880402 +ellps=GRS80
+    349567.57 6839490.50
 
 
 Example: An approximation of the Danish "System 34" from :cite:`Rittri2012`
@@ -182,3 +190,20 @@ Optional
 .. include:: ../options/x_0.rst
 
 .. include:: ../options/y_0.rst
+
+Caveats
+#######
+
+Note for the two-point method no rectification is done,
+
+::
+
+    echo 0 0|proj -I +proj=omerc +R=6400000 +lonc=-87 +lat_0=42 +alpha=0
+    87dW	42dN
+    echo 0 0|proj -I +proj=omerc +R=6400000 +lonc=-87 +lat_0=42 +alpha=0 +no_rot
+    87dW	0dS
+    echo 0 0|proj -I +proj=omerc +R=6400000 +lon_1=-87 +lat_1=42 +lon_2=-87 +lat_2=43
+    87dW	0dN
+
+Thus, just as was noted above regarding +no_rot, the two-point method
+itself is also probably only marginally useful.
