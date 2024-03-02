@@ -3,6 +3,111 @@
 News
 ###############################################################################
 
+9.4.0 Release Notes
+++++++++++++++++++++
+*March 1st 2024*
+
+Updates
+-------
+
+* Add support for transformations involving coordinate epoch changes (PointMotionOperation), specifically for Canadian NAD83(CSRS)(`#3884 <https://github.com/OSGeo/PROJ/issues/3884>`_)
+
+* :envvar:`SSL_OPTIONS`: set SSL options on Curl library (`#3936 <https://github.com/OSGeo/PROJ/issues/3936>`_)
+
+* Add support for unity builds (`#3962 <https://github.com/OSGeo/PROJ/issues/3962>`_)
+
+* Added ability to install ``*.tif`` if present in data (`#3970 <https://github.com/OSGeo/PROJ/issues/3970>`_)
+
+* ``createOperationsCompoundToGeog()``: tune selection logic when ``--grid-check`` known_available is specified (`#3990 <https://github.com/OSGeo/PROJ/issues/3990>`_)
+
+* Increase CMake minimum version from 3.9 to 3.16 (`#3997 <https://github.com/OSGeo/PROJ/issues/3997>`_)
+
+* CMake: use FetchContent to get googletest-1.12.1 (`#4006 <https://github.com/OSGeo/PROJ/issues/4006>`_)
+
+* CMake: Replace custom FindSqlite3 with FindSQLite3 built-in (`#4007 <https://github.com/OSGeo/PROJ/issues/4007>`_)
+
+* tpeqd: use numerically stable formula for computing the central angle from (phi_1, lam_1) to (phi_2, lam_2) (`#4009 <https://github.com/OSGeo/PROJ/issues/4009>`_)
+
+* Move content of ``proj_experimental.h`` to ``proj.h`` (`#4019 <https://github.com/OSGeo/PROJ/issues/4019>`_)
+
+* Add ``+proj=mod_krovak`` projection method for Modified Krovak that applies to S-JTSK/05 in the Czech Republic (`#4021 <https://github.com/OSGeo/PROJ/issues/4021>`_)
+
+* PROJString formatter optimizer: simplify pipelines doing [Modified]Krovak (South West) <--> [Modified]Krovak (East North) by just doing an axis swap (`#4034 <https://github.com/OSGeo/PROJ/issues/4034>`_)
+
+* ``+proj=gridshift``: enhance to support grids referenced in projected CRS, and with easting_offset/northing_offset corrections (`#4038 <https://github.com/OSGeo/PROJ/issues/4038>`_)
+
+* Tune concatenated operation instanciation, reference CR2005 geoid for Czechia and add (disabled by default) records for Czechia S-JTSK/05 based transformations (`#4044 <https://github.com/OSGeo/PROJ/issues/4044>`_)
+
+* Database: update to EPSG v11.004 (`#4062 <https://github.com/OSGeo/PROJ/issues/4062>`_)
+
+Bug fixes
+---------
+
+* Fix missing symbols at link time for Windows target in Visual Studio (`#3984 <https://github.com/OSGeo/PROJ/issues/3984>`_)
+
+* Improve error message in axisswap (`#3975 <https://github.com/OSGeo/PROJ/issues/3975>`_)
+
+* Avoid convergence errors in ``+proj=gridshift`` when using biquadratic interpolation (`#3985 <https://github.com/OSGeo/PROJ/issues/3985>`_)
+
+9.3.1 Release Notes
+++++++++++++++++++++
+*December 1st 2023*
+
+Updates
+-------
+
+* Update to EPSG 10.098 (`#3968 <https://github.com/OSGeo/PROJ/issues/3968>`_)
+
+* Update ESRI objects to v3.2.0 (`#3944 <https://github.com/OSGeo/PROJ/issues/3944>`_)
+
+Bug fixes
+---------
+
+* ITRF2008: fix wrong sign for ``dry`` parameter of EURA and EURA_T  (`#3870 <https://github.com/OSGeo/PROJ/issues/3870>`_)
+
+* Fix build error with MSVC 2019 in ``/std:c++20`` on ``NN_NO_CHECK()`` (`#3872 <https://github.com/OSGeo/PROJ/issues/3872>`_)
+
+* ESRI WKT import: normalize GCS_unknown to unknown and D_unknown to unknown (`#3874 <https://github.com/OSGeo/PROJ/issues/3874>`_)
+
+* :cpp:func:`CoordinateOperationFactory`: deal with CompoundToCompound with a horizontal similarity transformation and a ballpark vertical (`#3881 <https://github.com/OSGeo/PROJ/issues/3881>`_)
+
+* :cpp:func:`Ellipsoid::_isEquivalentTo()`: fix so that an ellipsoid of semi-major axis A (and non-zero inv flattening) isn't equivalent to a sphere of radius A (`#3882 <https://github.com/OSGeo/PROJ/issues/3882>`_)
+
+* :cpp:func:`isEquivalentTo()`: make a datum name 'unknown' equivalent to another one (`#3883 <https://github.com/OSGeo/PROJ/issues/3883>`_)
+
+* :program:`cs2cs`: fix handling of input coordinates in grad (`#3886 <https://github.com/OSGeo/PROJ/issues/3886>`_)
+
+* Make ``setargv.obj`` available on Universal Windows Platform (`#3891 <https://github.com/OSGeo/PROJ/issues/3891>`_)
+
+* Allow opening proj.db with a URI (`#3892 <https://github.com/OSGeo/PROJ/issues/3892>`_)
+
+* :cpp:func:`createOperations()`: fix GeogCRS 3D with TOWGS84 to geocentric CRS (`#3915 <https://github.com/OSGeo/PROJ/issues/3915>`_)
+
+* Fix test suite so that it can pass with ``ENABLE_TIFF=OFF`` (`#3916 <https://github.com/OSGeo/PROJ/issues/3916>`_)
+
+* :cpp:func:`GeographicBoundingBox::intersects()`: avoid infinite recursion and stack overflow on invalid bounding boxes (`#3919 <https://github.com/OSGeo/PROJ/issues/3919>`_)
+
+* Fix importing ``'+proj=topocentric ... +type=crs'`` by using a geocentric CRS as the base CRS (`#3924 <https://github.com/OSGeo/PROJ/issues/3924>`_)
+
+* Allow LOCAL_CS with 3 axes (`#3928 <https://github.com/OSGeo/PROJ/issues/3928>`_)
+
+* WKT1 parser: in non-strict mode, accept missing UNIT[] in GEOGCS, GEOCCS, PROJCS and VERT_CS elements (`#3933 <https://github.com/OSGeo/PROJ/issues/3933>`_)
+
+* :cpp:func:`createOperations()`: fix issue with a obscure case involving CompoundCRS of unknown horizontal datum + boundCRS of vertical (`#3934 <https://github.com/OSGeo/PROJ/issues/3934>`_)
+
+* :cpp:func:`createOperations()`: fix bad PROJ pipeline when converting between Geog3D with non-metre height to CompoundCRS (`#3943 <https://github.com/OSGeo/PROJ/issues/3943>`_)
+
+* :cpp:func:`createOperations()`: Fix possible null dereference on invalid WKT input (`#3946 <https://github.com/OSGeo/PROJ/issues/3946>`_)
+
+* :c:func:`proj_factor`: fix when input is a compound CRS of a projected CRS (`#3950 <https://github.com/OSGeo/PROJ/issues/3950>`_)
+
+* :c:func:`pj_get_suggested_operation()`: tune it to give correct result for RGAF09 to RRAF 1991 / UTM zone 20N + Guadeloupe 1988 height transformation (`#3954 <https://github.com/OSGeo/PROJ/issues/3954>`_)
+
+* Move static ``NameSpace::GLOBAL`` definition in ``static.cpp`` to avoid 'static initialization fiasco' (`#3956 <https://github.com/OSGeo/PROJ/issues/3956>`_)
+
+* horner: allow arbitrary input type of coordinate (`#3961 <https://github.com/OSGeo/PROJ/issues/3961>`_)
+
+
 9.3.0 Release Notes
 ++++++++++++++++++++
 *September 1st 2023*
