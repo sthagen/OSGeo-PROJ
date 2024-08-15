@@ -813,12 +813,16 @@ TEST(operation, transformation_createTimeDependentPositionVector) {
         std::vector<PositionalAccuracyNNPtr>());
     EXPECT_TRUE(transf->validateParameters().empty());
 
+    EXPECT_TRUE(transf->requiresPerCoordinateInputTime());
+
     auto inv_transf = transf->inverse();
 
     EXPECT_EQ(transf->sourceCRS()->nameStr(),
               inv_transf->targetCRS()->nameStr());
     EXPECT_EQ(transf->targetCRS()->nameStr(),
               inv_transf->sourceCRS()->nameStr());
+
+    EXPECT_TRUE(inv_transf->requiresPerCoordinateInputTime());
 
     auto projString =
         inv_transf->exportToPROJString(PROJStringFormatter::create().get());
@@ -2442,13 +2446,13 @@ TEST(operation, hotine_oblique_mercator_variant_A_export) {
               "    PARAMETER[\"Longitude of projection centre\",2,\n"
               "        ANGLEUNIT[\"degree\",0.0174532925199433],\n"
               "        ID[\"EPSG\",8812]],\n"
-              "    PARAMETER[\"Azimuth of initial line\",3,\n"
+              "    PARAMETER[\"Azimuth at projection centre\",3,\n"
               "        ANGLEUNIT[\"degree\",0.0174532925199433],\n"
               "        ID[\"EPSG\",8813]],\n"
               "    PARAMETER[\"Angle from Rectified to Skew Grid\",4,\n"
               "        ANGLEUNIT[\"degree\",0.0174532925199433],\n"
               "        ID[\"EPSG\",8814]],\n"
-              "    PARAMETER[\"Scale factor on initial line\",5,\n"
+              "    PARAMETER[\"Scale factor at projection centre\",5,\n"
               "        SCALEUNIT[\"unity\",1],\n"
               "        ID[\"EPSG\",8815]],\n"
               "    PARAMETER[\"False easting\",6,\n"
@@ -2504,13 +2508,13 @@ TEST(operation, hotine_oblique_mercator_variant_B_export) {
               "    PARAMETER[\"Longitude of projection centre\",2,\n"
               "        ANGLEUNIT[\"degree\",0.0174532925199433],\n"
               "        ID[\"EPSG\",8812]],\n"
-              "    PARAMETER[\"Azimuth of initial line\",3,\n"
+              "    PARAMETER[\"Azimuth at projection centre\",3,\n"
               "        ANGLEUNIT[\"degree\",0.0174532925199433],\n"
               "        ID[\"EPSG\",8813]],\n"
               "    PARAMETER[\"Angle from Rectified to Skew Grid\",4,\n"
               "        ANGLEUNIT[\"degree\",0.0174532925199433],\n"
               "        ID[\"EPSG\",8814]],\n"
-              "    PARAMETER[\"Scale factor on initial line\",5,\n"
+              "    PARAMETER[\"Scale factor at projection centre\",5,\n"
               "        SCALEUNIT[\"unity\",1],\n"
               "        ID[\"EPSG\",8815]],\n"
               "    PARAMETER[\"Easting at projection centre\",6,\n"
@@ -2573,7 +2577,7 @@ TEST(operation, hotine_oblique_mercator_two_point_natural_origin_export) {
         "        ANGLEUNIT[\"degree\",0.0174532925199433]],\n"
         "    PARAMETER[\"Longitude of 2nd point\",5,\n"
         "        ANGLEUNIT[\"degree\",0.0174532925199433]],\n"
-        "    PARAMETER[\"Scale factor on initial line\",6,\n"
+        "    PARAMETER[\"Scale factor at projection centre\",6,\n"
         "        SCALEUNIT[\"unity\",1],\n"
         "        ID[\"EPSG\",8815]],\n"
         "    PARAMETER[\"Easting at projection centre\",7,\n"
@@ -2620,10 +2624,10 @@ TEST(operation, laborde_oblique_mercator_export) {
               "    PARAMETER[\"Longitude of projection centre\",2,\n"
               "        ANGLEUNIT[\"degree\",0.0174532925199433],\n"
               "        ID[\"EPSG\",8812]],\n"
-              "    PARAMETER[\"Azimuth of initial line\",3,\n"
+              "    PARAMETER[\"Azimuth at projection centre\",3,\n"
               "        ANGLEUNIT[\"degree\",0.0174532925199433],\n"
               "        ID[\"EPSG\",8813]],\n"
-              "    PARAMETER[\"Scale factor on initial line\",4,\n"
+              "    PARAMETER[\"Scale factor at projection centre\",4,\n"
               "        SCALEUNIT[\"unity\",1],\n"
               "        ID[\"EPSG\",8815]],\n"
               "    PARAMETER[\"False easting\",5,\n"
@@ -4366,7 +4370,7 @@ TEST(operation, PROJ_based) {
                      PropertyMap(), "+proj=pipeline +step +proj=pipeline",
                      nullptr, nullptr)
                      ->exportToPROJString(PROJStringFormatter::create().get()),
-                 FormattingException);
+                 UnsupportedOperationException);
 }
 
 // ---------------------------------------------------------------------------
@@ -5712,6 +5716,8 @@ TEST(operation,
               "+step +inv +proj=vgridshift +grids=foo.gtx +multiplier=1 "
               "+step +proj=unitconvert +xy_in=rad +xy_out=deg "
               "+step +proj=axisswap +order=2,1");
+
+    EXPECT_FALSE(transf->requiresPerCoordinateInputTime());
 }
 
 // ---------------------------------------------------------------------------

@@ -4444,14 +4444,14 @@ ConversionNNPtr WKTParser::Private::buildProjectionStandard(
                 foundAngleRecifiedToSkewGrid = true;
             } else if (foundParameters[idx] &&
                        mapping->params[idx]->epsg_code ==
-                           EPSG_CODE_PARAMETER_AZIMUTH_INITIAL_LINE) {
+                           EPSG_CODE_PARAMETER_AZIMUTH_PROJECTION_CENTRE) {
                 foundAzimuth = true;
             }
         }
         if (!foundAngleRecifiedToSkewGrid && foundAzimuth) {
             for (size_t idx = 0; idx < parameters.size(); ++idx) {
                 if (parameters[idx]->getEPSGCode() ==
-                    EPSG_CODE_PARAMETER_AZIMUTH_INITIAL_LINE) {
+                    EPSG_CODE_PARAMETER_AZIMUTH_PROJECTION_CENTRE) {
                     PropertyMap propertiesParameter;
                     propertiesParameter.set(
                         Identifier::CODE_KEY,
@@ -10251,6 +10251,35 @@ std::set<std::string> PROJStringFormatter::getUsedGridNames() const {
         }
     }
     return res;
+}
+
+// ---------------------------------------------------------------------------
+
+bool PROJStringFormatter::requiresPerCoordinateInputTime() const {
+    for (const auto &step : d->steps_) {
+        if (step.name == "set" && !step.inverted) {
+            for (const auto &param : step.paramValues) {
+                if (param.keyEquals("v_4")) {
+                    return false;
+                }
+            }
+        } else if (step.name == "helmert") {
+            for (const auto &param : step.paramValues) {
+                if (param.keyEquals("t_epoch")) {
+                    return true;
+                }
+            }
+        } else if (step.name == "deformation") {
+            for (const auto &param : step.paramValues) {
+                if (param.keyEquals("t_epoch")) {
+                    return true;
+                }
+            }
+        } else if (step.name == "defmodel") {
+            return true;
+        }
+    }
+    return false;
 }
 
 // ---------------------------------------------------------------------------
