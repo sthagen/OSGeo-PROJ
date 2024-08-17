@@ -215,7 +215,7 @@ config_str = """
             - Standard_Parallel_2: EPSG_NAME_PARAMETER_LATITUDE_2ND_STD_PARALLEL
             - Latitude_Of_Origin: EPSG_NAME_PARAMETER_LATITUDE_FALSE_ORIGIN
 
-    # From GDAL autotest 
+    # From GDAL autotest
     -   WKT2_name: EPSG_NAME_METHOD_LAMBERT_CONIC_CONFORMAL_2SP
         Params:
             - False_Easting: EPSG_NAME_PARAMETER_EASTING_FALSE_ORIGIN
@@ -456,14 +456,14 @@ config_str = """
         - Latitude_Of_Center: EPSG_NAME_PARAMETER_LATITUDE_OF_NATURAL_ORIGIN
 
 - Local:
-    WKT2_name: EPSG_NAME_METHOD_ORTHOGRAPHIC
+    WKT2_name: EPSG_NAME_METHOD_LOCAL_ORTHOGRAPHIC
     Params:
-        - False_Easting: EPSG_NAME_PARAMETER_FALSE_EASTING
-        - False_Northing: EPSG_NAME_PARAMETER_FALSE_NORTHING
-        - Scale_Factor: 1.0
-        - Azimuth: 0.0
-        - Longitude_Of_Center: EPSG_NAME_PARAMETER_LONGITUDE_OF_NATURAL_ORIGIN
-        - Latitude_Of_Center: EPSG_NAME_PARAMETER_LATITUDE_OF_NATURAL_ORIGIN
+        - False_Easting: EPSG_NAME_PARAMETER_EASTING_PROJECTION_CENTRE
+        - False_Northing: EPSG_NAME_PARAMETER_NORTHING_PROJECTION_CENTRE
+        - Scale_Factor: EPSG_NAME_PARAMETER_SCALE_FACTOR_PROJECTION_CENTRE
+        - Azimuth: EPSG_NAME_PARAMETER_AZIMUTH_PROJECTION_CENTRE
+        - Longitude_Of_Center: EPSG_NAME_PARAMETER_LONGITUDE_PROJECTION_CENTRE
+        - Latitude_Of_Center: EPSG_NAME_PARAMETER_LATITUDE_PROJECTION_CENTRE
 
 - Winkel_Tripel:
     WKT2_name: "Winkel Tripel"
