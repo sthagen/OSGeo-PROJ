@@ -178,12 +178,12 @@ static int ellps_ellps(PJ *P) {
         PJ empty_PJ;
         pj_inherit_ellipsoid_def(&empty_PJ, P);
     }
-    ellps_size(P);
-    ellps_shape(P);
-
+    const bool errorOnSizeOrShape = (ellps_size(P) || ellps_shape(P));
     P->params = old_params;
     free(new_params->next);
     free(new_params);
+    if (errorOnSizeOrShape)
+        return proj_errno_set(P, PROJ_ERR_OTHER /*ENOMEM*/);
     if (proj_errno(P))
         return proj_errno(P);
 
@@ -328,6 +328,7 @@ static int ellps_shape(PJ *P) {
         }
         if (P->b == P->a)
             break;
+        // coverity[division_by_zero]
         P->f = (P->a - P->b) / P->a;
         P->es = 2 * P->f - P->f * P->f;
         break;
@@ -641,6 +642,12 @@ int pj_ell_set(PJ_CONTEXT *ctx, paralist *pl, double *a, double *es) {
     B.params = pl;
 
     ret = pj_ellipsoid(&B);
+
+    free(B.def_size);
+    free(B.def_shape);
+    free(B.def_spherification);
+    free(B.def_ellps);
+
     if (ret)
         return ret;
 
