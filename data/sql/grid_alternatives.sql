@@ -156,6 +156,11 @@ VALUES
 ('gllat_2023.tif','dk_sdfi_gllat_2023.tif',NULL,'GTiff','geoid_like',0,NULL,'https://cdn.proj.org/dk_sdfi_gllat_2023.tif',1,1,NULL),
 ('glmsl_2023.tif','dk_sdfi_glmsl_2023.tif',NULL,'GTiff','geoid_like',0,NULL,'https://cdn.proj.org/dk_sdfi_glmsl_2023.tif',1,1,NULL),
 
+-- dk_kds - Danish Agency for Climate Data
+-- Denmark
+('dvr90_evrf2019.tif','dk_kds_dvr90_evrf2019.tif',NULL,'GTiff','vgridshift',0,NULL,'https://cdn.proj.org/dk_kds_dvr90_evrf2019.tif',1,1,NULL),
+('dvr90_evrf2019_mean_tide.tif','dk_kds_dvr90_evrf2019_mean_tide.tif',NULL,'GTiff','vgridshift',0,NULL,'https://cdn.proj.org/dk_kds_dvr90_evrf2019_mean_tide.tif',1,1,NULL),
+
 -- es_cat_icgc - Institut Cartogràfic i Geològic de Catalunya (ICGC)
 ('100800401.gsb','es_cat_icgc_100800401.tif','100800401.gsb','GTiff','hgridshift',0,NULL,'https://cdn.proj.org/es_cat_icgc_100800401.tif',1,1,NULL),
 
@@ -249,6 +254,7 @@ VALUES
 
 -- lv_lgia - Latvian Geospatial Information Agency
 ('LV''14.gri','lv_lgia_lv14.tif',NULL,'GTiff','geoid_like',0,NULL,'https://cdn.proj.org/lv_lgia_lv14.tif',1,1,NULL),
+('LKS92to2020NTv2.gsb','lv_lgia_lks92to2020.tif',NULL,'GTiff','hgridshift',0,NULL,'https://cdn.proj.org/lv_lgia_lks92to2020.tif',1,1,NULL),
 
 -- mx_inegi - Instituto Nacional de Estadística, Geografía e Informática (INEGI) Mexico
 ('GGM10.txt','mx_inegi_ggm10.tif',NULL,'GTiff','geoid_like',0,NULL,'https://cdn.proj.org/mx_inegi_ggm10.tif',1,1,NULL),
