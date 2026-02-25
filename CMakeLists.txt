@@ -19,6 +19,8 @@ project(PROJ
 # Only interpret if() arguments as variables or keywords when unquoted
 cmake_policy(SET CMP0054 NEW)
 
+include(CheckCXXCompilerFlag)
+
 # Set C++ version
 # Make CMAKE_CXX_STANDARD available as cache option overridable by user
 set(CMAKE_CXX_STANDARD 17
@@ -72,7 +74,6 @@ if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
     # -Wold-style-cast
     -Woverloaded-virtual
     -Wzero-as-null-pointer-constant
-    -Wdeprecated-copy-dtor
   )
 elseif("${CMAKE_C_COMPILER_ID}" MATCHES "Clang")
   set(PROJ_common_WARN_FLAGS ${PROJ_common_WARN_FLAGS}
@@ -100,7 +101,6 @@ elseif("${CMAKE_C_COMPILER_ID}" MATCHES "Clang")
     -Wshorten-64-to-32
     -Wunused-private-field
     -Wzero-as-null-pointer-constant
-    -Wdeprecated-copy-dtor
     -Wweak-vtables
   )
 elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "MSVC")
@@ -132,6 +132,14 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM")
   set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} -fno-fast-math)
   set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -fno-fast-math)
 endif ()
+
+# Add other supported compiler flags
+if(("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU") OR ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang"))
+  check_cxx_compiler_flag(-Wdeprecated-copy-dtor HAVE_DEP_COPY_DTOR_FLAG)
+  if(HAVE_DEP_COPY_DTOR_FLAG)
+    set(PROJ_CXX_WARN_FLAGS ${PROJ_CXX_WARN_FLAGS} -Wdeprecated-copy-dtor)
+  endif()
+endif()
 
 set(PROJ_C_WARN_FLAGS "${PROJ_C_WARN_FLAGS}"
   CACHE STRING "C flags used to compile PROJ targets")

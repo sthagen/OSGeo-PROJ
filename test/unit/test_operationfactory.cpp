@@ -6585,6 +6585,71 @@ TEST(operation, compoundCRS_to_compoundCRS_issue_3328) {
 
 // ---------------------------------------------------------------------------
 
+TEST(operation, compoundCRS_to_compoundCRS_WGS84_EGM2008_to_RD_new_NAP_height) {
+    auto authFactory =
+        AuthorityFactory::create(DatabaseContext::create(), "EPSG");
+    auto ctxt = CoordinateOperationContext::create(authFactory, nullptr, 0.0);
+    ctxt->setGridAvailabilityUse(
+        CoordinateOperationContext::GridAvailabilityUse::
+            IGNORE_GRID_AVAILABILITY);
+    ctxt->setSpatialCriterion(
+        CoordinateOperationContext::SpatialCriterion::PARTIAL_INTERSECTION);
+    auto list = CoordinateOperationFactory::create()->createOperations(
+        // WGS 84 + EGM2008 height
+        authFactory->createCoordinateReferenceSystem("9518"),
+        // Amersfoort / RD New + NAP height
+        authFactory->createCoordinateReferenceSystem("7415"), ctxt);
+
+    ASSERT_EQ(list.size(), 4U);
+
+    EXPECT_FALSE(list[0]->hasBallparkTransformation());
+    EXPECT_EQ(list[0]->nameStr(),
+              "Inverse of WGS 84 to EGM2008 height (1) + "
+              "Inverse of ETRS89-NLD [AGRS2010] to WGS 84 (1) + "
+              "ETRS89-NLD [AGRS2010] to NAP height (2) + "
+              "Inverse of Amersfoort to ETRS89-NLD [AGRS2010] (9) + RD New");
+    EXPECT_EQ(
+        list[0]->exportToPROJString(PROJStringFormatter::create().get()),
+        "+proj=pipeline "
+        "+step +proj=axisswap +order=2,1 "
+        "+step +proj=unitconvert +xy_in=deg +xy_out=rad "
+        "+step +proj=vgridshift +grids=us_nga_egm08_25.tif +multiplier=1 "
+        "+step +inv +proj=vgridshift +grids=nl_nsgi_nlgeo2018.tif "
+        "+multiplier=1 "
+        "+step +inv +proj=hgridshift +grids=nl_nsgi_rdtrans2018.tif "
+        "+step +proj=sterea +lat_0=52.1561605555556 +lon_0=5.38763888888889 "
+        "+k=0.9999079 +x_0=155000 +y_0=463000 +ellps=bessel");
+    ASSERT_EQ(list[0]->coordinateOperationAccuracies().size(), 1U);
+    EXPECT_EQ(list[0]->coordinateOperationAccuracies()[0]->value(), "1.123");
+
+    EXPECT_FALSE(list[1]->hasBallparkTransformation());
+    EXPECT_EQ(list[1]->nameStr(),
+              "Inverse of WGS 84 to EGM2008 height (1) + "
+              "Inverse of ETRS89-NLD [AGRS2010] to WGS 84 (1) + "
+              "ETRS89-NLD [AGRS2010] to NAP height (2) + "
+              "Inverse of Amersfoort to ETRS89-NLD [AGRS2010] (8) + RD New");
+    ASSERT_EQ(list[1]->coordinateOperationAccuracies().size(), 1U);
+    EXPECT_EQ(list[1]->coordinateOperationAccuracies()[0]->value(), "1.373");
+
+    // Using not available "WGS 84 to EGM2008 height (2)" with 1' EGM2008 grid
+    EXPECT_FALSE(list[2]->hasBallparkTransformation());
+    EXPECT_EQ(list[2]->nameStr(),
+              "Inverse of WGS 84 to EGM2008 height (2) + "
+              "Inverse of ETRS89-NLD [AGRS2010] to WGS 84 (1) + "
+              "ETRS89-NLD [AGRS2010] to NAP height (2) + "
+              "Inverse of Amersfoort to ETRS89-NLD [AGRS2010] (9) + RD New");
+
+    // Using not available "WGS 84 to EGM2008 height (2)" with 1' EGM2008 grid
+    EXPECT_FALSE(list[3]->hasBallparkTransformation());
+    EXPECT_EQ(list[3]->nameStr(),
+              "Inverse of WGS 84 to EGM2008 height (2) + "
+              "Inverse of ETRS89-NLD [AGRS2010] to WGS 84 (1) + "
+              "ETRS89-NLD [AGRS2010] to NAP height (2) + "
+              "Inverse of Amersfoort to ETRS89-NLD [AGRS2010] (8) + RD New");
+}
+
+// ---------------------------------------------------------------------------
+
 TEST(
     operation,
     compoundCRS_to_compoundCRS_concatenated_operation_with_two_vert_transformation_and_ballpark_geog) {
@@ -7834,7 +7899,7 @@ TEST(operation, compoundCRS_to_geogCRS_2D_promote_to_3D_context) {
                                                                ctxt);
     // The checked value is not that important, but in case this changes,
     // likely due to a EPSG upgrade, worth checking
-    EXPECT_EQ(listCompoundToGeog2D.size(), 199U);
+    EXPECT_EQ(listCompoundToGeog2D.size(), 122U);
 
     auto listGeog2DToCompound =
         CoordinateOperationFactory::create()->createOperations(dst, nnSrc,
@@ -7871,7 +7936,8 @@ TEST(operation, compoundCRS_of_projCRS_to_geogCRS_3D_context) {
     // the vertical transformation are the reverse of each other, and there are
     // not mixes with different alternative operations (like California grid
     // forward and Nevada grid reverse)
-    ASSERT_EQ(list.size(), 21U);
+    EXPECT_EQ(list.size(), 16U);
+    ASSERT_GE(list.size(), 1U);
 
     // Check that unit conversion is OK
     auto op_proj =
@@ -9153,6 +9219,64 @@ TEST(operation, compoundCRS_from_WKT2_no_id_to_geogCRS_3D_context) {
         EXPECT_EQ(op_proj, op2_proj)
             << "op=" << op->nameStr() << " op2=" << op2->nameStr();
     }
+}
+
+// ---------------------------------------------------------------------------
+
+TEST(operation, compoundCRS_to_geogCRS_3D_Amersfoort_NAP_height_to_Amersfoort) {
+    auto dbContext = DatabaseContext::create();
+    auto authFactory = AuthorityFactory::create(dbContext, "EPSG");
+    auto ctxt = CoordinateOperationContext::create(authFactory, nullptr, 0.0);
+    ctxt->setGridAvailabilityUse(
+        CoordinateOperationContext::GridAvailabilityUse::
+            IGNORE_GRID_AVAILABILITY);
+    ctxt->setSpatialCriterion(
+        CoordinateOperationContext::SpatialCriterion::PARTIAL_INTERSECTION);
+    ctxt->setAllowBallparkTransformations(false);
+    auto list = CoordinateOperationFactory::create()->createOperations(
+        // Amersfoort / RD New + NAP height
+        authFactory->createCoordinateReferenceSystem("7415"),
+        // Amersfoort promoted to 3D
+        authFactory->createCoordinateReferenceSystem("4289")->promoteTo3D(
+            std::string(), dbContext),
+        ctxt);
+
+    ASSERT_EQ(list.size(), 1U);
+
+    // I'm not sure this is absolutely correct, but we do not certainly
+    // a purely 2D grid-based horizontal transformation to be used when
+    // going back from ETRS89 to Amersfoort.
+    EXPECT_EQ(list[0]->nameStr(),
+              "Inverse of RD New + "
+              "Inverse of ETRS89-NLD [AGRS2010] to NAP height (2) "
+              "using Amersfoort to ETRS89-NLD [AGRS2010] (8)");
+    EXPECT_EQ(
+        list[0]->exportToPROJString(PROJStringFormatter::create().get()),
+        "+proj=pipeline "
+        "+step +inv +proj=sterea +lat_0=52.1561605555556 "
+        "+lon_0=5.38763888888889 +k=0.9999079 +x_0=155000 +y_0=463000 "
+        "+ellps=bessel "
+        "+step +proj=unitconvert +xy_in=rad +xy_out=deg "
+        "+step +proj=axisswap +order=2,1 "
+        "+step +proj=push +v_1 +v_2 "
+        "+step +proj=axisswap +order=2,1 "
+        "+step +proj=unitconvert +xy_in=deg +xy_out=rad "
+        "+step +proj=push +v_3 "
+        "+step +proj=cart +ellps=bessel "
+        "+step +proj=helmert +x=565.7381 +y=50.4018 +z=465.2904 "
+        "+rx=0.395025981036064 +ry=-0.330772431242031 +rz=1.87607329462821 "
+        "+s=4.07244 +convention=coordinate_frame "
+        "+step +inv +proj=cart +ellps=GRS80 "
+        "+step +proj=pop +v_3 "
+        "+step +proj=vgridshift +grids=nl_nsgi_nlgeo2018.tif +multiplier=1 "
+        "+step +proj=cart +ellps=GRS80 "
+        "+step +inv +proj=helmert +x=565.7381 +y=50.4018 +z=465.2904 "
+        "+rx=0.395025981036064 +ry=-0.330772431242031 +rz=1.87607329462821 "
+        "+s=4.07244 +convention=coordinate_frame "
+        "+step +inv +proj=cart +ellps=bessel "
+        "+step +proj=unitconvert +xy_in=rad +xy_out=deg "
+        "+step +proj=axisswap +order=2,1 "
+        "+step +proj=pop +v_1 +v_2");
 }
 
 // ---------------------------------------------------------------------------

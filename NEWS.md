@@ -1,5 +1,65 @@
 # PROJ Release Notes
 
+## 9.8.0
+
+## 9.8.0
+
+### Updates
+
+* Database: update to EPSG v12.049 (#4671)
+
+* Database: update ESRI records to ArcGIS Pro 3.6 (#4622)
+
+* Support for Canadian vertical references MTM CGVD2013 epoch 1997, 2002, 2010 and
+  UTM CGVD28 epoch 1997, 2002, 2010 (#4623)
+
+* `createOperationsCompoundToGeog()`: improvement to make "PNG94 / PNGMG94 zone 54 + Kumul
+  34 height" to "WGS 84 (G2139)" perform vertical transformation (#4624)
+
+* Remove hardcoding of 'ETRS89-NOR [EUREF89]' cases and generalize it to other ETRS89-XXX
+  cases (#4625)
+
+* Database: create ESRI aliases for geodetic_datum and geodetic_crs even if they are the
+  same as EPSG ones (#4626)
+
+* Use Emscripten fetch in networkfilemanager (#4627)
+
+* `ProjectedCRS::identify()`: do not return CRS whose ellipsoid is totally different from the input one (#4635)
+
+* `projinfo` added as a library function. This installs a new header: `projapps_lib.h`. (#4646)
+
+* respect `CRS_EXTENT_USE=NONE` for ConcatenatedOperations (#4652)
+
+* Add support for  Equidistant Cylindrical ellipsoidal method (EPSG:1028) (#4656)
+
+* Update `proj_symbol_rename.h` (#4657)
+
+* WKT1 importer: deal with 'VERT_CS["Geoid 2012A",' (#4659)
+
+* Generate correct library name in `proj.pc` (#4660)
+
+* Derived projected CRS related improvements (#4667)
+
+* ETRS89-xxx to ETRS89-yyy related improvements (#4668)
+
+* `createCoordinateOperation()`: tune computed accuracy of a concatenated op within ETRS89 (#4670)
+
+* `createOperationsCompoundToGeog()`: discard 2D-only transformations from interpolation
+  3D CRS to target 3D CRS (#4677)
+
+
+### Bug Fixes
+
+* CRS identification: fix issue when identifying WKT from older EPSG releases with newer
+  ones where the ETRS89-XXX national datums have been added (#4600)
+
+* fix `normalizeForVisualization` to skip extent checks for axis-swap operations (#4632)
+
+* Improvements to TRACE_FETCH debug messages (#4645)
+
+* tmerc spherical: fix numeric instability at lat=lat_0 (#4674)
+
+
 ## 9.7.1
 
 ### Updates
