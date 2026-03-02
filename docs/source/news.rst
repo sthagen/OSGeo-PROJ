@@ -3,6 +3,68 @@
 News
 ###############################################################################
 
+9.8.0
+++++++++++++++++++++
+*March 2nd 2026*
+
+Updates
+-------
+
+* Database: update to EPSG v12.049 (`#4671 <https://github.com/OSGeo/PROJ/issues/4671>`_)
+
+* Database: update ESRI records to ArcGIS Pro 3.6 (`#4622 <https://github.com/OSGeo/PROJ/issues/4622>`_)
+
+* Support for Canadian vertical references MTM CGVD2013 epoch 1997, 2002, 2010 and
+  UTM CGVD28 epoch 1997, 2002, 2010 (`#4623 <https://github.com/OSGeo/PROJ/issues/4623>`_)
+
+* :cpp:func:`createOperationsCompoundToGeog()`: improvement to make "PNG94 / PNGMG94 zone 54 + Kumul
+  34 height" to "WGS 84 (G2139)" perform vertical transformation (`#4624 <https://github.com/OSGeo/PROJ/issues/4624>`_)
+
+* Remove hardcoding of 'ETRS89-NOR [EUREF89]' cases and generalize it to other ETRS89-XXX
+  cases (`#4625 <https://github.com/OSGeo/PROJ/issues/4625>`_)
+
+* Database: create ESRI aliases for ``geodetic_datum`` and ``geodetic_crs`` even if they are the
+  same as EPSG ones (`#4626 <https://github.com/OSGeo/PROJ/issues/4626>`_)
+
+* Use Emscripten fetch in networkfilemanager (`#4627 <https://github.com/OSGeo/PROJ/issues/4627>`_)
+
+* :cpp:func:`ProjectedCRS::identify()`: do not return CRS whose ellipsoid is totally different from the input one (`#4635 <https://github.com/OSGeo/PROJ/issues/4635>`_)
+
+* :program:`projinfo` added as a library function. This installs a new header: `projapps_lib.h`. (`#4646 <https://github.com/OSGeo/PROJ/issues/4646>`_)
+
+* respect ``CRS_EXTENT_USE=NONE`` for ConcatenatedOperations (`#4652 <https://github.com/OSGeo/PROJ/issues/4652>`_)
+
+* Add support for  Equidistant Cylindrical ellipsoidal method (EPSG:1028) (`#4656 <https://github.com/OSGeo/PROJ/issues/4656>`_)
+
+* Update ``proj_symbol_rename.h`` (`#4657 <https://github.com/OSGeo/PROJ/issues/4657>`_)
+
+* WKT1 importer: deal with 'VERT_CS["Geoid 2012A",' (`#4659 <https://github.com/OSGeo/PROJ/issues/4659>`_)
+
+* Generate correct library name in ``proj.pc`` (`#4660 <https://github.com/OSGeo/PROJ/issues/4660>`_)
+
+* Derived projected CRS related improvements (`#4667 <https://github.com/OSGeo/PROJ/issues/4667>`_)
+
+* ETRS89-xxx to ETRS89-yyy related improvements (`#4668 <https://github.com/OSGeo/PROJ/issues/4668>`_)
+
+* :c:func:`createCoordinateOperation()`: tune computed accuracy of a concatenated op within ETRS89 (`#4670 <https://github.com/OSGeo/PROJ/issues/4670>`_)
+
+* :c:func:`createOperationsCompoundToGeog()`: discard 2D-only transformations from interpolation
+  3D CRS to target 3D CRS (`#4677 <https://github.com/OSGeo/PROJ/issues/4677>`_)
+
+
+Bug Fixes
+---------
+
+* CRS identification: fix issue when identifying WKT from older EPSG releases with newer
+  ones where the ETRS89-XXX national datums have been added (`#4600 <https://github.com/OSGeo/PROJ/issues/4600>`_)
+
+* fix :cpp:func:`normalizeForVisualization` to skip extent checks for axis-swap operations (`#4632 <https://github.com/OSGeo/PROJ/issues/4632>`_)
+
+* Improvements to ``TRACE_FETCH`` debug messages (`#4645 <https://github.com/OSGeo/PROJ/issues/4645>`_)
+
+* ``tmerc`` spherical: fix numeric instability at ``lat=lat_0`` (`#4674 <https://github.com/OSGeo/PROJ/issues/4674>`_)
+
+
 9.7.1
 ++++++++++++++++++++
 *December 1st 2025*

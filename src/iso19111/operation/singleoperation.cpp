@@ -301,6 +301,12 @@ void CoordinateOperation::setSourceCoordinateEpoch(
     const util::optional<common::DataEpoch> &epoch) {
     d->sourceCoordinateEpoch_ =
         std::make_shared<util::optional<common::DataEpoch>>(epoch);
+
+    if (epoch) {
+        auto invOp = dynamic_cast<InverseCoordinateOperation *>(this);
+        if (invOp)
+            invOp->forwardOperation()->setTargetCoordinateEpoch(epoch);
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -309,6 +315,12 @@ void CoordinateOperation::setTargetCoordinateEpoch(
     const util::optional<common::DataEpoch> &epoch) {
     d->targetCoordinateEpoch_ =
         std::make_shared<util::optional<common::DataEpoch>>(epoch);
+
+    if (epoch) {
+        auto invOp = dynamic_cast<InverseCoordinateOperation *>(this);
+        if (invOp)
+            invOp->forwardOperation()->setSourceCoordinateEpoch(epoch);
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -3304,6 +3316,46 @@ bool SingleOperation::exportToPROJStringGeneric(
         return true;
     }
 
+    if (method()->nameStr() ==
+        PROJ_WKT2_NAME_METHOD_3D_AFFINE_PARAMETRIC_TRANSFORMATION) {
+        const double A0 = parameterValueMeasure(EPSG_CODE_PARAMETER_A0).value();
+        const double A1 = parameterValueMeasure(EPSG_CODE_PARAMETER_A1).value();
+        const double A2 = parameterValueMeasure(EPSG_CODE_PARAMETER_A2).value();
+        const double A3 =
+            parameterValueMeasure(PROJ_WKT2_NAME_PARAMETER_A3).value();
+        const double B0 = parameterValueMeasure(EPSG_CODE_PARAMETER_B0).value();
+        const double B1 = parameterValueMeasure(EPSG_CODE_PARAMETER_B1).value();
+        const double B2 = parameterValueMeasure(EPSG_CODE_PARAMETER_B2).value();
+        const double B3 =
+            parameterValueMeasure(PROJ_WKT2_NAME_PARAMETER_B3).value();
+        const double C0 =
+            parameterValueMeasure(PROJ_WKT2_NAME_PARAMETER_C0).value();
+        const double C1 =
+            parameterValueMeasure(PROJ_WKT2_NAME_PARAMETER_C1).value();
+        const double C2 =
+            parameterValueMeasure(PROJ_WKT2_NAME_PARAMETER_C2).value();
+        const double C3 =
+            parameterValueMeasure(PROJ_WKT2_NAME_PARAMETER_C3).value();
+
+        // Do not mess with axis unit and order for that transformation
+
+        formatter->addStep("affine");
+        formatter->addParam("xoff", A0);
+        formatter->addParam("s11", A1);
+        formatter->addParam("s12", A2);
+        formatter->addParam("s13", A3);
+        formatter->addParam("yoff", B0);
+        formatter->addParam("s21", B1);
+        formatter->addParam("s22", B2);
+        formatter->addParam("s23", B3);
+        formatter->addParam("zoff", C0);
+        formatter->addParam("s31", C1);
+        formatter->addParam("s32", C2);
+        formatter->addParam("s33", C3);
+
+        return true;
+    }
+
     if (methodEPSGCode == EPSG_CODE_METHOD_SIMILARITY_TRANSFORMATION) {
         const double XT0 =
             parameterValueMeasure(
@@ -3548,6 +3600,27 @@ bool SingleOperation::exportToPROJStringGeneric(
                                        addPushPopV3, "Helmert");
         }
 
+        double sourceYear =
+            sourceCoordinateEpoch().has_value()
+                ? getRoundedEpochInDecimalYear(
+                      sourceCoordinateEpoch()->coordinateEpoch().convertToUnit(
+                          common::UnitOfMeasure::YEAR))
+                : 0;
+        double targetYear =
+            targetCoordinateEpoch().has_value()
+                ? getRoundedEpochInDecimalYear(
+                      targetCoordinateEpoch()->coordinateEpoch().convertToUnit(
+                          common::UnitOfMeasure::YEAR))
+                : 0;
+        if (sourceYear > 0 && targetYear == 0)
+            targetYear = sourceYear;
+        else if (targetYear > 0 && sourceYear == 0)
+            sourceYear = targetYear;
+        if (sourceYear > 0) {
+            formatter->addStep("set");
+            formatter->addParam("v_4", sourceYear);
+        }
+
         formatter->addStep("helmert");
         if (fullMatrix)
             formatter->addParam("exact");
@@ -3610,6 +3683,11 @@ bool SingleOperation::exportToPROJStringGeneric(
             } else {
                 formatter->addParam("convention", "coordinate_frame");
             }
+        }
+
+        if (targetYear > 0) {
+            formatter->addStep("set");
+            formatter->addParam("v_4", targetYear);
         }
 
         if (l_targetCRS) {
@@ -4733,6 +4811,29 @@ bool SingleOperation::exportToPROJStringGeneric(
             sourceCRSGeog->addAngularUnitConvertAndAxisSwap(formatter);
             formatter->stopInversion();
 
+            double sourceYear =
+                sourceCoordinateEpoch().has_value()
+                    ? getRoundedEpochInDecimalYear(
+                          sourceCoordinateEpoch()
+                              ->coordinateEpoch()
+                              .convertToUnit(common::UnitOfMeasure::YEAR))
+                    : 0;
+            double targetYear =
+                targetCoordinateEpoch().has_value()
+                    ? getRoundedEpochInDecimalYear(
+                          targetCoordinateEpoch()
+                              ->coordinateEpoch()
+                              .convertToUnit(common::UnitOfMeasure::YEAR))
+                    : 0;
+            if (sourceYear > 0 && targetYear == 0)
+                targetYear = sourceYear;
+            else if (targetYear > 0 && sourceYear == 0)
+                sourceYear = targetYear;
+            if (sourceYear > 0) {
+                formatter->addStep("set");
+                formatter->addParam("v_4", sourceYear);
+            }
+
             if (isMethodInverseOf) {
                 formatter->startInversion();
             }
@@ -4746,6 +4847,11 @@ bool SingleOperation::exportToPROJStringGeneric(
 
             if (isMethodInverseOf) {
                 formatter->stopInversion();
+            }
+
+            if (targetYear > 0) {
+                formatter->addStep("set");
+                formatter->addParam("v_4", targetYear);
             }
 
             targetCRSGeog->addAngularUnitConvertAndAxisSwap(formatter);
@@ -5200,6 +5306,12 @@ void InverseCoordinateOperation::setPropertiesFromForward() {
         forwardOperation_->hasBallparkTransformation());
     setRequiresPerCoordinateInputTime(
         forwardOperation_->requiresPerCoordinateInputTime());
+    if (auto sourceEpoch = forwardOperation_->sourceCoordinateEpoch()) {
+        setTargetCoordinateEpoch(sourceEpoch);
+    }
+    if (auto targetEpoch = forwardOperation_->targetCoordinateEpoch()) {
+        setSourceCoordinateEpoch(targetEpoch);
+    }
 }
 
 // ---------------------------------------------------------------------------

@@ -2,8 +2,6 @@
 
 ## 9.8.0
 
-## 9.8.0
-
 ### Updates
 
 * Database: update to EPSG v12.049 (#4671)

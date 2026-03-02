@@ -1198,6 +1198,10 @@ static const ParamMapping paramA2 = {
     EPSG_NAME_PARAMETER_A2, EPSG_CODE_PARAMETER_A2, nullptr,
     common::UnitOfMeasure::Type::UNKNOWN, nullptr};
 
+static const ParamMapping paramA3 = {PROJ_WKT2_NAME_PARAMETER_A3, 0, nullptr,
+                                     common::UnitOfMeasure::Type::UNKNOWN,
+                                     nullptr};
+
 static const ParamMapping paramB0 = {
     EPSG_NAME_PARAMETER_B0, EPSG_CODE_PARAMETER_B0, nullptr,
     common::UnitOfMeasure::Type::UNKNOWN, nullptr};
@@ -1210,8 +1214,32 @@ static const ParamMapping paramB2 = {
     EPSG_NAME_PARAMETER_B2, EPSG_CODE_PARAMETER_B2, nullptr,
     common::UnitOfMeasure::Type::UNKNOWN, nullptr};
 
+static const ParamMapping paramB3 = {PROJ_WKT2_NAME_PARAMETER_B3, 0, nullptr,
+                                     common::UnitOfMeasure::Type::UNKNOWN,
+                                     nullptr};
+
+static const ParamMapping paramC0 = {PROJ_WKT2_NAME_PARAMETER_C0, 0, nullptr,
+                                     common::UnitOfMeasure::Type::UNKNOWN,
+                                     nullptr};
+
+static const ParamMapping paramC1 = {PROJ_WKT2_NAME_PARAMETER_C1, 0, nullptr,
+                                     common::UnitOfMeasure::Type::UNKNOWN,
+                                     nullptr};
+
+static const ParamMapping paramC2 = {PROJ_WKT2_NAME_PARAMETER_C2, 0, nullptr,
+                                     common::UnitOfMeasure::Type::UNKNOWN,
+                                     nullptr};
+
+static const ParamMapping paramC3 = {PROJ_WKT2_NAME_PARAMETER_C3, 0, nullptr,
+                                     common::UnitOfMeasure::Type::UNKNOWN,
+                                     nullptr};
+
 static const ParamMapping *const paramsAffineParametricTransformation[] = {
     &paramA0, &paramA1, &paramA2, &paramB0, &paramB1, &paramB2, nullptr};
+
+static const ParamMapping *const params3DAffineParametricTransformation[] = {
+    &paramA0, &paramA1, &paramA2, &paramA3, &paramB0, &paramB1, &paramB2,
+    &paramB3, &paramC0, &paramC1, &paramC2, &paramC3, nullptr};
 
 static const ParamMapping paramOrdinate1EvalPointTargetCRS = {
     EPSG_NAME_PARAMETER_ORDINATE_1_EVAL_POINT_TARGET_CRS,
@@ -1546,6 +1574,9 @@ static const MethodMapping gOtherMethodMappings[] = {
     {EPSG_NAME_METHOD_AFFINE_PARAMETRIC_TRANSFORMATION,
      EPSG_CODE_METHOD_AFFINE_PARAMETRIC_TRANSFORMATION, nullptr, nullptr,
      nullptr, paramsAffineParametricTransformation},
+
+    {PROJ_WKT2_NAME_METHOD_3D_AFFINE_PARAMETRIC_TRANSFORMATION, 0, nullptr,
+     nullptr, nullptr, params3DAffineParametricTransformation},
 
     {EPSG_NAME_METHOD_SIMILARITY_TRANSFORMATION,
      EPSG_CODE_METHOD_SIMILARITY_TRANSFORMATION, nullptr, nullptr, nullptr,

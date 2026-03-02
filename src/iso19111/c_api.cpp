@@ -9788,6 +9788,8 @@ static UnitOfMeasure createScaleUnit(const char *name, double convFactor,
  * <a href="https://epsg.org/coord-operation-method_9624/index.html">
  * EPSG:9624</a>.
  *
+ * Use this method for a CRS whose coordinate system has 2 axis.
+ *
  * The returned object must be unreferenced with proj_destroy() after
  * use.
  * It should be used by at most one thread at a time.
@@ -9848,6 +9850,121 @@ PJ PROJ_DLL *proj_create_linear_affine_parametric_conversion(
             Length(B0, createLinearUnit(B0_unit_name, B0_unit_conv_factor)),
             Scale(B1, createScaleUnit(B1_unit_name, B1_unit_conv_factor)),
             Scale(B2, createScaleUnit(B2_unit_name, B2_unit_conv_factor)));
+        return pj_obj_create(ctx, conv);
+    } catch (const std::exception &e) {
+        proj_log_error(ctx, __FUNCTION__, e.what());
+    }
+    return nullptr;
+}
+
+// ---------------------------------------------------------------------------
+
+/** \brief Instantiate a conversion with method 3D Affine Parametric, assuming
+ * it works in linear coordinate space
+ *
+ * Use this method for a CRS whose coordinate system has 3 axis.
+ *
+ * The returned object must be unreferenced with proj_destroy() after
+ * use.
+ * It should be used by at most one thread at a time.
+ *
+ * @param ctx PROJ context, or NULL for default context
+ * @param name Conversion name, or nullptr
+ * @param A0 translation term for output first axis
+ * @param A0_unit_name Name of the linear unit for A0. Or NULL for metre.
+ * @param A0_unit_conv_factor Conversion factor to metre for A0. Note: this is
+ * indicative only, and not taken into account in coordinate conversion
+ * @param A1 coefficient term for output first axis taking that is multiplied
+ * with the value along the source first axis
+ * @param A1_unit_name Name of the scale unit for A1. Or NULL for unity.
+ * @param A1_unit_conv_factor Conversion factor to unity for A1. Note: this is
+ * indicative only, and not taken into account in coordinate conversion
+ * @param A2 coefficient term for output first axis taking that is multiplied
+ * with the value along the source second axis
+ * @param A2_unit_name Name of the scale unit for A2. Or NULL for unity.
+ * @param A2_unit_conv_factor Conversion factor to unity for A2. Note: this is
+ * indicative only, and not taken into account in coordinate conversion
+ * @param A3 coefficient term for output first axis taking that is multiplied
+ * with the value along the source third axis
+ * @param A3_unit_name Name of the scale unit for A3. Or NULL for unity.
+ * @param A3_unit_conv_factor Conversion factor to unity for A3. Note: this is
+ * indicative only, and not taken into account in coordinate conversion
+ * @param B0 translation term for output second axis
+ * @param B0_unit_name Name of the linear unit for B0. Or NULL for metre.
+ * @param B0_unit_conv_factor Conversion factor to metre for B0. Note: this is
+ * indicative only, and not taken into account in coordinate conversion
+ * @param B1 coefficient term for output second axis taking that is multiplied
+ * with the value along the source first axis
+ * @param B1_unit_name Name of the scale unit for B1. Or NULL for unity.
+ * @param B1_unit_conv_factor Conversion factor to unity for B1. Note: this is
+ * indicative only, and not taken into account in coordinate conversion
+ * @param B2 coefficient term for output second axis taking that is multiplied
+ * with the value along the source second axis
+ * @param B2_unit_name Name of the scale unit for B2. Or NULL for unity.
+ * @param B2_unit_conv_factor Conversion factor to unity for B2. Note: this is
+ * indicative only, and not taken into account in coordinate conversion
+ * @param B3 coefficient term for output second axis taking that is multiplied
+ * with the value along the source third axis
+ * @param B3_unit_name Name of the scale unit for B3. Or NULL for unity.
+ * @param B3_unit_conv_factor Conversion factor to unity for B3. Note: this is
+ * indicative only, and not taken into account in coordinate conversion
+ * @param C0 translation term for output third axis
+ * @param C0_unit_name Name of the linear unit for C0. Or NULL for metre.
+ * @param C0_unit_conv_factor Conversion factor to metre for C0. Note: this is
+ * indicative only, and not taken into account in coordinate conversion
+ * @param C1 coefficient term for output third axis taking that is multiplied
+ * with the value along the source first axis
+ * @param C1_unit_name Name of the scale unit for C1. Or NULL for unity.
+ * @param C1_unit_conv_factor Conversion factor to unity for C1. Note: this is
+ * indicative only, and not taken into account in coordinate conversion
+ * @param C2 coefficient term for output third axis taking that is multiplied
+ * with the value along the source second axis
+ * @param C2_unit_name Name of the scale unit for C2. Or NULL for unity.
+ * @param C2_unit_conv_factor Conversion factor to unity for C2. Note: this is
+ * indicative only, and not taken into account in coordinate conversion
+ * @param C3 coefficient term for output third axis taking that is multiplied
+ * with the value along the source third axis
+ * @param C3_unit_name Name of the scale unit for C3. Or NULL for unity.
+ * @param C3_unit_conv_factor Conversion factor to unity for C3. Note: this is
+ * indicative only, and not taken into account in coordinate conversion
+ * @return Object that must be unreferenced with proj_destroy(), or NULL
+ * in case of error.
+ *
+ * @since 9.9
+ */
+/* clang-format off */
+PJ PROJ_DLL *proj_create_linear_3D_affine_parametric_conversion(
+    PJ_CONTEXT *ctx, const char* name,
+    double A0, const char *A0_unit_name, double A0_unit_conv_factor,
+    double A1, const char *A1_unit_name, double A1_unit_conv_factor,
+    double A2, const char *A2_unit_name, double A2_unit_conv_factor,
+    double A3, const char *A3_unit_name, double A3_unit_conv_factor,
+    double B0, const char *B0_unit_name, double B0_unit_conv_factor,
+    double B1, const char *B1_unit_name, double B1_unit_conv_factor,
+    double B2, const char *B2_unit_name, double B2_unit_conv_factor,
+    double B3, const char *B3_unit_name, double B3_unit_conv_factor,
+    double C0, const char *C0_unit_name, double C0_unit_conv_factor,
+    double C1, const char *C1_unit_name, double C1_unit_conv_factor,
+    double C2, const char *C2_unit_name, double C2_unit_conv_factor,
+    double C3, const char *C3_unit_name, double C3_unit_conv_factor)
+/* clang-format on */
+{
+    SANITIZE_CTX(ctx);
+    try {
+        auto conv = Conversion::createAffineParametric(
+            createPropertyMapName(name),
+            Length(A0, createLinearUnit(A0_unit_name, A0_unit_conv_factor)),
+            Scale(A1, createScaleUnit(A1_unit_name, A1_unit_conv_factor)),
+            Scale(A2, createScaleUnit(A2_unit_name, A2_unit_conv_factor)),
+            Scale(A3, createScaleUnit(A3_unit_name, A3_unit_conv_factor)),
+            Length(B0, createLinearUnit(B0_unit_name, B0_unit_conv_factor)),
+            Scale(B1, createScaleUnit(B1_unit_name, B1_unit_conv_factor)),
+            Scale(B2, createScaleUnit(B2_unit_name, B2_unit_conv_factor)),
+            Scale(B3, createScaleUnit(B3_unit_name, B3_unit_conv_factor)),
+            Length(C0, createLinearUnit(C0_unit_name, C0_unit_conv_factor)),
+            Scale(C1, createScaleUnit(C1_unit_name, C1_unit_conv_factor)),
+            Scale(C2, createScaleUnit(C2_unit_name, C2_unit_conv_factor)),
+            Scale(C3, createScaleUnit(C3_unit_name, C3_unit_conv_factor)));
         return pj_obj_create(ctx, conv);
     } catch (const std::exception &e) {
         proj_log_error(ctx, __FUNCTION__, e.what());

@@ -7162,6 +7162,68 @@ TEST_F(CApi, proj_create_linear_affine_parametric_conversion) {
 
 // ---------------------------------------------------------------------------
 
+TEST_F(CApi, proj_create_linear_3D_affine_parametric_conversion) {
+
+    {
+        PJ *pj = proj_create_linear_3D_affine_parametric_conversion(
+            m_ctxt, nullptr, 1.1, nullptr, 0, 2.1, nullptr, 0, 3.1, nullptr, 0,
+            4.1, nullptr, 0, 5.1, nullptr, 0, 6.1, nullptr, 0, 7.1, nullptr, 0,
+            8.1, nullptr, 0, 9.1, nullptr, 0, 10.1, nullptr, 0, 11.1, nullptr,
+            0, 12.1, nullptr, 0);
+        ObjectKeeper keeper(pj);
+        auto wkt = proj_as_wkt(m_ctxt, pj, PJ_WKT2_2019, nullptr);
+        ASSERT_NE(wkt, nullptr);
+        EXPECT_STREQ(wkt,
+                     "CONVERSION[\"unnamed\",\n"
+                     "    METHOD[\"3D Affine parametric transformation\"],\n"
+                     "    PARAMETER[\"A0\",1.1,\n"
+                     "        LENGTHUNIT[\"metre\",1],\n"
+                     "        ID[\"EPSG\",8623]],\n"
+                     "    PARAMETER[\"A1\",2.1,\n"
+                     "        SCALEUNIT[\"unity\",1],\n"
+                     "        ID[\"EPSG\",8624]],\n"
+                     "    PARAMETER[\"A2\",3.1,\n"
+                     "        SCALEUNIT[\"unity\",1],\n"
+                     "        ID[\"EPSG\",8625]],\n"
+                     "    PARAMETER[\"A3\",4.1,\n"
+                     "        SCALEUNIT[\"unity\",1,\n"
+                     "            ID[\"EPSG\",9201]]],\n"
+                     "    PARAMETER[\"B0\",5.1,\n"
+                     "        LENGTHUNIT[\"metre\",1],\n"
+                     "        ID[\"EPSG\",8639]],\n"
+                     "    PARAMETER[\"B1\",6.1,\n"
+                     "        SCALEUNIT[\"unity\",1],\n"
+                     "        ID[\"EPSG\",8640]],\n"
+                     "    PARAMETER[\"B2\",7.1,\n"
+                     "        SCALEUNIT[\"unity\",1],\n"
+                     "        ID[\"EPSG\",8641]],\n"
+                     "    PARAMETER[\"B3\",8.1,\n"
+                     "        SCALEUNIT[\"unity\",1,\n"
+                     "            ID[\"EPSG\",9201]]],\n"
+                     "    PARAMETER[\"C0\",9.1,\n"
+                     "        LENGTHUNIT[\"metre\",1,\n"
+                     "            ID[\"EPSG\",9001]]],\n"
+                     "    PARAMETER[\"C1\",10.1,\n"
+                     "        SCALEUNIT[\"unity\",1,\n"
+                     "            ID[\"EPSG\",9201]]],\n"
+                     "    PARAMETER[\"C2\",11.1,\n"
+                     "        SCALEUNIT[\"unity\",1,\n"
+                     "            ID[\"EPSG\",9201]]],\n"
+                     "    PARAMETER[\"C3\",12.1,\n"
+                     "        SCALEUNIT[\"unity\",1,\n"
+                     "            ID[\"EPSG\",9201]]]]");
+
+        auto proj_string = proj_as_proj_string(m_ctxt, pj, PJ_PROJ_5, nullptr);
+        ASSERT_NE(proj_string, nullptr);
+        EXPECT_STREQ(proj_string, "+proj=affine "
+                                  "+xoff=1.1 +s11=2.1 +s12=3.1 +s13=4.1 "
+                                  "+yoff=5.1 +s21=6.1 +s22=7.1 +s23=8.1 "
+                                  "+zoff=9.1 +s31=10.1 +s32=11.1 +s33=12.1");
+    }
+}
+
+// ---------------------------------------------------------------------------
+
 TEST_F(CApi, proj_create_derived_projected_crs) {
 
     PJ *proj_crs = proj_create(m_ctxt, "EPSG:32631");

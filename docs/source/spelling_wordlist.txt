@@ -443,6 +443,7 @@ gz
 Häkli
 hardcoded
 hardcodes
+hardcoding
 hatano
 Hatano
 Hayford
@@ -549,6 +550,7 @@ Kristian
 krovak
 Krovak
 Krüger
+Kumul
 Laborde
 labrd
 laea
@@ -669,6 +671,7 @@ nd
 nell
 netcdf
 netCDF
+networkfilemanager
 nga
 nicol
 Nicolosi

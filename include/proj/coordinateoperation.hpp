@@ -1500,6 +1500,15 @@ class PROJ_GCC_DLL Conversion : public SingleOperation {
                            const common::Scale &A2, const common::Measure &B0,
                            const common::Scale &B1, const common::Scale &B2);
 
+    PROJ_DLL static ConversionNNPtr
+    createAffineParametric(const util::PropertyMap &properties,
+                           const common::Measure &A0, const common::Scale &A1,
+                           const common::Scale &A2, const common::Scale &A3,
+                           const common::Measure &B0, const common::Scale &B1,
+                           const common::Scale &B2, const common::Scale &B3,
+                           const common::Measure &C0, const common::Scale &C1,
+                           const common::Scale &C2, const common::Scale &C3);
+
     PROJ_DLL ConversionPtr convertToOtherMethod(int targetEPSGCode) const;
 
     PROJ_PRIVATE :

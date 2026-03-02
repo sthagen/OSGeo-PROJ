@@ -4709,6 +4709,8 @@ Conversion::createVerticalOffset(const util::PropertyMap &properties,
  * <a href="https://epsg.org/coord-operation-method_9624/index.html">
  * EPSG:9624</a>.
  *
+ * Use this method for a CRS whose coordinate system has 2 axis.
+ *
  * @param properties See \ref general_properties of the Conversion.
  * At minimum the name should be defined.
  * @param A0 translation term for output first axis
@@ -4740,6 +4742,55 @@ ConversionNNPtr Conversion::createAffineParametric(
                            createOpParamNameEPSGCode(EPSG_CODE_PARAMETER_B1),
                            createOpParamNameEPSGCode(EPSG_CODE_PARAMETER_B2)},
         VectorOfValues{A0, A1, A2, B0, B1, B2});
+}
+
+// ---------------------------------------------------------------------------
+
+/** \brief Instantiate a conversion with method 3D Affine Parametric
+ *
+ * Use this method for a CRS whose coordinate system has 3 axis.
+ *
+ * @param properties See \ref general_properties of the Conversion.
+ * At minimum the name should be defined.
+ * @param A0 translation term for output first axis
+ * @param A1 coefficient term for output first axis taking that is multiplied
+ * with the value along the source first axis
+ * @param A2 coefficient term for output first axis taking that is multiplied
+ * with the value along the source second axis
+ * @param A3 coefficient term for output first axis taking that is multiplied
+ * with the value along the source third axis
+ * @param B0 translation term for output second axis
+ * @param B1 coefficient term for output second axis taking that is multiplied
+ * with the value along the source first axis
+ * @param B2 coefficient term for output second axis taking that is multiplied
+ * with the value along the source second axis
+ * @param B3 coefficient term for output second axis taking that is multiplied
+ * with the value along the source third axis
+ * @param C0 translation term for output third axis
+ * @param C1 coefficient term for output third axis taking that is multiplied
+ * with the value along the source first axis
+ * @param C2 coefficient term for output third axis taking that is multiplied
+ * with the value along the source second axis
+ * @param C3 coefficient term for output third axis taking that is multiplied
+ * with the value along the source third axis
+ * @return new Conversion.
+ *
+ * @since 9.9
+ */
+ConversionNNPtr Conversion::createAffineParametric(
+    const util::PropertyMap &properties, const common::Measure &A0,
+    const common::Scale &A1, const common::Scale &A2, const common::Scale &A3,
+    const common::Measure &B0, const common::Scale &B1, const common::Scale &B2,
+    const common::Scale &B3, const common::Measure &C0, const common::Scale &C1,
+    const common::Scale &C2, const common::Scale &C3) {
+    return create(
+        properties, PROJ_WKT2_NAME_METHOD_3D_AFFINE_PARAMETRIC_TRANSFORMATION,
+        VectorOfValues{ParameterValue::create(A0), ParameterValue::create(A1),
+                       ParameterValue::create(A2), ParameterValue::create(A3),
+                       ParameterValue::create(B0), ParameterValue::create(B1),
+                       ParameterValue::create(B2), ParameterValue::create(B3),
+                       ParameterValue::create(C0), ParameterValue::create(C1),
+                       ParameterValue::create(C2), ParameterValue::create(C3)});
 }
 
 // ---------------------------------------------------------------------------

@@ -909,6 +909,16 @@
 #define EPSG_NAME_PARAMETER_B2 "B2"
 #define EPSG_CODE_PARAMETER_B2 8641
 
+#define PROJ_WKT2_NAME_METHOD_3D_AFFINE_PARAMETRIC_TRANSFORMATION              \
+    "3D Affine parametric transformation"
+
+#define PROJ_WKT2_NAME_PARAMETER_A3 "A3"
+#define PROJ_WKT2_NAME_PARAMETER_B3 "B3"
+#define PROJ_WKT2_NAME_PARAMETER_C0 "C0"
+#define PROJ_WKT2_NAME_PARAMETER_C1 "C1"
+#define PROJ_WKT2_NAME_PARAMETER_C2 "C2"
+#define PROJ_WKT2_NAME_PARAMETER_C3 "C3"
+
 /* ------------------------------------------------------------------------ */
 
 #define EPSG_CODE_METHOD_SIMILARITY_TRANSFORMATION 9621

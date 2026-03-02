@@ -2592,6 +2592,12 @@ INSERT INTO "geodetic_crs" VALUES('EPSG','11226','DrukRef23','Replaces DRUKREF 0
 INSERT INTO "usage" VALUES('EPSG','24836','geodetic_crs','EPSG','11226','EPSG','1048','EPSG','1183');
 INSERT INTO "geodetic_crs" VALUES('EPSG','11307','ETRS89-CHE [CHTRF95]','First realization of CHTRS95. For CRS used for topographic and cadastral purposes see CH1903+ (CRS code 4150).','geographic 2D','EPSG','6422','EPSG','1449',NULL,0);
 INSERT INTO "usage" VALUES('EPSG','25321','geodetic_crs','EPSG','11307','EPSG','1286','EPSG','1183');
+INSERT INTO "geodetic_crs" VALUES('EPSG','11391','ETRS89-LUX [ETRF2000]','National realization of ETRS89 in Luxembourg.','geocentric','EPSG','6500','EPSG','1453',NULL,0);
+INSERT INTO "usage" VALUES('EPSG','25480','geodetic_crs','EPSG','11391','EPSG','1146','EPSG','1295');
+INSERT INTO "geodetic_crs" VALUES('EPSG','11392','ETRS89-LUX [ETRF2000]','National realization of ETRS89 in Luxembourg.','geographic 3D','EPSG','6423','EPSG','1453',NULL,0);
+INSERT INTO "usage" VALUES('EPSG','25481','geodetic_crs','EPSG','11392','EPSG','1146','EPSG','1295');
+INSERT INTO "geodetic_crs" VALUES('EPSG','11393','ETRS89-LUX [ETRF2000]','Horizontal component of national realization of ETRS89 in Luxembourg.','geographic 2D','EPSG','6422','EPSG','1453',NULL,0);
+INSERT INTO "usage" VALUES('EPSG','25478','geodetic_crs','EPSG','11393','EPSG','1146','EPSG','1183');
 INSERT INTO "geodetic_crs" VALUES('EPSG','20033','MWC18-IRF','Intermediate CRS created in 2022 to assist the emulation of the ETRS89 / MWC18 SnakeGrid projected CRS through transformation ETRS89-GBR [OSNet v2009] to MWC18 (1) (code 10108) used in conjunction with the MWC18-TM map projection (code 10127).','geographic 2D','EPSG','6422','EPSG','1324',NULL,0);
 INSERT INTO "usage" VALUES('EPSG','18335','geodetic_crs','EPSG','20033','EPSG','4666','EPSG','1141');
 INSERT INTO "geodetic_crs" VALUES('EPSG','20039','SIRGAS-Chile 2021','Densification of SIRGAS-CON within Chile at epoch 2021.00. Replaces SIRGAS-Chile 2016 (CRS code 9151) due to significant tectonic deformation.','geocentric','EPSG','6500','EPSG','1327',NULL,0);

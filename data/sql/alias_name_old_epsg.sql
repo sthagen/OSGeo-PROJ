@@ -1279,4 +1279,3 @@ INSERT INTO "alias_name" VALUES('geodetic_crs','EPSG','4151','CHTRF95','EPSG_OLD
 INSERT INTO "alias_name" VALUES('geodetic_crs','EPSG','20039','SIRGAS-Chile realización 5','EPSG_OLD');
 INSERT INTO "alias_name" VALUES('geodetic_crs','EPSG','20040','SIRGAS-Chile realización 5','EPSG_OLD');
 INSERT INTO "alias_name" VALUES('geodetic_crs','EPSG','20041','SIRGAS-Chile realización 5','EPSG_OLD');
-

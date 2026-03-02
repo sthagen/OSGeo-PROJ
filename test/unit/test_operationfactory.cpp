@@ -7899,7 +7899,7 @@ TEST(operation, compoundCRS_to_geogCRS_2D_promote_to_3D_context) {
                                                                ctxt);
     // The checked value is not that important, but in case this changes,
     // likely due to a EPSG upgrade, worth checking
-    EXPECT_EQ(listCompoundToGeog2D.size(), 122U);
+    EXPECT_EQ(listCompoundToGeog2D.size(), 133U);
 
     auto listGeog2DToCompound =
         CoordinateOperationFactory::create()->createOperations(dst, nnSrc,
@@ -11268,23 +11268,20 @@ TEST(operation, createOperation_point_motion_operation_geocentric) {
     EXPECT_EQ(list[0]->exportToPROJString(PROJStringFormatter::create().get()),
               "+proj=pipeline "
               "+step +proj=set +v_4=2002 "
-              "+step +proj=set +v_4=2002 +omit_fwd "
               "+step +proj=deformation +dt=8 +grids=ca_nrc_NAD83v70VG.tif "
               "+ellps=GRS80 "
-              "+step +proj=set +v_4=2010 +omit_inv "
               "+step +proj=set +v_4=2010");
     EXPECT_EQ(list[0]->inverse()->exportToPROJString(
                   PROJStringFormatter::create().get()),
               "+proj=pipeline "
               "+step +proj=set +v_4=2010 "
-              "+step +proj=set +v_4=2010 +omit_fwd "
               "+step +proj=deformation +dt=-8 +grids=ca_nrc_NAD83v70VG.tif "
               "+ellps=GRS80 "
-              "+step +proj=set +v_4=2002 +omit_inv "
               "+step +proj=set +v_4=2002");
     EXPECT_TRUE(list[1]->hasBallparkTransformation());
-    EXPECT_EQ(list[1]->exportToPROJString(PROJStringFormatter::create().get()),
-              "+proj=noop");
+    EXPECT_EQ(
+        list[1]->exportToPROJString(PROJStringFormatter::create().get()),
+        "+proj=pipeline +step +proj=set +v_4=2002 +step +proj=set +v_4=2010");
 }
 
 // ---------------------------------------------------------------------------
@@ -11312,7 +11309,6 @@ TEST(operation, createOperation_point_motion_operation_geocentric_to_geog3D) {
     EXPECT_EQ(list[0]->exportToPROJString(PROJStringFormatter::create().get()),
               "+proj=pipeline "
               "+step +proj=set +v_4=2002 "
-              "+step +proj=set +v_4=2002 +omit_fwd "
               "+step +proj=deformation +dt=8 +grids=ca_nrc_NAD83v70VG.tif "
               "+ellps=GRS80 "
               "+step +proj=set +v_4=2010 +omit_inv "
@@ -12020,4 +12016,129 @@ TEST(operation, createOperation_ETRS89_XXX_to_ETRS89_YYY_using_ETRF2000) {
               "+proj=noop");
     ASSERT_EQ(list[1]->coordinateOperationAccuracies().size(), 1U);
     EXPECT_EQ(list[1]->coordinateOperationAccuracies()[0]->value(), "0.1");
+}
+
+// ---------------------------------------------------------------------------
+
+TEST(operation, createOperation_time_dependent_helmert_directly_from_database) {
+    auto dbContext = DatabaseContext::create();
+    auto factory = AuthorityFactory::create(dbContext, "EPSG");
+    auto ITRF2014_geocentric = factory->createCoordinateReferenceSystem("7789");
+    auto ITRF2014_geocentric_at_2026 =
+        CoordinateMetadata::create(ITRF2014_geocentric, 2026.0, dbContext);
+    auto GDA2020_geocentric = factory->createCoordinateReferenceSystem("7842");
+    auto ctxt = CoordinateOperationContext::create(
+        AuthorityFactory::create(dbContext, std::string()), nullptr, 0);
+    ctxt->setSpatialCriterion(
+        CoordinateOperationContext::SpatialCriterion::PARTIAL_INTERSECTION);
+    ctxt->setGridAvailabilityUse(
+        CoordinateOperationContext::GridAvailabilityUse::
+            IGNORE_GRID_AVAILABILITY);
+
+    auto list = CoordinateOperationFactory::create()->createOperations(
+        ITRF2014_geocentric_at_2026, GDA2020_geocentric, ctxt);
+    ASSERT_GE(list.size(), 1U);
+
+    EXPECT_EQ(list[0]->exportToPROJString(PROJStringFormatter::create().get()),
+              "+proj=pipeline "
+              "+step +proj=set +v_4=2026 "
+              "+step +proj=helmert +x=0 +y=0 +z=0 +rx=0 +ry=0 +rz=0 +s=0 "
+              "+dx=0 +dy=0 +dz=0 "
+              "+drx=0.00150379 +dry=0.00118346 +drz=0.00120716 +ds=0 "
+              "+t_epoch=2020 +convention=coordinate_frame "
+              "+step +proj=set +v_4=2026");
+    EXPECT_EQ(list[0]->inverse()->exportToPROJString(
+                  PROJStringFormatter::create().get()),
+              "+proj=pipeline "
+              "+step +proj=set +v_4=2026 "
+              "+step +inv +proj=helmert +x=0 +y=0 +z=0 +rx=0 +ry=0 +rz=0 +s=0 "
+              "+dx=0 +dy=0 +dz=0 "
+              "+drx=0.00150379 +dry=0.00118346 +drz=0.00120716 +ds=0 "
+              "+t_epoch=2020 +convention=coordinate_frame "
+              "+step +proj=set +v_4=2026");
+
+    auto list2 = CoordinateOperationFactory::create()->createOperations(
+        GDA2020_geocentric, ITRF2014_geocentric_at_2026, ctxt);
+    ASSERT_GE(list2.size(), 1U);
+    EXPECT_EQ(list2[0]->exportToPROJString(PROJStringFormatter::create().get()),
+              "+proj=pipeline "
+              "+step +proj=set +v_4=2026 "
+              "+step +inv +proj=helmert +x=0 +y=0 +z=0 +rx=0 +ry=0 +rz=0 +s=0 "
+              "+dx=0 +dy=0 +dz=0 "
+              "+drx=0.00150379 +dry=0.00118346 +drz=0.00120716 +ds=0 "
+              "+t_epoch=2020 +convention=coordinate_frame "
+              "+step +proj=set +v_4=2026");
+    EXPECT_EQ(list2[0]->inverse()->exportToPROJString(
+                  PROJStringFormatter::create().get()),
+              "+proj=pipeline "
+              "+step +proj=set +v_4=2026 "
+              "+step +proj=helmert +x=0 +y=0 +z=0 +rx=0 +ry=0 +rz=0 +s=0 "
+              "+dx=0 +dy=0 +dz=0 "
+              "+drx=0.00150379 +dry=0.00118346 +drz=0.00120716 +ds=0 "
+              "+t_epoch=2020 +convention=coordinate_frame "
+              "+step +proj=set +v_4=2026");
+}
+
+// ---------------------------------------------------------------------------
+
+TEST(operation, createOperation_defmodel_from_database) {
+    auto dbContext = DatabaseContext::create();
+    auto factory = AuthorityFactory::create(dbContext, "EPSG");
+    auto ITRF96 = factory->createCoordinateReferenceSystem("7907");
+    auto ITRF96_at_2026 = CoordinateMetadata::create(ITRF96, 2026.0, dbContext);
+    auto NZGD2000 = factory->createCoordinateReferenceSystem("4959");
+    auto ctxt = CoordinateOperationContext::create(
+        AuthorityFactory::create(dbContext, std::string()), nullptr, 0);
+    ctxt->setSpatialCriterion(
+        CoordinateOperationContext::SpatialCriterion::PARTIAL_INTERSECTION);
+    ctxt->setGridAvailabilityUse(
+        CoordinateOperationContext::GridAvailabilityUse::
+            IGNORE_GRID_AVAILABILITY);
+
+    auto list = CoordinateOperationFactory::create()->createOperations(
+        ITRF96_at_2026, NZGD2000, ctxt);
+    ASSERT_GE(list.size(), 1U);
+
+    EXPECT_EQ(list[0]->exportToPROJString(PROJStringFormatter::create().get()),
+              "+proj=pipeline "
+              "+step +proj=axisswap +order=2,1 "
+              "+step +proj=unitconvert +xy_in=deg +z_in=m +xy_out=rad +z_out=m "
+              "+step +proj=set +v_4=2026 "
+              "+step +inv +proj=defmodel +model=nz_linz_nzgd2000-20180701.json "
+              "+step +proj=set +v_4=2026 "
+              "+step +proj=unitconvert +xy_in=rad +z_in=m +xy_out=deg +z_out=m "
+              "+step +proj=axisswap +order=2,1");
+    EXPECT_EQ(list[0]->inverse()->exportToPROJString(
+                  PROJStringFormatter::create().get()),
+              "+proj=pipeline "
+              "+step +proj=axisswap +order=2,1 "
+              "+step +proj=unitconvert +xy_in=deg +z_in=m +xy_out=rad +z_out=m "
+              "+step +proj=set +v_4=2026 "
+              "+step +proj=defmodel +model=nz_linz_nzgd2000-20180701.json "
+              "+step +proj=set +v_4=2026 "
+              "+step +proj=unitconvert +xy_in=rad +z_in=m +xy_out=deg +z_out=m "
+              "+step +proj=axisswap +order=2,1");
+
+    auto list2 = CoordinateOperationFactory::create()->createOperations(
+        NZGD2000, ITRF96_at_2026, ctxt);
+    ASSERT_GE(list2.size(), 1U);
+    EXPECT_EQ(list2[0]->exportToPROJString(PROJStringFormatter::create().get()),
+              "+proj=pipeline "
+              "+step +proj=axisswap +order=2,1 "
+              "+step +proj=unitconvert +xy_in=deg +z_in=m +xy_out=rad +z_out=m "
+              "+step +proj=set +v_4=2026 "
+              "+step +proj=defmodel +model=nz_linz_nzgd2000-20180701.json "
+              "+step +proj=set +v_4=2026 "
+              "+step +proj=unitconvert +xy_in=rad +z_in=m +xy_out=deg +z_out=m "
+              "+step +proj=axisswap +order=2,1");
+    EXPECT_EQ(list2[0]->inverse()->exportToPROJString(
+                  PROJStringFormatter::create().get()),
+              "+proj=pipeline "
+              "+step +proj=axisswap +order=2,1 "
+              "+step +proj=unitconvert +xy_in=deg +z_in=m +xy_out=rad +z_out=m "
+              "+step +proj=set +v_4=2026 "
+              "+step +inv +proj=defmodel +model=nz_linz_nzgd2000-20180701.json "
+              "+step +proj=set +v_4=2026 "
+              "+step +proj=unitconvert +xy_in=rad +z_in=m +xy_out=deg +z_out=m "
+              "+step +proj=axisswap +order=2,1");
 }

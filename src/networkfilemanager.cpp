@@ -2028,7 +2028,7 @@ static size_t pj_emscripten_read_range(PJ_CONTEXT *ctx,
     // Documentation says compiling with pthread flag is needed.
     // https://emscripten.org/docs/api_reference/fetch.html#synchronous-fetches
     // We encapsulate the code related to empscripten_fetch in a lamda.
-    // Some tests runing this lambda in a thread were partially successful.
+    // Some tests running this lambda in a thread were partially successful.
     size_t real_read = 0;
     const std::string url = handle->m_url;
     auto fetching = [&]() {

@@ -8930,6 +8930,11 @@ const std::string &PROJStringFormatter::toString() const {
             step.inverted = false;
             continue;
         }
+
+        // set does the same in forward and inverse paths
+        if (step.name == "set") {
+            step.inverted = false;
+        }
     }
 
     {
@@ -9396,6 +9401,34 @@ const std::string &PROJStringFormatter::toString() const {
                         ++iterCur;
                     continue;
                 }
+            }
+
+            // "+proj=set +v_4=X" followed by "+proj=set +v_4=X +omit_fwd"
+            // can be optimized as "+proj=set +v_4=X"
+            if (curStep.name == "set" && prevStep.name == "set" &&
+                !curStep.inverted && !prevStep.inverted &&
+                curStepParamCount == 2 && prevStepParamCount == 1 &&
+                curStep.paramValues[0].keyEquals("v_4") &&
+                prevStep.paramValues[0].keyEquals("v_4") &&
+                curStep.paramValues[1].keyEquals("omit_fwd") &&
+                curStep.paramValues[0].value == prevStep.paramValues[0].value) {
+
+                iterCur = steps.erase(iterCur);
+                continue;
+            }
+
+            // "+proj=set +v_4=X +omit_inv" followed by "+proj=set +v_4=X"
+            // can be optimized as "+proj=set +v_4=X"
+            if (curStep.name == "set" && prevStep.name == "set" &&
+                !curStep.inverted && !prevStep.inverted &&
+                curStepParamCount == 1 && prevStepParamCount == 2 &&
+                curStep.paramValues[0].keyEquals("v_4") &&
+                prevStep.paramValues[0].keyEquals("v_4") &&
+                prevStep.paramValues[1].keyEquals("omit_inv") &&
+                curStep.paramValues[0].value == prevStep.paramValues[0].value) {
+
+                deletePrevIter();
+                continue;
             }
 
             // for practical purposes WGS84 and GRS80 ellipsoids are

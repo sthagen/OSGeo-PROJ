@@ -325,12 +325,6 @@ INSERT INTO "supersession" VALUES('grid_transformation','EPSG','9634','grid_tran
 INSERT INTO "supersession" VALUES('helmert_transformation','EPSG','15900','helmert_transformation','EPSG','10961','EPSG',1);
 INSERT INTO "supersession" VALUES('helmert_transformation','EPSG','15957','helmert_transformation','EPSG','10962','EPSG',1);
 INSERT INTO "supersession" VALUES('helmert_transformation','EPSG','15899','helmert_transformation','EPSG','10963','EPSG',1);
-INSERT INTO "supersession" VALUES('grid_transformation','EPSG','9884','grid_transformation','EPSG','10130','EPSG',1);
-INSERT INTO "supersession" VALUES('grid_transformation','EPSG','10504','grid_transformation','EPSG','10509','EPSG',1);
-INSERT INTO "supersession" VALUES('grid_transformation','EPSG','9885','grid_transformation','EPSG','10133','EPSG',1);
-INSERT INTO "supersession" VALUES('grid_transformation','EPSG','10133','grid_transformation','EPSG','10505','EPSG',1);
-INSERT INTO "supersession" VALUES('grid_transformation','EPSG','10505','grid_transformation','EPSG','10510','EPSG',1);
-INSERT INTO "supersession" VALUES('grid_transformation','EPSG','10130','grid_transformation','EPSG','10504','EPSG',1);
 INSERT INTO "supersession" VALUES('grid_transformation','EPSG','9720','grid_transformation','EPSG','10348','EPSG',1);
 INSERT INTO "supersession" VALUES('helmert_transformation','EPSG','7675','helmert_transformation','EPSG','9495','EPSG',1);
 INSERT INTO "supersession" VALUES('helmert_transformation','EPSG','3914','helmert_transformation','EPSG','8689','EPSG',1);
@@ -342,3 +336,9 @@ INSERT INTO "supersession" VALUES('helmert_transformation','EPSG','4827','concat
 INSERT INTO "supersession" VALUES('helmert_transformation','EPSG','4827','concatenated_operation','EPSG','8442','EPSG',0);
 INSERT INTO "supersession" VALUES('helmert_transformation','EPSG','1646','grid_transformation','EPSG','7674','EPSG',1);
 INSERT INTO "supersession" VALUES('helmert_transformation','EPSG','15934','helmert_transformation','EPSG','4833','EPSG',1);
+INSERT INTO "supersession" VALUES('grid_transformation','EPSG','9884','grid_transformation','EPSG','10130','EPSG',1);
+INSERT INTO "supersession" VALUES('grid_transformation','EPSG','10130','grid_transformation','EPSG','10504','EPSG',1);
+INSERT INTO "supersession" VALUES('grid_transformation','EPSG','10133','grid_transformation','EPSG','10505','EPSG',1);
+INSERT INTO "supersession" VALUES('grid_transformation','EPSG','10504','grid_transformation','EPSG','10509','EPSG',1);
+INSERT INTO "supersession" VALUES('grid_transformation','EPSG','10505','grid_transformation','EPSG','10510','EPSG',1);
+INSERT INTO "supersession" VALUES('grid_transformation','EPSG','9885','grid_transformation','EPSG','10133','EPSG',1);

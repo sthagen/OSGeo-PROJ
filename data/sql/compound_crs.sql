@@ -972,6 +972,10 @@ INSERT INTO "compound_crs" VALUES('EPSG','11312','ETRS89-SVK [SKTRF09] + Baltic 
 INSERT INTO "usage" VALUES('EPSG','25093','compound_crs','EPSG','11312','EPSG','1211','EPSG','1203');
 INSERT INTO "compound_crs" VALUES('EPSG','11314','ETRS89-SVK [SKTRF09] + EVRF2007 height',NULL,'EPSG','11076','EPSG','5621',0);
 INSERT INTO "usage" VALUES('EPSG','25103','compound_crs','EPSG','11314','EPSG','1211','EPSG','1161');
+INSERT INTO "compound_crs" VALUES('EPSG','11383','DrukRef23 + Bhutan Vertical Datum 2022 height',NULL,'EPSG','11226','EPSG','11338',0);
+INSERT INTO "usage" VALUES('EPSG','25561','compound_crs','EPSG','11383','EPSG','1048','EPSG','1270');
+INSERT INTO "compound_crs" VALUES('EPSG','11385','Mexico ITRF2008 + NAVD88 height',NULL,'EPSG','6365','EPSG','5703',0);
+INSERT INTO "usage" VALUES('EPSG','25372','compound_crs','EPSG','11385','EPSG','3278','EPSG','1270');
 INSERT INTO "compound_crs" VALUES('EPSG','20001','ETRS89-NOR [EUREF89] + SVD2006 height',NULL,'EPSG','10875','EPSG','20000',0);
 INSERT INTO "usage" VALUES('EPSG','17956','compound_crs','EPSG','20001','EPSG','4058','EPSG','1026');
 INSERT INTO "compound_crs" VALUES('EPSG','20003','MWC18 Grid + ODN height',NULL,'EPSG','20002','EPSG','5701',0);

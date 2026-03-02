@@ -55,7 +55,7 @@ typedef void (*projinfo_cb_t)(PJ_PROJINFO_LOG_LEVEL level, const char *msg,
  * @param argv list of char* with the command parameters of projinfo.
  *  It does not contain the program name as first parameter.
  * @param cb callback that to get the output of projinfo.
- *  It can be very fragmented, no necesarily by lines.
+ *  It can be very fragmented, no necessarily by lines.
  * @param user_data pointer for data passed to the callback.
  */
 int PROJ_DLL projinfo(PJ_CONTEXT *ctx, int argc, char **argv, projinfo_cb_t cb,

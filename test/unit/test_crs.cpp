@@ -7976,7 +7976,7 @@ TEST(crs, norway_ntm) {
         EXPECT_STREQ(crs_from_esri->baseCRS()->nameStr().c_str(),
                      "ETRS89-NOR [EUREF89]");
         EXPECT_STREQ(crs_from_esri->baseCRS()->datum()->nameStr().c_str(),
-                     "ETRS89-NOR [EUREF89]");
+                     "EUREF89");
         auto res = crs_from_esri->identify(factory);
         ASSERT_EQ(res.size(), 1U);
         EXPECT_EQ(res.front().first.get(), crs.get());
