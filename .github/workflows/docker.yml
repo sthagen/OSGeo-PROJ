@@ -156,7 +156,7 @@ jobs:
             org.opencontainers.image.created=${{ steps.prep.outputs.BUILD_DATE }}
       - name: Generate artifact attestation
         if: ${{ env.PUSH_PACKAGES == 'true' && matrix.container  == 'proj' }}
-        uses: actions/attest-build-provenance@v3
+        uses: actions/attest-build-provenance@v4
         with:
           subject-name: ghcr.io/osgeo/proj
           subject-digest: ${{ steps.push.outputs.digest }}

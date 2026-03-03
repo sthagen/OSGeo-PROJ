@@ -67,12 +67,12 @@ The following table gives special cases of the cylindrical equidistant projectio
 Example using EPSG 32662 (WGS84 Plate Carrée)::
 
     $ echo 2 47 | proj +proj=eqc +ellps=WGS84
-    222638.98       5232016.07
+    222638.98       5207247.01
 
 Example using Plate Carrée projection with true scale at latitude 30° and central meridian 90°W::
 
     $ echo -88 30 | proj +proj=eqc +lat_ts=30 +lon_0=90w
-    192811.01       3339584.72
+    192972.56       3320113.40
 
 Parameters
 ################################################################################
