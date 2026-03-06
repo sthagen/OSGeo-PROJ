@@ -1,5 +1,6 @@
 /* put parameters in linked list and retrieve */
 
+#include <ctime>
 #include <ctype.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -214,4 +215,41 @@ PROJVALUE pj_param(PJ_CONTEXT *ctx, paralist *pl, const char *opt) {
         break;
     }
     return value;
+}
+
+/* Parse +t_final parameter with support for "now" keyword */
+double pj_parse_t_final(PJ *P) {
+    if (!pj_param(P->ctx, P->params, "tt_final").i) {
+        return 0.0;
+    }
+
+    double t_final = pj_param(P->ctx, P->params, "dt_final").f;
+    if (t_final != 0.0) {
+        return t_final;
+    }
+
+    /* Check if "now" was specified instead of a numeric value */
+    const char *t_final_str = pj_param(P->ctx, P->params, "st_final").s;
+    if (!t_final_str || strcmp("now", t_final_str) != 0) {
+        return 0.0;
+    }
+
+    /* Calculate t_final from current time */
+    time_t now;
+    struct tm date;
+    time(&now);
+#ifdef _WIN32
+    localtime_s(&date, &now);
+#else
+    localtime_r(&now, &date);
+#endif
+
+    const int days_in_year =
+        ((date.tm_year + 1900) % 4 == 0 &&
+         ((date.tm_year + 1900) % 100 != 0 || (date.tm_year + 1900) % 400 == 0))
+            ? 366
+            : 365;
+
+    return 1900.0 + date.tm_year +
+           date.tm_yday / static_cast<double>(days_in_year);
 }

@@ -911,6 +911,7 @@ PROJVALUE PROJ_DLL pj_param(PJ_CONTEXT *ctx, paralist *, const char *);
 paralist PROJ_DLL *pj_param_exists(paralist *list, const char *parameter);
 paralist PROJ_DLL *pj_mkparam(const char *);
 paralist *pj_mkparam_ws(const char *str, const char **next_str);
+double pj_parse_t_final(PJ *P);
 
 int PROJ_DLL pj_ell_set(PJ_CONTEXT *ctx, paralist *, double *, double *);
 int pj_datum_set(PJ_CONTEXT *, paralist *, PJ *);

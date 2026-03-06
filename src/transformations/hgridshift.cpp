@@ -4,7 +4,6 @@
 #include <mutex>
 #include <stddef.h>
 #include <string.h>
-#include <time.h>
 
 #include "grids.hpp"
 #include "proj_internal.h"
@@ -162,22 +161,7 @@ PJ *PJ_TRANSFORMATION(hgridshift, 0) {
         return pj_hgridshift_destructor(P, PROJ_ERR_INVALID_OP_MISSING_ARG);
     }
 
-    /* TODO: Refactor into shared function that can be used  */
-    /*       by both vgridshift and hgridshift               */
-    if (pj_param(P->ctx, P->params, "tt_final").i) {
-        Q->t_final = pj_param(P->ctx, P->params, "dt_final").f;
-        if (Q->t_final == 0) {
-            /* a number wasn't passed to +t_final, let's see if it was "now" */
-            /* and set the time accordingly.                                 */
-            if (!strcmp("now", pj_param(P->ctx, P->params, "st_final").s)) {
-                time_t now;
-                struct tm *date;
-                time(&now);
-                date = localtime(&now);
-                Q->t_final = 1900.0 + date->tm_year + date->tm_yday / 365.0;
-            }
-        }
-    }
+    Q->t_final = pj_parse_t_final(P);
 
     if (pj_param(P->ctx, P->params, "tt_epoch").i)
         Q->t_epoch = pj_param(P->ctx, P->params, "dt_epoch").f;
