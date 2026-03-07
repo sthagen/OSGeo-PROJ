@@ -210,6 +210,12 @@ struct PROJ_GCC_DLL projCppContext {
 
     NS_PROJ::io::DatabaseContextNNPtr PROJ_FOR_TEST getDatabaseContext();
 
+    /** Return the database context only if already opened.
+     * Does not attempt to open proj.db. */
+    inline NS_PROJ::io::DatabaseContextPtr getDatabaseContextIfOpen() const {
+        return databaseContext_;
+    }
+
     void closeDb() { databaseContext_ = nullptr; }
 };
 

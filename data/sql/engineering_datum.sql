@@ -2,6 +2,8 @@
 
 INSERT INTO "engineering_datum" VALUES('EPSG','1134','Christmas Island Datum 1985','1985-01-01',NULL,NULL,0);
 INSERT INTO "usage" VALUES('EPSG','13186','engineering_datum','EPSG','1134','EPSG','4169','EPSG','1056');
+INSERT INTO "engineering_datum" VALUES('EPSG','1452','Heathrow Airport Grid',NULL,NULL,NULL,0);
+INSERT INTO "usage" VALUES('EPSG','25470','engineering_datum','EPSG','1452','EPSG','4796','EPSG','1142');
 INSERT INTO "engineering_datum" VALUES('EPSG','9300','Astra Minas',NULL,NULL,NULL,0);
 INSERT INTO "usage" VALUES('EPSG','13850','engineering_datum','EPSG','9300','EPSG','1265','EPSG','1216');
 INSERT INTO "engineering_datum" VALUES('EPSG','9301','Barcelona',NULL,NULL,NULL,0);

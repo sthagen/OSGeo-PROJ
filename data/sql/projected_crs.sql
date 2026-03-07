@@ -7850,6 +7850,8 @@ INSERT INTO "projected_crs" VALUES('EPSG','11376','NAD83(2011) / RMTCRS Phillips
 INSERT INTO "usage" VALUES('EPSG','25315','projected_crs','EPSG','11376','EPSG','4848','EPSG','1029');
 INSERT INTO "projected_crs" VALUES('EPSG','11377','NAD83(2011) / RMTCRS Phillips 83 (ft)',NULL,'EPSG','4495','EPSG','6318','EPSG','11359',NULL,0);
 INSERT INTO "usage" VALUES('EPSG','25316','projected_crs','EPSG','11377','EPSG','4848','EPSG','1029');
+INSERT INTO "projected_crs" VALUES('EPSG','11390','OSGB36 / Heathrow Airport GIS Grid 2026',NULL,'EPSG','4400','EPSG','4277','EPSG','11389',NULL,0);
+INSERT INTO "usage" VALUES('EPSG','25473','projected_crs','EPSG','11390','EPSG','4796','EPSG','1189');
 INSERT INTO "projected_crs" VALUES('EPSG','20002','MWC18 Grid',NULL,'EPSG','4400','EPSG','20033','EPSG','10127',NULL,0);
 INSERT INTO "usage" VALUES('EPSG','18336','projected_crs','EPSG','20002','EPSG','4666','EPSG','1141');
 INSERT INTO "projected_crs" VALUES('EPSG','20004','Pulkovo 1995 / Gauss-Kruger zone 4',NULL,'EPSG','4530','EPSG','4200','EPSG','16204',NULL,0);

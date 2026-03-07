@@ -205,8 +205,19 @@ PJ *pj_obj_create(PJ_CONTEXT *ctx, const BaseObjectNNPtr &objIn) {
         }
         if (bTryToExportToProj) {
             try {
+                // Use the database context if already open (e.g. when
+                // coming from proj_create_from_database), so that
+                // substitutePROJAlternativeGridNames() can resolve
+                // grid names via the grid_alternatives table.
+                // Do NOT open the database here — callers such as
+                // proj_create() with a plain pipeline string may run
+                // without proj.db (see commit 63c491eda3).
+                auto dbContext =
+                    ctx->cpp_context
+                        ? ctx->get_cpp_context()->getDatabaseContextIfOpen()
+                        : nullptr;
                 auto formatter = PROJStringFormatter::create(
-                    PROJStringFormatter::Convention::PROJ_5, nullptr);
+                    PROJStringFormatter::Convention::PROJ_5, dbContext);
                 auto projString = coordop->exportToPROJString(formatter.get());
                 const bool defer_grid_opening_backup = ctx->defer_grid_opening;
                 if (!defer_grid_opening_backup &&

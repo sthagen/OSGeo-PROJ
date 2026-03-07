@@ -1694,6 +1694,37 @@ TEST_F(CApi, transformation_from_boundCRS) {
 
 // ---------------------------------------------------------------------------
 
+TEST_F(CApi,
+       proj_create_from_database_grid_alternative_null_old_proj_grid_name) {
+    // EPSG:9484 uses grid "href2008a.bin" whose grid_alternatives entry has
+    // proj_grid_name = "no_kv_href2008a.tif" but old_proj_grid_name IS NULL.
+    // Without the database context in pj_obj_create(),
+    // substitutePROJAlternativeGridNames() cannot resolve the grid name,
+    // leaving the original "href2008a.bin" in the PROJ string. With the fix,
+    // the CDN name "no_kv_href2008a.tif" is used instead.
+    //
+    // Enable network so that pj_obj_create() sets defer_grid_opening=true,
+    // allowing the pipeline to be created even without the grid file on disk.
+    proj_context_set_enable_network(m_ctxt, 1);
+
+    auto op = proj_create_from_database(m_ctxt, "EPSG", "9484",
+                                        PJ_CATEGORY_COORDINATE_OPERATION, false,
+                                        nullptr);
+    ASSERT_NE(op, nullptr);
+    ObjectKeeper keeper(op);
+
+    auto info = proj_pj_info(op);
+    ASSERT_NE(info.definition, nullptr);
+    EXPECT_TRUE(std::string(info.definition).find("no_kv_href2008a.tif") !=
+                std::string::npos)
+        << "Expected CDN grid name 'no_kv_href2008a.tif' in definition, got: "
+        << info.definition;
+
+    proj_context_set_enable_network(m_ctxt, 0);
+}
+
+// ---------------------------------------------------------------------------
+
 TEST_F(CApi, proj_coordoperation_get_grid_used) {
     auto op = proj_create_from_database(m_ctxt, "EPSG", "1312",
                                         PJ_CATEGORY_COORDINATE_OPERATION, true,

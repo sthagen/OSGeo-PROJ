@@ -3773,6 +3773,7 @@ INSERT INTO "extent" VALUES('EPSG','4792','Uganda - south of equator and west of
 INSERT INTO "extent" VALUES('EPSG','4793','Liberia - east of 12°W','Liberia - onshore, and offshore east of 12°W.',1.02,8.52,-12.0,-7.36,0);
 INSERT INTO "extent" VALUES('EPSG','4794','Liberia - west of 12°W','Liberia - offshore west of 12°W.',3.12,6.4,-13.59,-12.0,0);
 INSERT INTO "extent" VALUES('EPSG','4795','Europe - Nordic and Baltic countries','Denmark, Estonia, Finland, Latvia, Lithuania, and Sweden - onshore and offshore; Norway - onshore, nearshore, and offshore southeast of a line joining Haugesund and the western limit of the Norway-Denmark maritime boundary.',53.89,71.39,3.24,31.77,0);
+INSERT INTO "extent" VALUES('EPSG','4796','UK - Heathrow','UK - Heathrow airport and surrounding area.',51.42,51.52,-0.56,-0.37,0);
 INSERT INTO "extent" VALUES('EPSG','4797','Georgia - west of 42°E','Georgia - west of 42°E - onshore and offshore.',41.43,43.59,38.97,42.0,0);
 INSERT INTO "extent" VALUES('EPSG','4798','Georgia - east of 42°E','Georgia - east of 42°E - onshore and offshore.',41.04,43.24,41.99,46.72,0);
 INSERT INTO "extent" VALUES('EPSG','4799','UK - Oxford to Cambridge','United Kingdom (UK) - on or related to the East West Rail (Phases 2 and 3) route from Oxford to Cambridge via Bicester, Bletchley and Bedford, including the route from Claydon Junction to Aylesbury and Princes Risborough.',51.7,52.33,-1.43,0.27,0);

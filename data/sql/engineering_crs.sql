@@ -30,3 +30,5 @@ INSERT INTO "engineering_crs" VALUES('EPSG','5817','Tombak LNG plant',NULL,'EPSG
 INSERT INTO "usage" VALUES('EPSG','4260','engineering_crs','EPSG','5817','EPSG','2362','EPSG','1029');
 INSERT INTO "engineering_crs" VALUES('EPSG','6715','Christmas Island Grid 1985',NULL,'EPSG','4400','EPSG','1134',0);
 INSERT INTO "usage" VALUES('EPSG','4925','engineering_crs','EPSG','6715','EPSG','4169','EPSG','1056');
+INSERT INTO "engineering_crs" VALUES('EPSG','11378','Heathrow Airport Grid',NULL,'EPSG','4400','EPSG','1452',0);
+INSERT INTO "usage" VALUES('EPSG','25471','engineering_crs','EPSG','11378','EPSG','4796','EPSG','1142');
