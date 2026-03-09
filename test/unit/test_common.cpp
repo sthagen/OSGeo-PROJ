@@ -67,6 +67,16 @@ TEST(common, unit_of_measure) {
     EXPECT_EQ(Angle(2.5969213, UnitOfMeasure::GRAD)
                   .convertToUnit(UnitOfMeasure::DEGREE),
               2.5969213 / 100.0 * 90.0);
+
+    {
+        UnitOfMeasure myUOM("myUOM", 123);
+        UnitOfMeasure myUOM_copy;
+        myUOM_copy = myUOM;
+        EXPECT_TRUE(myUOM == myUOM_copy);
+        UnitOfMeasure otherUOM("otherUOM", 456);
+        otherUOM = std::move(myUOM);
+        EXPECT_TRUE(otherUOM == myUOM_copy);
+    }
 }
 
 // ---------------------------------------------------------------------------
