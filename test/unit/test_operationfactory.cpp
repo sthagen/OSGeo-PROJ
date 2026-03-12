@@ -9636,22 +9636,31 @@ TEST(operation, IGNF_LAMB1_TO_EPSG_4326) {
 
 // ---------------------------------------------------------------------------
 
-TEST(operation, NAD83_to_projeted_CRS_based_on_NAD83_2011) {
-    auto authFactory =
-        AuthorityFactory::create(DatabaseContext::create(), "EPSG");
+TEST(operation, NAD83_to_projected_CRS_based_on_NAD83_2011) {
+    auto dbContext = DatabaseContext::create();
+    auto authFactory = AuthorityFactory::create(dbContext, std::string());
+    auto authFactoryEPSG = AuthorityFactory::create(dbContext, "EPSG");
     auto ctxt = CoordinateOperationContext::create(authFactory, nullptr, 0.0);
     ctxt->setSpatialCriterion(
         CoordinateOperationContext::SpatialCriterion::PARTIAL_INTERSECTION);
     auto list = CoordinateOperationFactory::create()->createOperations(
         // NAD83
-        authFactory->createCoordinateReferenceSystem("4269"),
+        authFactoryEPSG->createCoordinateReferenceSystem("4269"),
         // NAD83(2011) / California Albers
-        authFactory->createCoordinateReferenceSystem("6414"), ctxt);
-    ASSERT_EQ(list.size(), 1U);
-    EXPECT_EQ(list[0]->nameStr(), "Ballpark geographic offset from NAD83 to "
+        authFactoryEPSG->createCoordinateReferenceSystem("6414"), ctxt);
+    ASSERT_EQ(list.size(), 2U);
+
+    EXPECT_EQ(list[0]->nameStr(), "NAD83 to NAD83(HARN) (47) + "
+                                  "NAD83(HARN) to NAD83(FBN) (1) + "
+                                  "NAD83(FBN) to NAD83(NSRS2007) (1) + "
+                                  "NAD83(NSRS2007) to NAD83(2011) (1) + "
+                                  "California Albers");
+
+    EXPECT_EQ(list[1]->nameStr(), "Ballpark geographic offset from NAD83 to "
                                   "NAD83(2011) + California Albers");
-    EXPECT_EQ(list[0]->exportToPROJString(PROJStringFormatter::create().get()),
-              "+proj=pipeline +step +proj=axisswap +order=2,1 "
+    EXPECT_EQ(list[1]->exportToPROJString(PROJStringFormatter::create().get()),
+              "+proj=pipeline "
+              "+step +proj=axisswap +order=2,1 "
               "+step +proj=unitconvert +xy_in=deg +xy_out=rad "
               "+step +proj=aea +lat_0=0 +lon_0=-120 +lat_1=34 "
               "+lat_2=40.5 +x_0=0 +y_0=-4000000 +ellps=GRS80");
@@ -12201,4 +12210,91 @@ TEST(operation, compoundCRS_to_compoundCRS_context_extent_use_none) {
     // Alaska NAD27->WGS84 horizontal + CONUS VERTCON vertical) are no longer
     // silently filtered, so we expect strictly more results.
     EXPECT_GT(countNone, countDefault);
+}
+
+// ---------------------------------------------------------------------------
+
+TEST(operation, createOperation_ETRF2000_to_Amersfoort) {
+    auto dbContext = DatabaseContext::create();
+    auto authFactory = AuthorityFactory::create(dbContext, std::string());
+    auto authFactoryEPSG = AuthorityFactory::create(dbContext, "EPSG");
+    auto ctxt = CoordinateOperationContext::create(authFactory, nullptr, 0.0);
+    ctxt->setSpatialCriterion(
+        CoordinateOperationContext::SpatialCriterion::PARTIAL_INTERSECTION);
+    ctxt->setGridAvailabilityUse(
+        CoordinateOperationContext::GridAvailabilityUse::
+            IGNORE_GRID_AVAILABILITY);
+    {
+        auto list = CoordinateOperationFactory::create()->createOperations(
+            // ETRF2000
+            authFactoryEPSG->createCoordinateReferenceSystem("9067"),
+            // Amersfoort
+            authFactoryEPSG->createCoordinateReferenceSystem("4289"), ctxt);
+        ASSERT_GE(list.size(), 1U);
+        // We check that we go through ETRS89-NLD [AGRS2010] to use the most
+        // precise "Amersfoort to ETRS89-NLD [AGRS2010] (9)" operation.
+        EXPECT_EQ(
+            list[0]->nameStr(),
+            "Conversion from ETRF2000 (geog2D) to ETRF2000 (geocentric) + "
+            "Inverse of ETRS89-NLD [AGRS2010] to ETRF2000 (1) + "
+            "Conversion from ETRS89-NLD [AGRS2010] (geocentric) to "
+            "ETRS89-NLD [AGRS2010] (geog2D) + "
+            "Inverse of Amersfoort to ETRS89-NLD [AGRS2010] (9)");
+    }
+    {
+        auto list = CoordinateOperationFactory::create()->createOperations(
+            // Amersfoort
+            authFactoryEPSG->createCoordinateReferenceSystem("4289"),
+            // ETRF2000
+            authFactoryEPSG->createCoordinateReferenceSystem("9067"), ctxt);
+        ASSERT_GE(list.size(), 1U);
+        // We check that we go through ETRS89-NLD [AGRS2010] to use the most
+        // precise "Amersfoort to ETRS89-NLD [AGRS2010] (9)" operation.
+        EXPECT_EQ(list[0]->nameStr(),
+                  "Amersfoort to ETRS89-NLD [AGRS2010] (9) + "
+                  "Conversion from ETRS89-NLD [AGRS2010] (geog2D) to "
+                  "ETRS89-NLD [AGRS2010] (geocentric) + "
+                  "ETRS89-NLD [AGRS2010] to ETRF2000 (1) + "
+                  "Conversion from ETRF2000 (geocentric) to ETRF2000 (geog2D)");
+    }
+}
+
+// ---------------------------------------------------------------------------
+
+TEST(operation, createOperation_ETRS89_to_Amersfoort) {
+    auto dbContext = DatabaseContext::create();
+    auto authFactory = AuthorityFactory::create(dbContext, std::string());
+    auto authFactoryEPSG = AuthorityFactory::create(dbContext, "EPSG");
+    auto ctxt = CoordinateOperationContext::create(authFactory, nullptr, 0.0);
+    ctxt->setSpatialCriterion(
+        CoordinateOperationContext::SpatialCriterion::PARTIAL_INTERSECTION);
+    ctxt->setGridAvailabilityUse(
+        CoordinateOperationContext::GridAvailabilityUse::
+            IGNORE_GRID_AVAILABILITY);
+    {
+        auto list = CoordinateOperationFactory::create()->createOperations(
+            // ETRS89
+            authFactoryEPSG->createCoordinateReferenceSystem("4258"),
+            // Amersfoort
+            authFactoryEPSG->createCoordinateReferenceSystem("4289"), ctxt);
+        ASSERT_GE(list.size(), 1U);
+        // We check that we go through ETRS89-NLD [AGRS2010] to use the most
+        // precise "Amersfoort to ETRS89-NLD [AGRS2010] (9)" operation.
+        EXPECT_EQ(list[0]->nameStr(),
+                  "ETRS89 to ETRS89-NLD [AGRS2010] + "
+                  "Inverse of Amersfoort to ETRS89-NLD [AGRS2010] (9)");
+    }
+    {
+        auto list = CoordinateOperationFactory::create()->createOperations(
+            // Amersfoort
+            authFactoryEPSG->createCoordinateReferenceSystem("4289"),
+            // ETRS89
+            authFactoryEPSG->createCoordinateReferenceSystem("4258"), ctxt);
+        ASSERT_GE(list.size(), 1U);
+        // We check that we go through ETRS89-NLD [AGRS2010] to use the most
+        // precise "Amersfoort to ETRS89-NLD [AGRS2010] (9)" operation.
+        EXPECT_EQ(list[0]->nameStr(),
+                  "Amersfoort to ETRS89-NLD [AGRS2010] (9) + "
+                  "Inverse of ETRS89 to ETRS89-NLD [AGRS2010]");
+    }
 }

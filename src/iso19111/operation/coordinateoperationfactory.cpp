@@ -614,6 +614,10 @@ struct CoordinateOperationFactory::Private {
         Private::Context &context,
         bool useCreateBetweenGeodeticCRSWithDatumBasedIntermediates);
 
+    static bool
+    hasTooSmallAreas(const std::vector<CoordinateOperationNNPtr> &ops,
+                     const Private::Context &context);
+
     static void createOperationsFromProj4Ext(
         const crs::CRSNNPtr &sourceCRS, const crs::CRSNNPtr &targetCRS,
         const crs::BoundCRS *boundSrc, const crs::BoundCRS *boundDst,
@@ -3834,6 +3838,159 @@ void CoordinateOperationFactory::Private::createOperationsFromProj4Ext(
 
 // ---------------------------------------------------------------------------
 
+/** Browse through candidate operations and check if their area of use
+ * is sufficiently large compared to the area of use of the
+ * source/target CRS. If it is not, we might need to extend the lookup
+ * to using intermediate CRSs.
+ * But only do that if we have a relatively small number of solutions.
+ * Otherwise we might just spend time appending more dubious solutions.
+ */
+/* static */ bool CoordinateOperationFactory::Private::hasTooSmallAreas(
+    const std::vector<CoordinateOperationNNPtr> &ops,
+    const Private::Context &context) {
+    bool tooSmallAreas = false;
+    // 10: arbitrary threshold so that particular case triggers for
+    // EPSG:9989 (ITRF2000) to EPSG:4937 (ETRS89), but not for
+    // "WGS 84" to "NAD83(CSRS)v2", to avoid excessive computation time.
+    if (!ops.empty() && ops.size() < 10) {
+        const auto &areaOfInterest = context.context->getAreaOfInterest();
+        double targetArea = 0.0;
+        if (areaOfInterest) {
+            targetArea = getPseudoArea(NN_NO_CHECK(areaOfInterest));
+        } else if (context.extent1) {
+            if (context.extent2) {
+                auto intersection =
+                    context.extent1->intersection(NN_NO_CHECK(context.extent2));
+                if (intersection)
+                    targetArea = getPseudoArea(NN_NO_CHECK(intersection));
+            } else {
+                targetArea = getPseudoArea(NN_NO_CHECK(context.extent1));
+            }
+        } else if (context.extent2) {
+            targetArea = getPseudoArea(NN_NO_CHECK(context.extent2));
+        }
+        if (targetArea > 0) {
+            tooSmallAreas = true;
+            for (const auto &op : ops) {
+                bool dummy = false;
+                auto extentOp = getExtent(op, true, dummy);
+                double area = 0.0;
+                if (extentOp) {
+                    if (areaOfInterest) {
+                        area = getPseudoArea(extentOp->intersection(
+                            NN_NO_CHECK(areaOfInterest)));
+                    } else if (context.extent1 && context.extent2) {
+                        auto x = extentOp->intersection(
+                            NN_NO_CHECK(context.extent1));
+                        auto y = extentOp->intersection(
+                            NN_NO_CHECK(context.extent2));
+                        area = getPseudoArea(x) + getPseudoArea(y) -
+                               ((x && y) ? getPseudoArea(
+                                               x->intersection(NN_NO_CHECK(y)))
+                                         : 0.0);
+                    } else if (context.extent1) {
+                        area = getPseudoArea(extentOp->intersection(
+                            NN_NO_CHECK(context.extent1)));
+                    } else if (context.extent2) {
+                        area = getPseudoArea(extentOp->intersection(
+                            NN_NO_CHECK(context.extent2)));
+                    } else {
+                        area = getPseudoArea(extentOp);
+                    }
+                }
+
+                constexpr double HALF_RATIO = 0.5;
+                if (area > HALF_RATIO * targetArea) {
+                    tooSmallAreas = false;
+                    break;
+                }
+            }
+        }
+    }
+    return tooSmallAreas;
+}
+
+// ---------------------------------------------------------------------------
+
+static bool isDatumInEnsemble(const datum::DatumNNPtr &datum,
+                              const datum::DatumEnsembleNNPtr &ensemble) {
+    for (const auto &member : ensemble->datums()) {
+        if (datum->_isEquivalentTo(member.get(),
+                                   util::IComparable::Criterion::EQUIVALENT))
+            return true;
+    }
+    return false;
+}
+
+// ---------------------------------------------------------------------------
+
+/** Returns true if all operations involve a sub-operation that is a null
+ * transformation between a datum ensemble member and its datum.
+ */
+static bool useOnlyIntermediateCRSThroughDatumEnsembleNullOp(
+    const std::vector<CoordinateOperationNNPtr> &ops) {
+    for (const auto &op : ops) {
+        bool hasDatumToEnsembleOp = false;
+        const auto concatOp =
+            dynamic_cast<const ConcatenatedOperation *>(op.get());
+        if (concatOp) {
+            for (const auto &subOp : concatOp->operations()) {
+                const auto &ids = subOp->identifiers();
+                // Datum ensemble member to ensemble null transformation are
+                // in the PROJ domain. This is a way of shortcircuiting
+                // heavier checks.
+                if (ids.size() == 1 &&
+                    ids[0]->codeSpace()->find("PROJ") != std::string::npos) {
+                    const auto opSrcCRS = subOp->sourceCRS();
+                    const auto opTgtCRS = subOp->targetCRS();
+                    if (opSrcCRS && opTgtCRS) {
+                        const auto opSrcGeodCRS =
+                            opSrcCRS->extractGeodeticCRS();
+                        const auto opTgtGeodCRS =
+                            opTgtCRS->extractGeodeticCRS();
+                        if (opSrcGeodCRS && opTgtGeodCRS) {
+                            const auto srcDatum = opSrcGeodCRS->datum();
+                            const auto srcDatumEns =
+                                opSrcGeodCRS->datumEnsemble();
+                            const auto tgtDatum = opTgtGeodCRS->datum();
+                            const auto tgtDatumEns =
+                                opTgtGeodCRS->datumEnsemble();
+                            if (srcDatum && tgtDatumEns) {
+                                hasDatumToEnsembleOp =
+                                    isDatumInEnsemble(NN_NO_CHECK(srcDatum),
+                                                      NN_NO_CHECK(tgtDatumEns));
+                            } else if (srcDatumEns && tgtDatum) {
+                                hasDatumToEnsembleOp =
+                                    isDatumInEnsemble(NN_NO_CHECK(tgtDatum),
+                                                      NN_NO_CHECK(srcDatumEns));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if (!hasDatumToEnsembleOp)
+            return false;
+    }
+    return true;
+}
+
+// ---------------------------------------------------------------------------
+
+/** Returns true if all operations are replaced by another one.
+ */
+static bool
+useOnlyReplacedOperations(const std::vector<CoordinateOperationNNPtr> &ops) {
+    for (const auto &op : ops) {
+        if (op->remarks().find("Replaced by") == std::string::npos) {
+            return false;
+        }
+    }
+    return true;
+}
+
+// ---------------------------------------------------------------------------
+
 bool CoordinateOperationFactory::Private::createOperationsFromDatabase(
     const crs::CRSNNPtr &sourceCRS,
     const util::optional<common::DataEpoch> &sourceEpoch,
@@ -4052,116 +4209,57 @@ bool CoordinateOperationFactory::Private::createOperationsFromDatabase(
         doFilterAndCheckPerfectOp = !res.empty();
     }
 
-    // Browse through candidate operations and check if their area of use
-    // is sufficiently large compared to the area of use of the
-    // source/target CRS. If it is not, we might need to extend the lookup
-    // to using intermediate CRSs.
-    // But only do that if we have a relatively small number of solutions.
-    // Otherwise we might just spend time appending more dubious solutions.
-    bool tooSmallAreas = false;
-    // 10: arbitrary threshold so that particular case triggers for
-    // EPSG:9989 (ITRF2000) to EPSG:4937 (ETRS89), but not for
-    // "WGS 84" to "NAD83(CSRS)v2", to avoid excessive computation time.
-    if (!res.empty() && res.size() < 10) {
-        const auto &areaOfInterest = context.context->getAreaOfInterest();
-        double targetArea = 0.0;
-        if (areaOfInterest) {
-            targetArea = getPseudoArea(NN_NO_CHECK(areaOfInterest));
-        } else if (context.extent1) {
-            if (context.extent2) {
-                auto intersection =
-                    context.extent1->intersection(NN_NO_CHECK(context.extent2));
-                if (intersection)
-                    targetArea = getPseudoArea(NN_NO_CHECK(intersection));
-            } else {
-                targetArea = getPseudoArea(NN_NO_CHECK(context.extent1));
-            }
-        } else if (context.extent2) {
-            targetArea = getPseudoArea(NN_NO_CHECK(context.extent2));
-        }
-        if (targetArea > 0) {
-            tooSmallAreas = true;
-            for (const auto &op : res) {
-                bool dummy = false;
-                auto extentOp = getExtent(op, true, dummy);
-                double area = 0.0;
-                if (extentOp) {
-                    if (areaOfInterest) {
-                        area = getPseudoArea(extentOp->intersection(
-                            NN_NO_CHECK(areaOfInterest)));
-                    } else if (context.extent1 && context.extent2) {
-                        auto x = extentOp->intersection(
-                            NN_NO_CHECK(context.extent1));
-                        auto y = extentOp->intersection(
-                            NN_NO_CHECK(context.extent2));
-                        area = getPseudoArea(x) + getPseudoArea(y) -
-                               ((x && y) ? getPseudoArea(
-                                               x->intersection(NN_NO_CHECK(y)))
-                                         : 0.0);
-                    } else if (context.extent1) {
-                        area = getPseudoArea(extentOp->intersection(
-                            NN_NO_CHECK(context.extent1)));
-                    } else if (context.extent2) {
-                        area = getPseudoArea(extentOp->intersection(
-                            NN_NO_CHECK(context.extent2)));
-                    } else {
-                        area = getPseudoArea(extentOp);
-                    }
-                }
-
-                constexpr double HALF_RATIO = 0.5;
-                if (area > HALF_RATIO * targetArea) {
-                    tooSmallAreas = false;
-                    break;
-                }
-            }
-        }
-    }
-
-    bool allRequiresPerCoordinateInputTime = false;
-    for (const auto &op : res) {
-        allRequiresPerCoordinateInputTime =
-            op->requiresPerCoordinateInputTime();
-        if (!allRequiresPerCoordinateInputTime) {
-            break;
-        }
-    }
-
-    if (!context.inCreateOperationsWithDatumPivotAntiRecursion &&
-        !resFindDirectNonEmptyBeforeFiltering && geodSrc && geodDst &&
-        !sameGeodeticDatum && context.context->getIntermediateCRS().empty() &&
+    bool bUseOnlyReplacedOperations = false;
+    if (!context.inCreateOperationsWithDatumPivotAntiRecursion && geodSrc &&
+        geodDst && !sameGeodeticDatum &&
+        context.context->getIntermediateCRS().empty() &&
         context.context->getAllowUseIntermediateCRS() !=
             CoordinateOperationContext::IntermediateCRSUse::NEVER &&
-        (res.empty() || tooSmallAreas ||
-         // If all coordinate operations are time-dependent and none of the
-         // source or target CRS are dynamic, try through an intermediate CRS
-         // (we go here between ETRS89 and ETRS89-NO that would otherwise only
-         // use NKG time-dependent transformations)
-         (allRequiresPerCoordinateInputTime && !geodSrc->isDynamic() &&
-          !geodDst->isDynamic()))) {
-        // Currently triggered by "IG05/12 Intermediate CRS" to ITRF2014
-
-        std::set<std::string> oSetNames;
-        if (tooSmallAreas) {
+        (!resFindDirectNonEmptyBeforeFiltering ||
+         (bUseOnlyReplacedOperations = useOnlyReplacedOperations(res)))) {
+        const bool tooSmallAreas = hasTooSmallAreas(res, context);
+        const auto allRequiresPerCoordinateInputTime = [&res]() {
             for (const auto &op : res) {
-                oSetNames.insert(op->nameStr());
+                if (!op->requiresPerCoordinateInputTime())
+                    return false;
             }
-        }
+            return true;
+        };
 
-        auto resWithIntermediate = findsOpsInRegistryWithIntermediate(
-            sourceCRS, targetCRS, context, true);
-        if (tooSmallAreas && !res.empty()) {
-            // Only insert operations we didn't already find
-            for (const auto &op : resWithIntermediate) {
-                if (oSetNames.find(op->nameStr()) == oSetNames.end()) {
-                    res.emplace_back(op);
+        if (res.empty() || bUseOnlyReplacedOperations || tooSmallAreas ||
+            // If all coordinate operations are time-dependent and none of the
+            // source or target CRS are dynamic, try through an intermediate CRS
+            // (we go here between ETRS89 and ETRS89-NO that would otherwise
+            // only use NKG time-dependent transformations)
+            (allRequiresPerCoordinateInputTime() && !geodSrc->isDynamic() &&
+             !geodDst->isDynamic())
+            // useOnlyIntermediateCRSThroughDatumEnsembleNullOp() triggered by
+            // ETRF2000 to Amersfoort.
+            || useOnlyIntermediateCRSThroughDatumEnsembleNullOp(res)) {
+            // Currently triggered by "IG05/12 Intermediate CRS" to ITRF2014
+
+            std::set<std::string> oSetNames;
+            if (tooSmallAreas) {
+                for (const auto &op : res) {
+                    oSetNames.insert(op->nameStr());
                 }
             }
-        } else {
-            res.insert(res.end(), resWithIntermediate.begin(),
-                       resWithIntermediate.end());
+
+            auto resWithIntermediate = findsOpsInRegistryWithIntermediate(
+                sourceCRS, targetCRS, context, true);
+            if (tooSmallAreas && !res.empty()) {
+                // Only insert operations we didn't already find
+                for (const auto &op : resWithIntermediate) {
+                    if (oSetNames.find(op->nameStr()) == oSetNames.end()) {
+                        res.emplace_back(op);
+                    }
+                }
+            } else {
+                res.insert(res.end(), resWithIntermediate.begin(),
+                           resWithIntermediate.end());
+            }
+            doFilterAndCheckPerfectOp = !res.empty();
         }
-        doFilterAndCheckPerfectOp = !res.empty();
     }
 
     if (doFilterAndCheckPerfectOp) {
