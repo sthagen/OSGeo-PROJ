@@ -7275,6 +7275,82 @@ TEST(operation, vertCRS_to_vertCRS_New_Zealand_context) {
 
 // ---------------------------------------------------------------------------
 
+TEST(operation, vertCRS_to_vertCRS_pivot_context) {
+    // Test that PROJ can chain a registered vertical CT with a
+    // height-to-depth axis conversion when the target CRS differs from
+    // the CT's registered target only by axis direction.
+    auto authFactory =
+        AuthorityFactory::create(DatabaseContext::create(), "EPSG");
+    auto ctxt = CoordinateOperationContext::create(authFactory, nullptr, 0.0);
+    ctxt->setSpatialCriterion(
+        CoordinateOperationContext::SpatialCriterion::PARTIAL_INTERSECTION);
+
+    auto checkPipeline = [&](const std::string &srcCode,
+                             const std::string &tgtCode,
+                             const std::string &expectedProj) {
+        auto list = CoordinateOperationFactory::create()->createOperations(
+            authFactory->createCoordinateReferenceSystem(srcCode),
+            authFactory->createCoordinateReferenceSystem(tgtCode), ctxt);
+        ASSERT_GE(list.size(), 1U);
+        EXPECT_FALSE(list[0]->hasBallparkTransformation());
+        EXPECT_EQ(
+            list[0]->exportToPROJString(PROJStringFormatter::create().get()),
+            expectedProj);
+    };
+
+    // Using Strategy 1 of createOperationsVertToVertWithIntermediateVert()
+
+    // Caspian: EPSG:5705 (Baltic 1977 height) -> EPSG:5706 (Caspian depth)
+    // via EPSG:5438 (dh=28) + height-to-depth axisswap
+    checkPipeline("5705", "5706",
+                  "+proj=pipeline +step +proj=geogoffset +dh=28 "
+                  "+step +proj=axisswap +order=1,2,-3");
+
+    // Caspian: EPSG:5706 (Caspian depth) -> EPSG:5705 (Baltic 1977 height)
+    // axisswap + inverse of EPSG:5438 (dh=-28)
+    // Note: yes that pipeline is identical to the above one, since it is its
+    // own inverse.
+    checkPipeline("5706", "5705",
+                  "+proj=pipeline +step +proj=geogoffset +dh=28 "
+                  "+step +proj=axisswap +order=1,2,-3");
+
+    // KOC ft: EPSG:5790 -> EPSG:5614 (KOC WD depth ft)
+    // via EPSG:7987 (dh=-4.74) + axisswap + unit conversion m->ft
+    checkPipeline("5790", "5614",
+                  "+proj=pipeline "
+                  "+step +proj=geogoffset +dh=-4.74 "
+                  "+step +proj=axisswap +order=1,2,-3 "
+                  "+step +proj=unitconvert +z_in=m +z_out=ft");
+
+    // KOC ft: EPSG:5614 (KOC WD depth ft) -> EPSG:5790 (KOC CD height)
+    // unit conversion ft->m + axisswap + inverse of EPSG:7987 (dh=4.74)
+    checkPipeline("5614", "5790",
+                  "+proj=pipeline "
+                  "+step +proj=unitconvert +z_in=ft +z_out=m "
+                  "+step +proj=axisswap +order=1,2,-3 "
+                  "+step +proj=geogoffset +dh=4.74");
+
+    // EPSG:5705 (Baltic 1977 height) to EPSG:5336 (Black Sea depth)
+    // Strategy 1 composes: EPSG:5447 (5705 to 5735, geogoffset +dh=0.4)
+    //                    + height-to-depth (axisswap order=1,2,-3)
+    checkPipeline("5705", "5336",
+                  "+proj=pipeline "
+                  "+step +proj=geogoffset +dh=0.4 "
+                  "+step +proj=axisswap +order=1,2,-3");
+
+    // Using Strategy 2 of createOperationsVertToVertWithIntermediateVert()
+
+    // EPSG:5336 (Black Sea depth) to EPSG:5705 (Baltic 1977 height)
+    // Strategy 2 composes: depth-to-height (5336 to 5735, axisswap)
+    //                    + inverse of EPSG:5447 (5735 to 5705, dh=-0.4)
+    checkPipeline("5336", "5705",
+                  "+proj=pipeline "
+                  "+step +proj=axisswap +order=1,2,-3 "
+                  "+step +proj=geogoffset +dh=-0.4");
+}
+
+// ---------------------------------------------------------------------------
+
 TEST(operation, projCRS_3D_to_geogCRS_3D) {
 
     auto compoundcrs_ft_obj = PROJStringParser().createFromPROJString(

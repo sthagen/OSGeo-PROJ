@@ -560,6 +560,7 @@ struct CoordinateOperationFactory::Private {
         bool inCreateOperationsWithDatumPivotAntiRecursion = false;
         bool inCreateOperationsGeogToVertWithAlternativeGeog = false;
         bool inCreateOperationsGeogToVertWithIntermediateVert = false;
+        bool inCreateOperationsVertToVertWithIntermediateVert = false;
         bool skipHorizontalTransformation = false;
         int nRecLevelCreateOperations = 0;
         std::map<std::pair<io::AuthorityFactory::ObjectType, std::string>,
@@ -651,6 +652,15 @@ struct CoordinateOperationFactory::Private {
     static std::vector<CoordinateOperationNNPtr>
     createOperationsGeogToVertWithAlternativeGeog(
         const crs::CRSNNPtr &sourceCRS, const crs::CRSNNPtr &targetCRS,
+        Context &context);
+
+    static std::vector<CoordinateOperationNNPtr>
+    createOperationsVertToVertWithIntermediateVert(
+        const crs::CRSNNPtr &sourceCRS,
+        const util::optional<common::DataEpoch> &sourceEpoch,
+        const crs::CRSNNPtr &targetCRS,
+        const util::optional<common::DataEpoch> &targetEpoch,
+        const crs::VerticalCRS *vertSrc, const crs::VerticalCRS *vertDst,
         Context &context);
 
     static void createOperationsFromDatabaseWithVertCRS(
@@ -4594,15 +4604,17 @@ std::vector<CoordinateOperationNNPtr> CoordinateOperationFactory::Private::
     auto candidatesVert = findCandidateVertCRSForDatum(
         authFactory, vertDst->datumNonNull(dbContext).get());
     for (const auto &candidateVert : candidatesVert) {
+        // Collect all registered source-to-candidate operations, which
+        // may differ in accuracy or area of use, for later ranking.
         auto resTmp = createOperations(sourceCRS, sourceEpoch, candidateVert,
                                        sourceEpoch, context);
         if (!resTmp.empty()) {
+            // The candidate-to-target conversion is expected to be a
+            // trivial unit or axis change, so we only use the first
+            // result (opsSecond.front()).
             const auto opsSecond = createOperations(
                 candidateVert, sourceEpoch, targetCRS, targetEpoch, context);
             if (!opsSecond.empty()) {
-                // The transformation from candidateVert to targetCRS should
-                // be just a unit change typically, so take only the first one,
-                // which is likely/hopefully the only one.
                 for (const auto &opFirst : resTmp) {
                     if (hasIdentifiers(opFirst)) {
                         if (candidateVert->_isEquivalentTo(
@@ -4619,6 +4631,136 @@ std::vector<CoordinateOperationNNPtr> CoordinateOperationFactory::Private::
                 }
                 if (!res.empty())
                     break;
+            }
+        }
+    }
+
+    return res;
+}
+
+// ---------------------------------------------------------------------------
+
+// When transforming between two vertical CRS with different datums, check
+// if there are registered operations whose target (or source) is a different
+// vertical CRS sharing the same datum as our target (or source).  If so,
+// chain: source to intermediate + intermediate to target (the latter being a
+// simple unit/axis conversion handled by createOperationsVertToVert).
+//
+// Typical example: Baltic 1977 height (EPSG:5705) to Caspian depth (EPSG:5706).
+// EPSG has an operation 5705 to 5611 (Caspian height).  5611 and 5706 share the
+// same datum but differ only in axis direction.  We compose:
+//   5705 ->(EPSG:5438)-> 5611 ->(height-to-depth)-> 5706
+std::vector<CoordinateOperationNNPtr> CoordinateOperationFactory::Private::
+    createOperationsVertToVertWithIntermediateVert(
+        const crs::CRSNNPtr &sourceCRS,
+        const util::optional<common::DataEpoch> &sourceEpoch,
+        const crs::CRSNNPtr &targetCRS,
+        const util::optional<common::DataEpoch> &targetEpoch,
+        const crs::VerticalCRS *vertSrc, const crs::VerticalCRS *vertDst,
+        Private::Context &context) {
+
+    ENTER_FUNCTION();
+
+    std::vector<CoordinateOperationNNPtr> res;
+
+    struct AntiRecursionGuard {
+        Context &context;
+
+        explicit AntiRecursionGuard(Context &contextIn) : context(contextIn) {
+            assert(!context.inCreateOperationsVertToVertWithIntermediateVert);
+            context.inCreateOperationsVertToVertWithIntermediateVert = true;
+        }
+
+        ~AntiRecursionGuard() {
+            context.inCreateOperationsVertToVertWithIntermediateVert = false;
+        }
+    };
+    AntiRecursionGuard guard(context);
+
+    const auto &authFactory = context.context->getAuthorityFactory();
+    if (!authFactory)
+        return res;
+    const auto dbContext = authFactory->databaseContext().as_nullable();
+
+    // Try both pivot strategies and collect all candidates.  The caller's
+    // filterAndSort will rank them (by accuracy, area of use, etc.)
+
+    // Strategy 1: pivot through candidates sharing the TARGET's datum.
+    // source -> candidate (registered CT) -> target (trivial axis/unit change)
+    {
+        auto candidatesDst = findCandidateVertCRSForDatum(
+            authFactory, vertDst->datumNonNull(dbContext).get());
+        for (const auto &candidateVert : candidatesDst) {
+            if (candidateVert->_isEquivalentTo(
+                    targetCRS.get(),
+                    util::IComparable::Criterion::EQUIVALENT)) {
+                continue;
+            }
+            // Collect all registered source-to-candidate operations, which
+            // may differ in accuracy or area of use, for later ranking.
+            auto opsFirst = createOperations(
+                sourceCRS, sourceEpoch, candidateVert, sourceEpoch, context);
+            if (!opsFirst.empty()) {
+                // The candidate-to-target conversion is expected to be a
+                // trivial unit or axis change, so we only use the first
+                // result (opsSecond.front()).
+                const auto opsSecond =
+                    createOperations(candidateVert, sourceEpoch, targetCRS,
+                                     targetEpoch, context);
+                if (!opsSecond.empty()) {
+                    for (const auto &opFirst : opsFirst) {
+                        if (hasIdentifiers(opFirst)) {
+                            try {
+                                res.emplace_back(
+                                    ConcatenatedOperation::
+                                        createComputeMetadata(
+                                            {opFirst, opsSecond.front()},
+                                            context
+                                                .disallowEmptyIntersection()));
+                            } catch (
+                                const InvalidOperationEmptyIntersection &) {
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Strategy 2: pivot through candidates sharing the SOURCE's datum.
+    // Find vertical CRSs on the same datum as the source, then look for
+    // operations from each candidate to the target.
+    if (res.empty()) {
+        auto candidatesSrc = findCandidateVertCRSForDatum(
+            authFactory, vertSrc->datumNonNull(dbContext).get());
+        for (const auto &candidateVert : candidatesSrc) {
+            if (candidateVert->_isEquivalentTo(
+                    sourceCRS.get(),
+                    util::IComparable::Criterion::EQUIVALENT)) {
+                continue;
+            }
+            auto opsSecond = createOperations(candidateVert, sourceEpoch,
+                                              targetCRS, targetEpoch, context);
+            if (!opsSecond.empty()) {
+                const auto opsFirst =
+                    createOperations(sourceCRS, sourceEpoch, candidateVert,
+                                     sourceEpoch, context);
+                if (!opsFirst.empty()) {
+                    for (const auto &opSecond : opsSecond) {
+                        if (hasIdentifiers(opSecond)) {
+                            try {
+                                res.emplace_back(
+                                    ConcatenatedOperation::
+                                        createComputeMetadata(
+                                            {opsFirst.front(), opSecond},
+                                            context
+                                                .disallowEmptyIntersection()));
+                            } catch (
+                                const InvalidOperationEmptyIntersection &) {
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -4759,6 +4901,19 @@ void CoordinateOperationFactory::Private::
         // do nothing
     } else if (geog3DToVertTryThroughGeog2D(geogDst, vertSrc, sourceCRS)) {
         res = applyInverse(res);
+    }
+
+    // Typically to transform between two vertical CRS with different datums
+    // (e.g. "Baltic 1977 height" to "Caspian depth") by pivoting through
+    // an intermediate vertical CRS sharing the target's (or source's) datum.
+    // This handles the case where a registered CT targets a height CRS but
+    // the user requests the corresponding depth CRS (or vice versa).
+    if (res.empty() &&
+        !context.inCreateOperationsVertToVertWithIntermediateVert && vertSrc &&
+        vertDst) {
+        res = createOperationsVertToVertWithIntermediateVert(
+            sourceCRS, sourceEpoch, targetCRS, targetEpoch, vertSrc, vertDst,
+            context);
     }
 
     // There's no direct transformation from NAVD88 height to WGS84,
