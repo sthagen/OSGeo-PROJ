@@ -13,6 +13,7 @@ contributor the community is always very welcoming.
 
    channels
    contributing
+   ai_tool_policy
    code_contributions
    code_of_conduct
    service_providers

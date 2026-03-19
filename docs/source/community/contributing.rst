@@ -23,6 +23,11 @@ that you have a GitHub account. Familiarity with
 `issues <https://guides.github.com/features/issues/>`__ and the `GitHub
 Flow <https://guides.github.com/introduction/flow/>`__ is an advantage.
 
+AI Tool Use Policy
+------------------
+
+See :ref:`ai_tool_policy`.
+
 Help a fellow PROJ user
 -------------------------
 
