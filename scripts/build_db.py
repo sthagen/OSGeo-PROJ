@@ -1170,7 +1170,7 @@ def find_table(proj_db_cursor, code):
         row = proj_db_cursor.fetchone()
         if row is not None:
             return row[0], table_name
-    return None
+    raise Exception(f"cannot find table for code {code}")
 
 def fill_supersession(proj_db_cursor):
     proj_db_cursor.execute("SELECT object_code, superseded_by FROM epsg.epsg_supersession WHERE object_table_name = 'epsg_coordoperation' AND object_code != superseded_by")
@@ -1179,6 +1179,11 @@ def fill_supersession(proj_db_cursor):
         proj_db_cursor.execute('SELECT 1 FROM coordinate_operation_view WHERE code = ?', (code,))
         if proj_db_cursor.fetchone() is None:
             print('Skipping supersession of %d since it has not been imported' % code)
+            continue
+
+        proj_db_cursor.execute('SELECT 1 FROM coordinate_operation_view WHERE code = ?', (superseded_by,))
+        if proj_db_cursor.fetchone() is None:
+            print('Skipping supersession of %d by %d since the later has not been imported' % (code, superseded_by))
             continue
 
         src_name, superseded_table_name = find_table(proj_db_cursor, code)

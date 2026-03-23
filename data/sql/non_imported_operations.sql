@@ -50,6 +50,7 @@
 -- Non-imported: (10929, 'point motion operation', 'SOPAC deformation model for California v1', 1148, 'Point motion (geocentric domain) using NEU displacement grid (grd)', 10951, 10951, 0.01, 0)
 -- Non-imported: (11034, 'transformation', 'SRGI2013 to SRGI2013 epoch 2021.0', 1161, 'Time-dep Coordinate Frame (geocen) & Geocen translations by XYZ vel (INADEFORM)', 9468, 11029, 0.1, 0)
 -- Non-imported: (11230, 'concatenated operation', 'DGN95 to SRGI2013 epoch 2021.0 (1)', None, None, 4897, 11029, 0.3, 0)
+-- Non-imported: (11397, 'transformation', 'Amersfoort to ETRS89-NLD [AGRS2010] (10)', 1160, 'NTv2 & Coordinate Frame rotation (geocentric domain)', 4289, 11037, 0.0, 0)
 -- Non-imported: (15753, 'transformation', 'ED50 to ED87 (1)', 9651, 'Reversible polynomial of degree 4', 4230, 4231, 1.0, 0)
 -- Non-imported: (15950, 'transformation', 'Viti Levu 1912 / Viti Levu Grid to Fiji 1986 / Fiji Map Grid (1)', 9645, 'General polynomial of degree 2', 3140, 3460, 1.0, 0)
 -- Non-imported: (15951, 'transformation', 'Vanua Levu 1915 / Vanua Levu Grid to Fiji 1986 / Fiji Map Grid (1)', 9645, 'General polynomial of degree 2', 3139, 3460, 1.0, 0)

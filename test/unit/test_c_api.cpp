@@ -1069,6 +1069,7 @@ TEST_F(CApi, proj_create_from_database) {
         EXPECT_EQ(proj_dynamic_datum_get_frame_reference_epoch(m_ctxt, datum),
                   2005.0);
     }
+#ifdef no_more_dynamic_vertical_datum
     {
         // Norway Normal Null 2000
         auto datum = proj_create_from_database(
@@ -1080,6 +1081,7 @@ TEST_F(CApi, proj_create_from_database) {
         EXPECT_EQ(proj_dynamic_datum_get_frame_reference_epoch(m_ctxt, datum),
                   2000.0);
     }
+#endif
     {
         auto op = proj_create_from_database(m_ctxt, "EPSG", "16031",
                                             PJ_CATEGORY_COORDINATE_OPERATION,

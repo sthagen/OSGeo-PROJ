@@ -1792,7 +1792,7 @@ INSERT INTO "extent" VALUES('EPSG','2811','French Polynesia - Society Islands - 
 INSERT INTO "extent" VALUES('EPSG','2812','French Polynesia - Society Islands - Bora Bora, Huahine, Raiatea, Tahaa','French Polynesia - Society Islands - Bora Bora, Huahine, Raiatea and Tahaa.',-16.96,-16.17,-151.91,-150.89,0);
 INSERT INTO "extent" VALUES('EPSG','2813','New Caledonia - Ouvea','New Caledonia - Loyalty Islands - Ouvea.',-20.77,-20.34,166.44,166.71,0);
 INSERT INTO "extent" VALUES('EPSG','2814','New Caledonia - Lifou','New Caledonia - Loyalty Islands - Lifou.',-21.24,-20.62,166.98,167.52,0);
-INSERT INTO "extent" VALUES('EPSG','2815','Wallis and Futuna - Wallis','Wallis and Futuna - Wallis.',-13.41,-13.16,-176.25,-176.07,0);
+INSERT INTO "extent" VALUES('EPSG','2815','Wallis and Futuna - Wallis','Wallis and Futuna - Wallis - onshore.',-13.42,-13.17,-176.29,-176.11,0);
 INSERT INTO "extent" VALUES('EPSG','2816','French Southern Territories - Kerguelen onshore','French Southern Territories - Kerguelen onshore.',-49.78,-48.6,68.69,70.62,0);
 INSERT INTO "extent" VALUES('EPSG','2817','Antarctica - Adelie Land - Petrels island','Antarctica - Adelie Land - Petrels island.',-66.78,-66.1,139.44,141.5,0);
 INSERT INTO "extent" VALUES('EPSG','2818','Antarctica - Adelie Land coastal area','Antarctica - Adelie Land - coastal area between 136°E and 142°E.',-67.13,-65.61,136.0,142.0,0);
@@ -3825,3 +3825,4 @@ INSERT INTO "extent" VALUES('EPSG','4845','USA - Montana - Mission','United Stat
 INSERT INTO "extent" VALUES('EPSG','4846','USA - Montana - Missoula','United States (USA) - Montana - Missoula.',45.93,47.69,-114.93,-113.17,0);
 INSERT INTO "extent" VALUES('EPSG','4847','USA - Montana - NECI','United States (USA) - Montana - NECI.',48.04,48.53,-110.22,-109.36,0);
 INSERT INTO "extent" VALUES('EPSG','4848','USA - Montana - Phillips','United States (USA) - Montana - Phillips.',47.36,49.09,-109.03,-107.04,0);
+INSERT INTO "extent" VALUES('EPSG','4855','Wallis and Futuna - Futuna and Alofi','Wallis and Futuna - Futuna and Alofi - onshore.',-14.42,-14.18,-178.24,-177.94,0);

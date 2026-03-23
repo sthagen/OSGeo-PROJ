@@ -582,3 +582,5 @@ INSERT INTO "concatenated_operation_step" VALUES('EPSG','11310',3,'EPSG','11308'
 INSERT INTO "concatenated_operation_step" VALUES('EPSG','11315',1,'EPSG','10587',NULL);
 INSERT INTO "concatenated_operation_step" VALUES('EPSG','11315',2,'EPSG','10809',NULL);
 INSERT INTO "concatenated_operation_step" VALUES('EPSG','11315',3,'EPSG','11316',NULL);
+INSERT INTO "concatenated_operation_step" VALUES('EPSG','11398',1,'EPSG','9593',NULL);
+INSERT INTO "concatenated_operation_step" VALUES('EPSG','11398',2,'EPSG','11396',NULL);

@@ -317,6 +317,7 @@ TEST(factory, AuthorityFactory_createVerticalDatum_with_anchor_epoch) {
                 1e-6);
 }
 
+#ifdef no_more_dynamic_vertical_datum
 // ---------------------------------------------------------------------------
 
 TEST(factory, AuthorityFactory_createDynamicVerticalDatum) {
@@ -326,6 +327,7 @@ TEST(factory, AuthorityFactory_createDynamicVerticalDatum) {
     ASSERT_TRUE(dvrf != nullptr);
     EXPECT_EQ(dvrf->frameReferenceEpoch().value(), 2000.0);
 }
+#endif
 
 // ---------------------------------------------------------------------------
 
@@ -3856,6 +3858,7 @@ TEST(factory, createObjectsFromName) {
                   .size(),
               1U);
 
+#ifdef no_more_dynamic_vertical_datum
     // Dynamic Vertical datum
     EXPECT_EQ(
         factoryEPSG
@@ -3865,6 +3868,7 @@ TEST(factory, createObjectsFromName) {
                                     false, 2)
             .size(),
         1U);
+#endif
 
     {
         auto res = factory->createObjectsFromName(

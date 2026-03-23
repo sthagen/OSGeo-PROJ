@@ -282,7 +282,7 @@ INSERT INTO "vertical_crs" VALUES('EPSG','5873','Low Water depth',NULL,'EPSG','6
 INSERT INTO "usage" VALUES('EPSG','4307','vertical_crs','EPSG','5873','EPSG','1262','EPSG','1198');
 INSERT INTO "vertical_crs" VALUES('EPSG','5874','High Water height',NULL,'EPSG','6499','EPSG','1094',0);
 INSERT INTO "usage" VALUES('EPSG','4308','vertical_crs','EPSG','5874','EPSG','1262','EPSG','1198');
-INSERT INTO "vertical_crs" VALUES('EPSG','5941','NN2000 height',NULL,'EPSG','6499','EPSG','1096',0);
+INSERT INTO "vertical_crs" VALUES('EPSG','5941','NN2000:2018 height',NULL,'EPSG','6499','EPSG','1096',0);
 INSERT INTO "usage" VALUES('EPSG','4345','vertical_crs','EPSG','5941','EPSG','1352','EPSG','1179');
 INSERT INTO "vertical_crs" VALUES('EPSG','6130','GCVD54 height (ft)',NULL,'EPSG','1030','EPSG','1097',0);
 INSERT INTO "usage" VALUES('EPSG','4457','vertical_crs','EPSG','6130','EPSG','3185','EPSG','1179');
@@ -538,6 +538,10 @@ INSERT INTO "vertical_crs" VALUES('EPSG','11157','IGN 2023 Mayotte height',NULL,
 INSERT INTO "usage" VALUES('EPSG','24641','vertical_crs','EPSG','11157','EPSG','3340','EPSG','1178');
 INSERT INTO "vertical_crs" VALUES('EPSG','11338','Bhutan Vertical Datum 2022 height',NULL,'EPSG','6499','EPSG','1451',0);
 INSERT INTO "usage" VALUES('EPSG','25559','vertical_crs','EPSG','11338','EPSG','1048','EPSG','1178');
+INSERT INTO "vertical_crs" VALUES('EPSG','11394','NN2000:2025 height',NULL,'EPSG','6499','EPSG','1454',0);
+INSERT INTO "usage" VALUES('EPSG','25484','vertical_crs','EPSG','11394','EPSG','1352','EPSG','1179');
+INSERT INTO "vertical_crs" VALUES('EPSG','11446','NGFA 2022 height',NULL,'EPSG','6499','EPSG','1455',0);
+INSERT INTO "usage" VALUES('EPSG','25697','vertical_crs','EPSG','11446','EPSG','4855','EPSG','1178');
 INSERT INTO "vertical_crs" VALUES('EPSG','20000','SVD2006 height',NULL,'EPSG','6499','EPSG','1323',0);
 INSERT INTO "usage" VALUES('EPSG','17962','vertical_crs','EPSG','20000','EPSG','4058','EPSG','1180');
 INSERT INTO "vertical_crs" VALUES('EPSG','20034','CGVD2013a(2002) height',NULL,'EPSG','6499','EPSG','1325',0);

@@ -551,3 +551,5 @@ INSERT INTO "concatenated_operation" VALUES('EPSG','11310','ITRF2020 to ETRS89-C
 INSERT INTO "usage" VALUES('EPSG','25091','concatenated_operation','EPSG','11310','EPSG','1286','EPSG','1026');
 INSERT INTO "concatenated_operation" VALUES('EPSG','11315','ITRF2020 to ETRS89-LVA [LKS-2020] (1)','The coordinate epoch (in years) of the coordinates referenced to the source CRS (ITRF2020) is user-defined and is used as the source epoch in step 2. For coordinates originating before 2021-02-07, the NKG2008 transformation should be used.','EPSG','9988','EPSG','10303',0.006,'NKG2020',0);
 INSERT INTO "usage" VALUES('EPSG','25133','concatenated_operation','EPSG','11315','EPSG','1139','EPSG','1027');
+INSERT INTO "concatenated_operation" VALUES('EPSG','11398','NN2000:2018 height to NN2000:2025 height (1)','Height difference derived through difference in geoid separation models.','EPSG','5941','EPSG','11394',0.03,'IOGP-Nor 2025',0);
+INSERT INTO "usage" VALUES('EPSG','25497','concatenated_operation','EPSG','11398','EPSG','1352','EPSG','1059');

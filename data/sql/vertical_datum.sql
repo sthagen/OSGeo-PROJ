@@ -50,7 +50,7 @@ INSERT INTO "vertical_datum" VALUES('EPSG','1093','Low Water',NULL,NULL,NULL,NUL
 INSERT INTO "usage" VALUES('EPSG','13145','vertical_datum','EPSG','1093','EPSG','1262','EPSG','1198');
 INSERT INTO "vertical_datum" VALUES('EPSG','1094','High Water',NULL,NULL,NULL,NULL,NULL,NULL,0);
 INSERT INTO "usage" VALUES('EPSG','13146','vertical_datum','EPSG','1094','EPSG','1262','EPSG','1198');
-INSERT INTO "vertical_datum" VALUES('EPSG','1096','Norway Normal Null 2000',NULL,'2000-01-01',2000.0,NULL,NULL,NULL,0);
+INSERT INTO "vertical_datum" VALUES('EPSG','1096','Norway Normal Null 2000:2018',NULL,'2000-01-01',NULL,NULL,NULL,NULL,0);
 INSERT INTO "usage" VALUES('EPSG','13148','vertical_datum','EPSG','1096','EPSG','1352','EPSG','1180');
 INSERT INTO "vertical_datum" VALUES('EPSG','1097','Grand Cayman Vertical Datum 1954',NULL,'1954-01-01',NULL,NULL,NULL,NULL,0);
 INSERT INTO "usage" VALUES('EPSG','13149','vertical_datum','EPSG','1097','EPSG','3185','EPSG','1180');
@@ -296,6 +296,10 @@ INSERT INTO "vertical_datum" VALUES('EPSG','1443','IGN 2023 Mayotte',NULL,'2025-
 INSERT INTO "usage" VALUES('EPSG','24610','vertical_datum','EPSG','1443','EPSG','3340','EPSG','1178');
 INSERT INTO "vertical_datum" VALUES('EPSG','1451','Bhutan Vertical Datum 2022',NULL,'2022-01-01',NULL,NULL,NULL,NULL,0);
 INSERT INTO "usage" VALUES('EPSG','25563','vertical_datum','EPSG','1451','EPSG','1048','EPSG','1178');
+INSERT INTO "vertical_datum" VALUES('EPSG','1454','Norway Normal Null 2000:2025',NULL,'2026-03-01',NULL,NULL,NULL,NULL,0);
+INSERT INTO "usage" VALUES('EPSG','25555','vertical_datum','EPSG','1454','EPSG','1352','EPSG','1180');
+INSERT INTO "vertical_datum" VALUES('EPSG','1455','Nivellement General de Futuna et d’Alofi 2022',NULL,'2026-02-24',NULL,NULL,NULL,NULL,0);
+INSERT INTO "usage" VALUES('EPSG','25707','vertical_datum','EPSG','1455','EPSG','4855','EPSG','1178');
 INSERT INTO "vertical_datum" VALUES('EPSG','5100','Mean Sea Level',NULL,NULL,NULL,NULL,NULL,NULL,0);
 INSERT INTO "usage" VALUES('EPSG','13307','vertical_datum','EPSG','5100','EPSG','1262','EPSG','1199');
 INSERT INTO "vertical_datum" VALUES('EPSG','5101','Ordnance Datum Newlyn',NULL,'1956-01-01',NULL,NULL,NULL,NULL,0);

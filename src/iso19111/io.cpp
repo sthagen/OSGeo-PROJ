@@ -7773,7 +7773,9 @@ static BaseObjectNNPtr createFromUserInput(const std::string &text,
         return importFromWMSAUTO(text);
     }
 
-    auto tokens = split(text, ':');
+    std::vector<std::string> tokens;
+    if (text.find(' ') == std::string::npos)
+        tokens = split(text, ':');
     if (tokens.size() == 2) {
         if (!dbContext) {
             throw ParsingException("no database context specified");

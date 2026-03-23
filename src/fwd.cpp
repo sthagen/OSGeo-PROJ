@@ -38,56 +38,65 @@
 #define OUTPUT_UNITS P->right
 
 static void fwd_prepare(PJ *P, PJ_COORD &coo) {
-    if (HUGE_VAL == coo.v[0] || HUGE_VAL == coo.v[1] || HUGE_VAL == coo.v[2]) {
-        coo = proj_coord_error();
-        return;
-    }
-
-    /* The helmert datum shift will choke unless it gets a sensible 4D
-     * coordinate
-     */
-    if (HUGE_VAL == coo.v[2] && P->helmert)
-        coo.v[2] = 0.0;
-    if (HUGE_VAL == coo.v[3] && P->helmert)
-        coo.v[3] = 0.0;
 
     /* Check validity of angular input coordinates */
     if (INPUT_UNITS == PJ_IO_UNITS_RADIANS) {
-        double t;
 
         /* check for latitude or longitude over-range */
-        t = (coo.lp.phi < 0 ? -coo.lp.phi : coo.lp.phi) - M_HALFPI;
-        if (t > PJ_EPS_LAT) {
-            proj_log_error(P, _("Invalid latitude"));
-            proj_errno_set(P, PROJ_ERR_COORD_TRANSFM_INVALID_COORD);
-            coo = proj_coord_error();
-            return;
-        }
-        if (coo.lp.lam > 10 || coo.lp.lam < -10) {
-            proj_log_error(P, _("Invalid longitude"));
-            proj_errno_set(P, PROJ_ERR_COORD_TRANSFM_INVALID_COORD);
-            coo = proj_coord_error();
-            return;
+        if (std::fabs(coo.lp.phi) > M_HALFPI) {
+            if (HUGE_VAL == coo.lp.lam || HUGE_VAL == coo.lp.phi) {
+                coo = proj_coord_error();
+                return;
+            }
+
+            if (coo.lp.phi > 0) {
+                if (coo.lp.phi - M_HALFPI > PJ_EPS_LAT) {
+                    proj_log_error(P, _("Invalid latitude"));
+                    proj_errno_set(P, PROJ_ERR_COORD_TRANSFM_INVALID_COORD);
+                    coo = proj_coord_error();
+                    return;
+                }
+                coo.lp.phi = M_HALFPI;
+            } else {
+                if (coo.lp.phi - M_HALFPI < -PJ_EPS_LAT) {
+                    proj_log_error(P, _("Invalid latitude"));
+                    proj_errno_set(P, PROJ_ERR_COORD_TRANSFM_INVALID_COORD);
+                    coo = proj_coord_error();
+                    return;
+                }
+                coo.lp.phi = -M_HALFPI;
+            }
         }
 
-        /* Clamp latitude to -90..90 degree range */
-        if (coo.lp.phi > M_HALFPI)
-            coo.lp.phi = M_HALFPI;
-        if (coo.lp.phi < -M_HALFPI)
-            coo.lp.phi = -M_HALFPI;
+        // Longitude check
+        if (std::fabs(coo.lp.lam) > M_PI) {
+            if (std::fabs(coo.lp.lam) > 10) {
+                proj_log_error(P, _("Invalid longitude"));
+                proj_errno_set(P, PROJ_ERR_COORD_TRANSFM_INVALID_COORD);
+                coo = proj_coord_error();
+                return;
+            }
+
+            /* Ensure longitude is in the -pi:pi range */
+            if (0 == P->over)
+                coo.lp.lam = adjlon(coo.lp.lam);
+        }
+
+        if (HUGE_VAL == coo.v[2]) {
+            coo = proj_coord_error();
+            return;
+        }
 
         /* If input latitude is geocentrical, convert to geographical */
         if (P->geoc)
             coo = pj_geocentric_latitude(P, PJ_INV, coo);
 
-        /* Ensure longitude is in the -pi:pi range */
-        if (0 == P->over)
-            coo.lp.lam = adjlon(coo.lp.lam);
-
-        if (P->hgridshift)
+        if (P->hgridshift) {
             coo = proj_trans(P->hgridshift, PJ_INV, coo);
-        else if (P->helmert ||
-                 (P->cart_wgs84 != nullptr && P->cart != nullptr)) {
+            if (coo.lp.lam == HUGE_VAL)
+                return;
+        } else if (P->helmert ||
+                   (P->cart_wgs84 != nullptr && P->cart != nullptr)) {
             coo = proj_trans(P->cart_wgs84, PJ_FWD,
                              coo); /* Go cartesian in WGS84 frame */
             if (P->helmert)
@@ -95,9 +104,10 @@ static void fwd_prepare(PJ *P, PJ_COORD &coo) {
                                  coo); /* Step into local frame */
             coo = proj_trans(P->cart, PJ_INV,
                              coo); /* Go back to angular using local ellps */
+            if (coo.lp.lam == HUGE_VAL)
+                return;
         }
-        if (coo.lp.lam == HUGE_VAL)
-            return;
+
         if (P->vgridshift)
             coo = proj_trans(P->vgridshift, PJ_FWD,
                              coo); /* Go orthometric from geometric */
@@ -111,6 +121,11 @@ static void fwd_prepare(PJ *P, PJ_COORD &coo) {
         if (0 == P->over)
             coo.lp.lam = adjlon(coo.lp.lam);
 
+        return;
+    }
+
+    if (HUGE_VAL == coo.v[0] || HUGE_VAL == coo.v[1] || HUGE_VAL == coo.v[2]) {
+        coo = proj_coord_error();
         return;
     }
 

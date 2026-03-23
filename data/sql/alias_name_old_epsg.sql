@@ -1072,8 +1072,8 @@ INSERT INTO "alias_name" VALUES('vertical_crs','EPSG','9389','EVRF2019-NHt','EPS
 INSERT INTO "alias_name" VALUES('vertical_crs','EPSG','9245','CGVD2013(CGG2013a) - OHt','EPSG_OLD');
 
 -- Changed in EPSG v10.083
-INSERT INTO "alias_name" VALUES('geodetic_datum','EPSG','6661','LKS92','EPSG');
-INSERT INTO "alias_name" VALUES('projected_crs','EPSG','3059','LKS92','EPSG');
+INSERT INTO "alias_name" VALUES('geodetic_datum','EPSG','6661','LKS92','EPSG_OLD');
+INSERT INTO "alias_name" VALUES('projected_crs','EPSG','3059','LKS92','EPSG_OLD');
 
 -- Changed in EPSG v10.085
 INSERT INTO "alias_name" VALUES('projected_crs','EPSG','3163','RGNC / Lambert New Caledonia','EPSG_OLD');
@@ -1279,3 +1279,39 @@ INSERT INTO "alias_name" VALUES('geodetic_crs','EPSG','4151','CHTRF95','EPSG_OLD
 INSERT INTO "alias_name" VALUES('geodetic_crs','EPSG','20039','SIRGAS-Chile realización 5','EPSG_OLD');
 INSERT INTO "alias_name" VALUES('geodetic_crs','EPSG','20040','SIRGAS-Chile realización 5','EPSG_OLD');
 INSERT INTO "alias_name" VALUES('geodetic_crs','EPSG','20041','SIRGAS-Chile realización 5','EPSG_OLD');
+
+-- Changed in EPSG v12.054
+INSERT INTO "alias_name" VALUES('vertical_datum','EPSG','1096','NN2000','EPSG_OLD');
+INSERT INTO "alias_name" VALUES('compound_crs','EPSG','5945','EUREF89 / NTM zone 5 + NN2000','EPSG_OLD');
+INSERT INTO "alias_name" VALUES('compound_crs','EPSG','5946','EUREF89 / NTM zone 6 + NN2000 height','EPSG_OLD');
+INSERT INTO "alias_name" VALUES('compound_crs','EPSG','5947','EUREF89 / NTM zone 7 + NN2000 height','EPSG_OLD');
+INSERT INTO "alias_name" VALUES('compound_crs','EPSG','5948','EUREF89 / NTM zone 8 + NN2000 height','EPSG_OLD');
+INSERT INTO "alias_name" VALUES('compound_crs','EPSG','5949','EUREF89 / NTM zone 9 + NN2000 height','EPSG_OLD');
+INSERT INTO "alias_name" VALUES('compound_crs','EPSG','5950','EUREF89 / NTM zone 10 + NN2000 height','EPSG_OLD');
+INSERT INTO "alias_name" VALUES('compound_crs','EPSG','5951','EUREF89 / NTM zone 11 + NN2000 height','EPSG_OLD');
+INSERT INTO "alias_name" VALUES('compound_crs','EPSG','5952','EUREF89 / NTM zone 12 + NN2000 height','EPSG_OLD');
+INSERT INTO "alias_name" VALUES('compound_crs','EPSG','5953','EUREF89 / NTM zone 13 + NN2000 height','EPSG_OLD');
+INSERT INTO "alias_name" VALUES('compound_crs','EPSG','5954','EUREF89 / NTM zone 14 + NN2000 height','EPSG_OLD');
+INSERT INTO "alias_name" VALUES('compound_crs','EPSG','5955','EUREF89 / NTM zone 15 + NN2000 height','EPSG_OLD');
+INSERT INTO "alias_name" VALUES('compound_crs','EPSG','5956','EUREF89 / NTM zone 16 + NN2000 height','EPSG_OLD');
+INSERT INTO "alias_name" VALUES('compound_crs','EPSG','5957','EUREF89 / NTM zone 17 + NN2000 height','EPSG_OLD');
+INSERT INTO "alias_name" VALUES('compound_crs','EPSG','5959','EUREF89 / NTM zone 19 + NN2000 height','EPSG_OLD');
+INSERT INTO "alias_name" VALUES('compound_crs','EPSG','5960','EUREF89 / NTM zone 20 + NN2000 height','EPSG_OLD');
+INSERT INTO "alias_name" VALUES('compound_crs','EPSG','5961','EUREF89 / NTM zone 21 + NN2000 height','EPSG_OLD');
+INSERT INTO "alias_name" VALUES('compound_crs','EPSG','5963','EUREF89 / NTM zone 23 + NN2000 height','EPSG_OLD');
+INSERT INTO "alias_name" VALUES('compound_crs','EPSG','5964','EUREF89 / NTM zone 24 + NN2000 height','EPSG_OLD');
+INSERT INTO "alias_name" VALUES('compound_crs','EPSG','5965','EUREF89 / NTM zone 25 + NN2000 height','EPSG_OLD');
+INSERT INTO "alias_name" VALUES('compound_crs','EPSG','5966','EUREF89 / NTM zone 26 + NN2000 height','EPSG_OLD');
+INSERT INTO "alias_name" VALUES('compound_crs','EPSG','5967','EUREF89 / NTM zone 27 + NN2000 height','EPSG_OLD');
+INSERT INTO "alias_name" VALUES('compound_crs','EPSG','5968','EUREF89 / NTM zone 28 + NN2000 height','EPSG_OLD');
+INSERT INTO "alias_name" VALUES('compound_crs','EPSG','5969','EUREF89 / NTM zone 29 + NN2000 height','EPSG_OLD');
+INSERT INTO "alias_name" VALUES('compound_crs','EPSG','5970','EUREF89 / NTM zone 30 + NN2000 height','EPSG_OLD');
+INSERT INTO "alias_name" VALUES('compound_crs','EPSG','5958','EUREF89 / NTM zone 18 + NN2000 height','EPSG_OLD');
+INSERT INTO "alias_name" VALUES('compound_crs','EPSG','5962','EUREF89 / NTM zone 22 + NN2000 height','EPSG_OLD');
+INSERT INTO "alias_name" VALUES('compound_crs','EPSG','5971','EUREF89 / UTM zone 31 + NN2000 height','EPSG_OLD');
+INSERT INTO "alias_name" VALUES('compound_crs','EPSG','5972','EUREF89 / UTM zone 32 + NN2000 height','EPSG_OLD');
+INSERT INTO "alias_name" VALUES('compound_crs','EPSG','5973','EUREF89 / UTM zone 33 + NN2000 height','EPSG_OLD');
+INSERT INTO "alias_name" VALUES('compound_crs','EPSG','5974','EUREF89 / UTM zone 34 + NN2000 height','EPSG_OLD');
+INSERT INTO "alias_name" VALUES('compound_crs','EPSG','5975','EUREF89 / UTM zone 35 + NN2000 height','EPSG_OLD');
+INSERT INTO "alias_name" VALUES('compound_crs','EPSG','5976','EUREF89 / UTM zone 36 + NN2000 height','EPSG_OLD');
+INSERT INTO "alias_name" VALUES('projected_crs','EPSG','28992','RD Bessel','EPSG_OLD');

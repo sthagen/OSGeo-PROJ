@@ -501,51 +501,52 @@ install(FILES
 # "make dist" workalike
 ################################################################################
 
-set(CPACK_SOURCE_GENERATOR "TGZ;ZIP")
-set(CPACK_SOURCE_PACKAGE_FILE_NAME "proj-${PROJ_VERSION}")
-set(CPACK_PACKAGE_VENDOR "OSGeo")
-set(CPACK_PACKAGE_VERSION_MAJOR ${PROJ_VERSION_MAJOR})
-set(CPACK_PACKAGE_VERSION_MINOR ${PROJ_VERSION_MINOR})
-set(CPACK_PACKAGE_VERSION_PATCH ${PROJ_VERSION_PATCH})
-set(CPACK_VERBATIM_VARIABLES TRUE)
-set(CPACK_SOURCE_IGNORE_FILES
-  /\\..*  # any file/directory starting with .
-  /.*\\.yml
-  /.*\\.gz
-  /.*\\.zip
-  /.*build.*/
-  \\.deps
-  /autogen\\.sh
-  /autom4te\\.cache
-  /CODE_OF_CONDUCT.md
-  /CONTRIBUTING.md
-  /disabled_workflows/
-  /Dockerfile
-  /docs/
-  /Doxyfile
-  /HOWTO-RELEASE.md
-  /m4/lt*
-  /m4/libtool*
-  /media/
-  /schemas/
-  /test/fuzzers/
-  /test/gigs/.*gie\\.failing
-  /test/postinstall/
-  /travis/
-  ${PROJECT_BINARY_DIR}
-)
-
-include(CPack)
-
-get_property(_is_multi_config_generator GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
-if(NOT _is_multi_config_generator)
-  add_custom_target(dist
-    COMMAND ${CMAKE_MAKE_PROGRAM} package_source
+if(PROJECT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+  set(CPACK_SOURCE_GENERATOR "TGZ;ZIP")
+  set(CPACK_SOURCE_PACKAGE_FILE_NAME "proj-${PROJ_VERSION}")
+  set(CPACK_PACKAGE_VENDOR "OSGeo")
+  set(CPACK_PACKAGE_VERSION_MAJOR ${PROJ_VERSION_MAJOR})
+  set(CPACK_PACKAGE_VERSION_MINOR ${PROJ_VERSION_MINOR})
+  set(CPACK_PACKAGE_VERSION_PATCH ${PROJ_VERSION_PATCH})
+  set(CPACK_VERBATIM_VARIABLES TRUE)
+  set(CPACK_SOURCE_IGNORE_FILES
+    /\\..*  # any file/directory starting with .
+    /.*\\.yml
+    /.*\\.gz
+    /.*\\.zip
+    /.*build.*/
+    \\.deps
+    /autogen\\.sh
+    /autom4te\\.cache
+    /CODE_OF_CONDUCT.md
+    /CONTRIBUTING.md
+    /disabled_workflows/
+    /Dockerfile
+    /docs/
+    /Doxyfile
+    /HOWTO-RELEASE.md
+    /m4/lt*
+    /m4/libtool*
+    /media/
+    /schemas/
+    /test/fuzzers/
+    /test/gigs/.*gie\\.failing
+    /test/postinstall/
+    /travis/
+    ${PROJECT_BINARY_DIR}
   )
-  message(STATUS "PROJ: Configured 'dist' target")
-endif()
+  include(CPack)
 
-configure_file(cmake/uninstall.cmake.in ${CMAKE_CURRENT_BINARY_DIR}/proj_uninstall.cmake @ONLY)
-add_custom_target(uninstall COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/proj_uninstall.cmake)
+  get_property(_is_multi_config_generator GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+  if(NOT _is_multi_config_generator)
+    add_custom_target(dist
+      COMMAND ${CMAKE_MAKE_PROGRAM} package_source
+    )
+    message(STATUS "PROJ: Configured 'dist' target")
+  endif()
+
+  configure_file(cmake/uninstall.cmake.in ${CMAKE_CURRENT_BINARY_DIR}/proj_uninstall.cmake @ONLY)
+  add_custom_target(uninstall COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/proj_uninstall.cmake)
+endif()
 
 message(STATUS "EMBED_RESOURCE_FILES=${EMBED_RESOURCE_FILES}")
