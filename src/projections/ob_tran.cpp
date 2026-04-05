@@ -1,6 +1,7 @@
 
 #include <errno.h>
 #include <math.h>
+#include <set>
 #include <stddef.h>
 #include <string.h>
 
@@ -206,15 +207,18 @@ PJ *PJ_PROJECTION(ob_tran) {
         return destructor(P, PROJ_ERR_INVALID_OP_ILLEGAL_ARG_VALUE);
     }
 
+    // Colect used parameters from the R object
+    std::set<std::string> setUsedRParams;
+    for (auto r = R->params; r; r = r->next) {
+        if (r->used) {
+            setUsedRParams.insert(r->param);
+        }
+    }
+
     // Transfer the used flag from the R object to the P object
     for (auto p = P->params; p; p = p->next) {
-        if (!p->used) {
-            for (auto r = R->params; r; r = r->next) {
-                if (r->used && strcmp(r->param, p->param) == 0) {
-                    p->used = 1;
-                    break;
-                }
-            }
+        if (!p->used && setUsedRParams.find(p->param) != setUsedRParams.end()) {
+            p->used = 1;
         }
     }
 
