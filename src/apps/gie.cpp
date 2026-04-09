@@ -104,6 +104,8 @@ Thomas Knudsen, thokn@sdfe.dk, 2017-10-01/2017-10-08
 
 ***********************************************************************/
 
+#define FROM_PROJ_CPP
+
 #include <ctype.h>
 #include <errno.h>
 #include <math.h>
@@ -116,8 +118,12 @@ Thomas Knudsen, thokn@sdfe.dk, 2017-10-01/2017-10-08
 #include "proj.h"
 #include "proj_internal.h"
 #include "proj_strtod.h"
+
+#include <algorithm>
 #include <cmath> /* for isnan */
 #include <math.h>
+
+#include <proj/internal/internal.hpp>
 
 #include "optargpm.h"
 
@@ -192,6 +198,7 @@ typedef struct {
     char crs_dst[MAX_OPERATION + 1];
     char crs_src[MAX_OPERATION + 1];
     PJ *P;
+    bool crs_dst_is_lat_lon_or_y_x;
     PJ_COORD a, b, e;
     PJ_DIRECTION dir;
     int verbosity;
@@ -561,6 +568,21 @@ static int require_grid(const char *args) {
     const char *grid_filename = column(args, 1);
     grid_info = proj_grid_info(grid_filename);
     if (strlen(grid_info.filename) == 0) {
+
+        if (proj_context_is_network_enabled(nullptr)) {
+            auto dbContext = NS_PROJ::io::DatabaseContext::create();
+            std::string fullFilename, packageName, url;
+            bool directDownload, openLicense, gridAvailable = false;
+            if (dbContext->lookForGridInfo(
+                    grid_filename,
+                    /* considerKnownGridsAsAvailable = */ true, fullFilename,
+                    packageName, url, directDownload, openLicense,
+                    gridAvailable) &&
+                gridAvailable) {
+                return 0;
+            }
+        }
+
         if (T.verbosity > 1) {
             fprintf(T.fout, "Test skipped because of missing grid %s\n",
                     grid_filename);
@@ -644,6 +666,56 @@ static int operation(const char *args) {
     return 0;
 }
 
+static bool isLatOrNorthingFirst(const PJ *crs) {
+    auto crsType = proj_get_type(crs);
+
+    if (crsType == PJ_TYPE_COMPOUND_CRS) {
+        auto horiz_crs = proj_crs_get_sub_crs(nullptr, crs, 0);
+        assert(horiz_crs);
+        bool ret = isLatOrNorthingFirst(horiz_crs);
+        proj_destroy(horiz_crs);
+        return ret;
+    }
+
+    if (crsType != PJ_TYPE_GEOGRAPHIC_2D_CRS &&
+        crsType != PJ_TYPE_GEOGRAPHIC_3D_CRS &&
+        crsType != PJ_TYPE_GEOCENTRIC_CRS && crsType != PJ_TYPE_PROJECTED_CRS) {
+        fprintf(stderr, "Bug in gie.cpp:%d: unsupported CRS type %d!\n",
+                __LINE__, crsType);
+        return false;
+    }
+
+    auto cs = proj_crs_get_coordinate_system(nullptr, crs);
+    assert(cs);
+
+    const char *axisName = "";
+    const char *unitName = "";
+    proj_cs_get_axis_info(nullptr, cs, 0,
+                          &axisName, // name,
+                          nullptr,   // abbrev
+                          nullptr,   // direction
+                          nullptr,   // unit conv factor
+                          &unitName, // unit name
+                          nullptr,   // unit authority
+                          nullptr    // unit code
+    );
+    const bool isLatOrNorthingFirst =
+        NS_PROJ::internal::ci_find(std::string(axisName), "latitude") !=
+            std::string::npos ||
+        NS_PROJ::internal::ci_find(std::string(axisName), "northing") !=
+            std::string::npos;
+    proj_destroy(cs);
+
+    if (strcmp(unitName, "degree") != 0 && strcmp(unitName, "metre") != 0) {
+        // We should add normalization to this unit in expect()
+        fprintf(stderr, "Bug in gie.cpp:%d: unsupported unit %s!\n", __LINE__,
+                unitName);
+        return false;
+    }
+
+    return isLatOrNorthingFirst;
+}
+
 static int crs_to_crs_operation() {
     T.op_id++;
     T.operation_lineno = F->lineno;
@@ -670,6 +742,14 @@ static int crs_to_crs_operation() {
         proj_destroy(T.P);
     proj_errno_reset(nullptr);
     proj_context_use_proj4_init_rules(nullptr, T.use_proj4_init_rules);
+
+    T.crs_dst_is_lat_lon_or_y_x = false;
+    PJ *pj_dst = proj_create(nullptr, T.crs_dst);
+    if (!pj_dst) {
+        fprintf(stderr, "Cannot instantiate crs_dst = %s\n", T.crs_dst);
+    }
+    T.crs_dst_is_lat_lon_or_y_x = isLatOrNorthingFirst(pj_dst);
+    proj_destroy(pj_dst);
 
     T.P = proj_create_crs_to_crs(nullptr, T.crs_src, T.crs_dst, nullptr);
 
@@ -925,18 +1005,6 @@ static int expect_failure_with_errno_message(int expected, int got) {
     return 1;
 }
 
-/* For test purposes, we want to call a transformation of the same */
-/* dimensionality as the number of dimensions given in accept */
-static PJ_COORD expect_trans_n_dim(const PJ_COORD &ci) {
-    if (4 == T.dimensions_given_at_last_accept)
-        return proj_trans(T.P, T.dir, ci);
-
-    if (3 == T.dimensions_given_at_last_accept)
-        return pj_approx_3D_trans(T.P, T.dir, ci);
-
-    return pj_approx_2D_trans(T.P, T.dir, ci);
-}
-
 /*****************************************************************************/
 static int expect(const char *args) {
     /*****************************************************************************
@@ -989,7 +1057,7 @@ static int expect(const char *args) {
         /* Try to carry out the operation - and expect failure */
         ci =
             proj_angular_input(T.P, T.dir) ? torad_coord(T.P, T.dir, T.a) : T.a;
-        co = expect_trans_n_dim(ci);
+        co = proj_trans(T.P, T.dir, ci);
 
         if (expect_failure_with_errno) {
             if (proj_errno(T.P) == expect_failure_with_errno)
@@ -1043,7 +1111,7 @@ static int expect(const char *args) {
 
     /* do the transformation, but mask off dimensions not given in expect-ation
      */
-    co = expect_trans_n_dim(ci);
+    co = proj_trans(T.P, T.dir, ci);
     if (T.dimensions_given < 4)
         co.v[3] = 0;
     if (T.dimensions_given < 3)
@@ -1056,23 +1124,68 @@ static int expect(const char *args) {
                 co.v[1], co.v[2], co.v[3]);
 
 #if 0
-    /* We need to handle unusual axis orders - that'll be an item for version 5.1 */
+    /* We need to handle unusual axis orders when axisswap explicitly present.
+     * Otherwise when using dst_crs code below will take care of that.
+     */
     if (T.P->axisswap) {
         ce = proj_trans (T.P->axisswap, T.dir, ce);
         co = proj_trans (T.P->axisswap, T.dir, co);
     }
 #endif
+
     if (std::isnan(co.v[0]) && std::isnan(ce.v[0])) {
         d = 0.0;
-    } else if (proj_angular_output(T.P, T.dir)) {
+    } else if (proj_angular_output(T.P, T.dir)) { // angular = radians...
+        d = proj_lpz_dist(T.P, ce, co);
+    } else if (proj_degree_output(T.P, T.dir)) {
+        co.v[0] = proj_torad(co.v[0]);
+        co.v[1] = proj_torad(co.v[1]);
+
+        ce.v[0] = proj_torad(ce.v[0]);
+        ce.v[1] = proj_torad(ce.v[1]);
+
+        if (T.crs_dst_is_lat_lon_or_y_x) {
+            std::swap(co.v[0], co.v[1]);
+            std::swap(ce.v[0], ce.v[1]);
+        }
+
         d = proj_lpz_dist(T.P, ce, co);
     } else {
-        d = proj_xyz_dist(co, ce);
+
+        if (T.crs_dst_is_lat_lon_or_y_x) {
+            std::swap(co.v[0], co.v[1]);
+            std::swap(ce.v[0], ce.v[1]);
+        }
+
+        d = proj_xyz_dist(ce, co);
     }
 
     // Test written like that to handle NaN
     if (!(d <= T.tolerance))
         return expect_message(d, args);
+
+    // Somewhat arbitrary temporal theshold but should be fine for all intended
+    // purposes.
+    constexpr double TEMPORAL_THESHOLD_IN_YEAR = 1e-4;
+    if (T.dimensions_given == 4 &&
+        std::fabs(ce.v[3] - co.v[3]) > TEMPORAL_THESHOLD_IN_YEAR) {
+        another_failure();
+
+        if (T.verbosity < 0)
+            return 1;
+        if (0 == T.op_ko && T.verbosity < 2)
+            banner(T.operation);
+        fprintf(T.fout, "%s", T.op_ko ? "     -----\n" : delim);
+        fprintf(T.fout, "     FAILURE in %s(%d):\n",
+                opt_strip_path(T.curr_file), (int)F->lineno);
+        fprintf(T.fout, "     expected: %s\n", args);
+        fprintf(T.fout, "     got:      %.12f   %.12f   %.9f   %.9f\n",
+                T.b.v[0], T.b.v[1], T.b.v[2], T.b.v[3]);
+        fprintf(T.fout, "     deviation:  %.4f year, %.4f maximum allowed\n",
+                std::fabs(ce.v[3] - co.v[3]), TEMPORAL_THESHOLD_IN_YEAR);
+        return 1;
+    }
+
     succs++;
 
     another_success();
