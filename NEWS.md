@@ -1,5 +1,47 @@
 # PROJ Release Notes
 
+## 9.8.1
+
+### Warning
+
+It was discovered after the PROJ 9.8.0 release that several EPSG updates introduced
+after EPSG v12.033 - notably the introduction of national realizations of ETRS89
+(ETRS89-XXX […] where XXX is the 3-letter ISO country code) - caused backward
+incompatibilities in some workflows involving the ETRS89 CRS.
+
+In particular, transformations between ETRS89 and national CRSs based on other
+datums are known to be affected for Austria, Belgium, Catalonia, the Netherlands,
+Romania, and Serbia. See #4736 for more details.
+
+While we intend to resume tracking the latest EPSG releases in future PROJ
+versions, the safest solution identified so far to address these regressions is to
+**revert the EPSG related content of its database from EPSG v12.049 to v12.029**,
+where v12.029 was the version distributed with PROJ 9.7.1
+
+As a consequence of this revert, the EPSG datum and CRS records introduced in
+PROJ 9.8.0, which are mostly related to the new ETRS89-XXX datum and CRS, are no
+longer available in PROJ 9.8.1.
+
+### Updates
+
+* Database: **Revert content from EPSG v12.049 to v12.029** (#4741).
+  See above warning for more details.
+
+* CMake: handle deprecated SQLite::SQLite3 target in CMake 4.3 (#4694)
+
+### Bug Fixes
+
+* Make sure that epoch is set in more scenarios of time-dependent transformations (#4688)
+
+* pj_obj_create: use database context if already open for grid name resolution (#4703)
+
+* Chain vertical CRS transformations through intermediate same-datum vertical CRS (#4711)
+  Helps for example for **EPSG:5705** (Baltic 1977 height) to **EPSG:5706** (Caspian depth)
+  by using intermediate operation from Baltic 1977 height to Caspian *height*
+
+* gie: various fixes around crs_src/crs_dst support and bootstrap
+  test/gie/epsg_grid.gie and test/gie/epsg_no_grid.gie (#4740)
+
 ## 9.8.0
 
 ### Updates

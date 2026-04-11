@@ -2232,7 +2232,7 @@ std::vector<std::string> DatabaseContext::Private::getInsertStatementsFor(
 // ---------------------------------------------------------------------------
 
 static std::string anchorEpochToStr(double val) {
-    constexpr int BUF_SIZE = 16;
+    constexpr int BUF_SIZE = 32;
     char szBuffer[BUF_SIZE];
     sqlite3_snprintf(BUF_SIZE, szBuffer, "%.3f", val);
     return szBuffer;

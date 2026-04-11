@@ -1164,11 +1164,11 @@ static int expect(const char *args) {
     if (!(d <= T.tolerance))
         return expect_message(d, args);
 
-    // Somewhat arbitrary temporal theshold but should be fine for all intended
+    // Somewhat arbitrary temporal threshold but should be fine for all intended
     // purposes.
-    constexpr double TEMPORAL_THESHOLD_IN_YEAR = 1e-4;
+    constexpr double TEMPORAL_THRESHOLD_IN_YEAR = 1e-4;
     if (T.dimensions_given == 4 &&
-        std::fabs(ce.v[3] - co.v[3]) > TEMPORAL_THESHOLD_IN_YEAR) {
+        std::fabs(ce.v[3] - co.v[3]) > TEMPORAL_THRESHOLD_IN_YEAR) {
         another_failure();
 
         if (T.verbosity < 0)
@@ -1182,7 +1182,7 @@ static int expect(const char *args) {
         fprintf(T.fout, "     got:      %.12f   %.12f   %.9f   %.9f\n",
                 T.b.v[0], T.b.v[1], T.b.v[2], T.b.v[3]);
         fprintf(T.fout, "     deviation:  %.4f year, %.4f maximum allowed\n",
-                std::fabs(ce.v[3] - co.v[3]), TEMPORAL_THESHOLD_IN_YEAR);
+                std::fabs(ce.v[3] - co.v[3]), TEMPORAL_THRESHOLD_IN_YEAR);
         return 1;
     }
 
