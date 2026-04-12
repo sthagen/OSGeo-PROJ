@@ -46,6 +46,7 @@
 #include <cstdint>
 #include <cstring>
 #include <limits>
+#include <memory>
 
 NS_PROJ_START
 
