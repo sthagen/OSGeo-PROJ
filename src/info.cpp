@@ -136,6 +136,18 @@ PJ_INFO proj_info(void) {
 }
 
 /*****************************************************************************/
+void pj_clear_proj_info()
+/*****************************************************************************
+     Release memory associated to "info" singleton
+ *****************************************************************************/
+{
+    pj_acquire_lock();
+    free(const_cast<char *>(info.searchpath));
+    info.searchpath = nullptr;
+    pj_release_lock();
+}
+
+/*****************************************************************************/
 PJ_PROJ_INFO proj_pj_info(PJ *P) {
     /******************************************************************************
         Basic info about a particular instance of a projection object.

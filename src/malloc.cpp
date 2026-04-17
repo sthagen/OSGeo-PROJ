@@ -204,4 +204,5 @@ void proj_cleanup() {
     pj_clear_vgridshift_knowngrids_cache();
     pj_clear_gridshift_knowngrids_cache();
     pj_clear_sqlite_cache();
+    pj_clear_proj_info();
 }
