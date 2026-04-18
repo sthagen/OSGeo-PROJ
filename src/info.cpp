@@ -142,7 +142,8 @@ void pj_clear_proj_info()
  *****************************************************************************/
 {
     pj_acquire_lock();
-    free(const_cast<char *>(info.searchpath));
+    if (info.searchpath != empty)
+        free(const_cast<char *>(info.searchpath));
     info.searchpath = nullptr;
     pj_release_lock();
 }
