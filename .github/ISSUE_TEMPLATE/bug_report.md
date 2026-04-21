@@ -6,6 +6,11 @@ labels: bug
 
 <!-- Please search existing issues to avoid creating duplicates. -->
 
+#### AI usage
+
+ - [ ] AI (Copilot or something similar) supported the creation f this ticket. See our [policy about AI tool use](https://proj.org/community/ai_tool_policy.html). Use of AI tools *must* be indicated.
+ - [ ] This ticket has been (mostly) written by myself (human), and is aimed at being read by humans. We *do* not accept AI generated wall-of-text
+
 #### Example of problem
 
 Demonstrate the problem you have found, either by using PROJ tools like

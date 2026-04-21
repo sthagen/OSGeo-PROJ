@@ -291,7 +291,7 @@ int main(void) {
     }
     if (i) {
       printf("Line %d: inverse nearly antipodal points on equator fail\n",
-             __LINE__);;
+             __LINE__);
       ++n;
     }
   }
