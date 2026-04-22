@@ -253,7 +253,7 @@ VALUES
 ('NOT-YET-IN-GRID-TRANSFORMATION-is_lmi_ISN_vel_beta.tif','is_lmi_ISN_vel_beta.tif',NULL,'GTiff','velocity_grid',0,NULL,'https://cdn.proj.org/is_lmi_ISN_vel_beta.tif',1,1,NULL),
 
 -- jp_gsi - Geospatial Information Authority of Japan
-('jp_gsi_gsigeo2011.tif','jp_gsi_gsigeo2011.tif',NULL,'GTiff','geoid_like',0,NULL,'https://cdn.proj.org/jp_gsi_gsigeo2011.tif',1,1,NULL),
+('GSIGEO2011.isg','jp_gsi_gsigeo2011.tif',NULL,'GTiff','geoid_like',0,NULL,'https://cdn.proj.org/jp_gsi_gsigeo2011.tif',1,1,NULL),
 ('JPGEO2024.isg','jp_gsi_jpgeo2024.tif',NULL,'GTiff','geoid_like',0,NULL,'https://cdn.proj.org/jp_gsi_jpgeo2024.tif',1,1,NULL),
 
 -- lv_lgia - Latvian Geospatial Information Agency

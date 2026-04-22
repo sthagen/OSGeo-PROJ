@@ -114,7 +114,7 @@ INSERT INTO "geodetic_datum" VALUES('EPSG','1118','NAD83 (National Spatial Refer
 INSERT INTO "usage" VALUES('EPSG','13170','geodetic_datum','EPSG','1118','EPSG','4167','EPSG','1027');
 INSERT INTO "geodetic_datum" VALUES('EPSG','1120','Mexico ITRF2008',NULL,'EPSG','7019','EPSG','8901','2010-01-01',NULL,NULL,NULL,NULL,0);
 INSERT INTO "usage" VALUES('EPSG','13172','geodetic_datum','EPSG','1120','EPSG','1160','EPSG','1027');
-INSERT INTO "geodetic_datum" VALUES('EPSG','1128','Japanese Geodetic Datum 2011',NULL,'EPSG','7019','EPSG','8901','2011-10-21',NULL,NULL,NULL,NULL,0);
+INSERT INTO "geodetic_datum" VALUES('EPSG','1128','Japanese Geodetic Datum 2024',NULL,'EPSG','7019','EPSG','8901','2011-10-21',NULL,NULL,NULL,NULL,0);
 INSERT INTO "usage" VALUES('EPSG','13180','geodetic_datum','EPSG','1128','EPSG','1129','EPSG','1178');
 INSERT INTO "geodetic_datum" VALUES('EPSG','1132','Rete Dinamica Nazionale 2008',NULL,'EPSG','7019','EPSG','8901','2008-01-01',NULL,NULL,NULL,2008.0,0);
 INSERT INTO "usage" VALUES('EPSG','13184','geodetic_datum','EPSG','1132','EPSG','3343','EPSG','1181');
@@ -326,8 +326,8 @@ INSERT INTO "geodetic_datum" VALUES('EPSG','1293','Sistem Referensi Geospasial I
 INSERT INTO "usage" VALUES('EPSG','14148','geodetic_datum','EPSG','1293','EPSG','1122','EPSG','1266');
 INSERT INTO "geodetic_datum" VALUES('EPSG','1295','Lyon Turin Ferroviaire 2004',NULL,'EPSG','7019','EPSG','8901','2005-07-01',NULL,NULL,NULL,NULL,0);
 INSERT INTO "usage" VALUES('EPSG','14538','geodetic_datum','EPSG','1295','EPSG','4613','EPSG','1271');
-INSERT INTO "geodetic_datum" VALUES('EPSG','1304','Red Geodesica Para Mineria en Chile',NULL,'EPSG','7019','EPSG','8901','2019-01-01',2019.0,NULL,NULL,NULL,0);
-INSERT INTO "usage" VALUES('EPSG','15025','geodetic_datum','EPSG','1304','EPSG','1066','EPSG','1181');
+INSERT INTO "geodetic_datum" VALUES('EPSG','1304','Red Geodesica Para Mineria en Chile',NULL,'EPSG','7019','EPSG','8901','2024-01-01',2024.0,NULL,NULL,NULL,0);
+INSERT INTO "usage" VALUES('EPSG','15025','geodetic_datum','EPSG','1304','EPSG','1066','EPSG','1188');
 INSERT INTO "geodetic_datum" VALUES('EPSG','1305','ETRF2000 Poland',NULL,'EPSG','7019','EPSG','8901','2012-11-15',NULL,NULL,NULL,2011.0,0);
 INSERT INTO "usage" VALUES('EPSG','15061','geodetic_datum','EPSG','1305','EPSG','1192','EPSG','1180');
 INSERT INTO "geodetic_datum" VALUES('EPSG','1308','EOS21 Intermediate Reference Frame',NULL,'EPSG','7019','EPSG','8901','2021-01-01',NULL,NULL,NULL,NULL,0);

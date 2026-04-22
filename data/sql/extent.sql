@@ -334,7 +334,7 @@ INSERT INTO "extent" VALUES('EPSG','1354','Europe - British Isles - UK and Irela
 INSERT INTO "extent" VALUES('EPSG','1355','Indonesia - Sumatra','Indonesia - Sumatra.',-5.99,5.97,95.16,106.13,0);
 INSERT INTO "extent" VALUES('EPSG','1356','Asia - Middle East - Israel, Jordan and Palestine onshore','Israel - onshore; Jordan; Palestine - onshore.',29.18,33.38,34.17,39.31,0);
 INSERT INTO "extent" VALUES('EPSG','1357','Europe - eastern and FSU','Albania; Bulgaria; Czech Republic; Germany (former DDR); Hungary; Poland; Romania; Slovakia. Armenia; Azerbaijan; Belarus; Estonia; Georgia; Kazakhstan; Kyrgyzstan; Latvia; Lithuania; Moldova; Russian Federation; Tajikistan; Turkmenistan; Ukraine; Uzbekistan.',35.1,78.0,9.87,-169.73,1);
-INSERT INTO "extent" VALUES('EPSG','1358','South America - SAD69 by country','Brazil - onshore and offshore. In rest of South America - onshore north of approximately 45°S and Tierra del Fuego.',-55.96,12.52,-91.72,-25.28,0);
+INSERT INTO "extent" VALUES('EPSG','1358','South America - SAD69 by country','Brazil - onshore and offshore. Chile - onshore south of 43°30''S including Tierra del Fuego. In rest of South America - onshore north of approximately 45°S.',-55.96,12.52,-91.72,-25.28,0);
 INSERT INTO "extent" VALUES('EPSG','1359','Indonesia - Kalimantan SE','Indonesia - Kalimantan - onshore southeast coastal area including Mahakam delta coastal and offshore shelf areas.',-4.24,0.0,114.55,117.99,0);
 INSERT INTO "extent" VALUES('EPSG','1360','Indonesia - Kalimantan E','Indonesia - Kalimantan - onshore east coastal area including Mahakam delta coastal and offshore shelf areas.',-4.24,4.29,114.55,119.06,0);
 INSERT INTO "extent" VALUES('EPSG','1361','Sudan - south','Sudan - south.',NULL,NULL,NULL,NULL,1);
@@ -3825,4 +3825,10 @@ INSERT INTO "extent" VALUES('EPSG','4845','USA - Montana - Mission','United Stat
 INSERT INTO "extent" VALUES('EPSG','4846','USA - Montana - Missoula','United States (USA) - Montana - Missoula.',45.93,47.69,-114.93,-113.17,0);
 INSERT INTO "extent" VALUES('EPSG','4847','USA - Montana - NECI','United States (USA) - Montana - NECI.',48.04,48.53,-110.22,-109.36,0);
 INSERT INTO "extent" VALUES('EPSG','4848','USA - Montana - Phillips','United States (USA) - Montana - Phillips.',47.36,49.09,-109.03,-107.04,0);
+INSERT INTO "extent" VALUES('EPSG','4849','Chile - onshore north of 43.5°S and west of 72°W','Chile - onshore north of 43°30''S and west of 72°W.',-43.5,-34.01,-74.48,-72.0,0);
+INSERT INTO "extent" VALUES('EPSG','4850','Chile - onshore north of 43.5°S and east of 72°W','Chile - onshore north of 43°30''S and east of 72°W.',-43.5,-17.5,-72.0,-67.0,0);
+INSERT INTO "extent" VALUES('EPSG','4851','Chile - onshore south of 43.5°S and west of 72°W','Chile - onshore south of 43°30''S and west of 72°W.',-54.48,-43.49,-75.8,-72.0,0);
+INSERT INTO "extent" VALUES('EPSG','4852','Chile - Tierra del Fuego east of 72°W','Chile - onshore Tierra del Fuego west of 72°W.',-55.96,-51.99,-72.0,-66.33,0);
+INSERT INTO "extent" VALUES('EPSG','4853','Japan - offshore and onshore mainland and outlying islands','Japan - offshore and onshore mainland and outlying islands (Tokara Islands and south, and Hachijo-jima and south).',20.88,46.05,122.38,147.86,0);
+INSERT INTO "extent" VALUES('EPSG','4854','Japan - offshore and onshore outlying islands','Japan - offshore and onshore outlying islands (Tokara Islands and south, and Hachijo-jima and south).',20.88,33.93,122.38,146.0,0);
 INSERT INTO "extent" VALUES('EPSG','4855','Wallis and Futuna - Futuna and Alofi','Wallis and Futuna - Futuna and Alofi - onshore.',-14.42,-14.18,-178.24,-177.94,0);

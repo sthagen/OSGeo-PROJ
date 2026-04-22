@@ -871,9 +871,10 @@ def fill_grid_transformation(proj_db_cursor):
         # 1138: Cartesian Grid Offsets by TIN Interpolation (JSON)
         # 1139: Point motion (geocen domain) using NEU velocity grid (Gravsoft)
         # 1141: Point motion by grid (NEU domain) (NTv2_Vel)
+        # 1162: Vertical Offset by Grid Interpolation (PatchJGD) (TODO: not handled in code)
         # WARNING: update Transformation::isGeographic3DToGravityRelatedHeight()
         # in src/iso19111/operation/singleoperation.cpp if adding new methods
-        elif method_code in (1071, 1080, 1081, 1083, 1084, 1085, 1086, 1088, 1089, 1090, 1091, 1092, 1093, 1094, 1095, 1096, 1097, 1098, 1100, 1101, 1103, 1105, 1110, 1112, 1113, 1114, 1115, 1118, 1120, 1122, 1124, 1126, 1128, 1129, 1135, 1137, 1138, 1139, 1141) and n_params == 2:
+        elif method_code in (1071, 1080, 1081, 1083, 1084, 1085, 1086, 1088, 1089, 1090, 1091, 1092, 1093, 1094, 1095, 1096, 1097, 1098, 1100, 1101, 1103, 1105, 1110, 1112, 1113, 1114, 1115, 1118, 1120, 1122, 1124, 1126, 1128, 1129, 1135, 1137, 1138, 1139, 1141, 1162) and n_params == 2:
             assert param_code[1] == 1048, (code, method_code, param_code[1])
             interpolation_crs_auth_name = EPSG_AUTHORITY
             interpolation_crs_code = str(int(param_value[1])) # needed to avoid codes like XXXX.0
@@ -1123,45 +1124,50 @@ def fill_concatenated_operation(proj_db_cursor):
 
 
 def fill_alias(proj_db_cursor):
-    proj_db_cursor.execute("SELECT DISTINCT object_code, alias FROM epsg.epsg_alias WHERE object_table_name = 'epsg_datum'")
+    # Skip ISO Geodetic Register code (1046)
+    proj_db_cursor.execute("SELECT DISTINCT object_code, alias, naming_system_code FROM epsg.epsg_alias WHERE object_table_name = 'epsg_datum' AND naming_system_code != 1046")
     for row in proj_db_cursor.fetchall():
-        code, alt_name = row
-        proj_db_cursor.execute('SELECT 1 FROM geodetic_datum WHERE code = ?', (code,))
-        if proj_db_cursor.fetchone() is not None:
-            proj_db_cursor.execute("INSERT INTO alias_name VALUES ('geodetic_datum','EPSG',?,?,'EPSG')", (code, alt_name))
-        else:
-            proj_db_cursor.execute('SELECT 1 FROM vertical_datum WHERE code = ?', (code,))
-            if proj_db_cursor.fetchone() is not None:
-                proj_db_cursor.execute("INSERT INTO alias_name VALUES ('vertical_datum','EPSG',?,?,'EPSG')", (code, alt_name))
-            else:
-                print('Cannot find datum %s in geodetic_datum or vertical_datum' % (code))
+        code, alt_name, naming_system_code = row
 
-    proj_db_cursor.execute("SELECT DISTINCT object_code, alias FROM epsg.epsg_alias WHERE object_table_name = 'epsg_coordinatereferencesystem'")
+        match = False
+        for table_name in ('geodetic_datum', 'vertical_datum'):
+            proj_db_cursor.execute(f'SELECT name FROM {table_name} WHERE code = ?', (code,))
+            row = proj_db_cursor.fetchone()
+            if row is not None:
+                name, = row
+                # ISO geodetic registry (1047) sometimes provide the same names as official EPSG ones
+                # no need to import them
+                if alt_name != name or naming_system_code != 1047:
+                    proj_db_cursor.execute(f"INSERT INTO alias_name VALUES ('{table_name}','EPSG',?,?,'EPSG')", (code, alt_name))
+                match = True
+                break
+
+        if not match:
+            print('Cannot find datum %s in geodetic_datum or vertical_datum' % (code))
+
+    # Skip ISO Geodetic Register code (1046)
+    proj_db_cursor.execute("SELECT DISTINCT object_code, alias, naming_system_code FROM epsg.epsg_alias WHERE object_table_name = 'epsg_coordinatereferencesystem' AND naming_system_code != 1046")
     for row in proj_db_cursor.fetchall():
-        code, alt_name = row
+        code, alt_name, naming_system_code = row
         if int(code) > 60000000:
             continue
-        proj_db_cursor.execute('SELECT 1 FROM geodetic_crs WHERE code = ?', (code,))
-        if proj_db_cursor.fetchone() is not None:
-            proj_db_cursor.execute("INSERT INTO alias_name VALUES ('geodetic_crs','EPSG',?,?,'EPSG')", (code, alt_name))
-            continue
 
-        proj_db_cursor.execute('SELECT 1 FROM projected_crs WHERE code = ?', (code,))
-        if proj_db_cursor.fetchone() is not None:
-            proj_db_cursor.execute("INSERT INTO alias_name VALUES ('projected_crs','EPSG',?,?,'EPSG')", (code, alt_name))
-            continue
+        match = False
+        for table_name in ('geodetic_crs', 'projected_crs', 'vertical_crs', 'compound_crs'):
+            proj_db_cursor.execute(f'SELECT name FROM {table_name} WHERE code = ?', (code,))
+            row = proj_db_cursor.fetchone()
+            if row is not None:
+                name, = row
+                # ISO geodetic registry (1047) sometimes provide the same names as official EPSG ones
+                # no need to import them
+                # For EPSG:8360, both Czech and Slovak naming authority define the same alias "ETRS89 [ETRF2000] + Bpv"
+                if (alt_name != name or naming_system_code != 1047) and not (alt_name == "ETRS89 [ETRF2000] + Bpv" and naming_system_code == 1043):
+                    proj_db_cursor.execute(f"INSERT INTO alias_name VALUES ('{table_name}','EPSG',?,?,'EPSG')", (code, alt_name))
+                match = True
+                break
 
-        proj_db_cursor.execute('SELECT 1 FROM vertical_crs WHERE code = ?', (code,))
-        if proj_db_cursor.fetchone() is not None:
-            proj_db_cursor.execute("INSERT INTO alias_name VALUES ('vertical_crs','EPSG',?,?,'EPSG')", (code, alt_name))
-            continue
-
-        proj_db_cursor.execute('SELECT 1 FROM compound_crs WHERE code = ?', (code,))
-        if proj_db_cursor.fetchone() is not None:
-            proj_db_cursor.execute("INSERT INTO alias_name VALUES ('compound_crs','EPSG',?,?,'EPSG')", (code, alt_name))
-            continue
-
-        print('Cannot find CRS %s in geodetic_crs, projected_crs, vertical_crs or compound_crs' % (code))
+        if not match:
+            print('Cannot find CRS %s in geodetic_crs, projected_crs, vertical_crs or compound_crs' % (code))
 
 
 def find_table(proj_db_cursor, code):
@@ -1257,7 +1263,6 @@ proj_db_cursor.execute("INSERT INTO celestial_body VALUES('PROJ', 'EARTH', 'Eart
 # instead of the view in the true database.
 
 proj_db_cursor.execute("""DROP VIEW conversion;""")
-proj_db_cursor.execute("""DROP TABLE conversion_table;""")
 proj_db_cursor.execute("""CREATE TABLE conversion(
     auth_name TEXT NOT NULL CHECK (length(auth_name) >= 1),
     code TEXT NOT NULL CHECK (length(code) >= 1),
@@ -1389,6 +1394,8 @@ proj_db_cursor.execute("SELECT name, sql FROM sqlite_master WHERE type = 'table'
 for (name, sql) in proj_db_cursor.fetchall():
     proj_db_cursor.execute("DROP TABLE " + name)
     proj_db_cursor.execute(sql.replace('conversion_table', 'conversion'))
+
+proj_db_cursor.execute("""DROP TABLE conversion_table;""")
 
 proj_db_cursor.execute("SELECT name, sql FROM sqlite_master WHERE type = 'view'")
 for (name, sql) in proj_db_cursor.fetchall():

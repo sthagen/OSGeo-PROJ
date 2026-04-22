@@ -1315,3 +1315,8 @@ INSERT INTO "alias_name" VALUES('compound_crs','EPSG','5974','EUREF89 / UTM zone
 INSERT INTO "alias_name" VALUES('compound_crs','EPSG','5975','EUREF89 / UTM zone 35 + NN2000 height','EPSG_OLD');
 INSERT INTO "alias_name" VALUES('compound_crs','EPSG','5976','EUREF89 / UTM zone 36 + NN2000 height','EPSG_OLD');
 INSERT INTO "alias_name" VALUES('projected_crs','EPSG','28992','RD Bessel','EPSG_OLD');
+
+-- Changed in EPSG v12.055
+INSERT INTO "alias_name" VALUES('geodetic_crs','EPSG','6666','JGD2011 - XYZ','EPSG_OLD');
+INSERT INTO "alias_name" VALUES('geodetic_crs','EPSG','6667','JGD2011 - LatLonEHt','EPSG_OLD');
+INSERT INTO "alias_name" VALUES('geodetic_crs','EPSG','6668','JGD2011 - LatLon','EPSG_OLD');
