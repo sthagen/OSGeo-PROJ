@@ -348,7 +348,11 @@ std::unique_ptr<MasterFile> MasterFile::parse(const std::string &text) {
     std::unique_ptr<MasterFile> dmmf(new MasterFile());
     json j;
     try {
-        j = json::parse(text);
+        j = json::parse(text, [](int depth, json::parse_event_t, json &) {
+            if (depth >= 128)
+                throw ParsingException("Too deep nesting in JSON content");
+            return true;
+        });
     } catch (const std::exception &e) {
         throw ParsingException(e.what());
     }

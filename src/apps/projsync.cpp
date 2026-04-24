@@ -310,7 +310,12 @@ int main(int argc, char *argv[]) {
     }
 
     try {
-        const auto j = json::parse(text);
+        const auto j =
+            json::parse(text, [](int depth, json::parse_event_t, json &) {
+                if (depth >= 128)
+                    throw ParsingException("Too deep nesting in JSON content");
+                return true;
+            });
         bool foundMatchSourceIdCriterion = false;
         std::set<std::string> source_ids;
         bool foundMatchAreaOfUseCriterion = false;

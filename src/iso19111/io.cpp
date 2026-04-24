@@ -7755,7 +7755,11 @@ static BaseObjectNNPtr createFromUserInput(const std::string &text,
     if (!text.empty() && text[0] == '{') {
         json j;
         try {
-            j = json::parse(text);
+            j = json::parse(text, [](int depth, json::parse_event_t, json &) {
+                if (depth >= 128)
+                    throw ParsingException("Too deep nesting in JSON content");
+                return true;
+            });
         } catch (const std::exception &e) {
             throw ParsingException(e.what());
         }
