@@ -71,8 +71,8 @@ enum peirce_shape {
 struct pj_adams_data {
     projection_type mode;
     peirce_shape pqshape;
-    double scrollx = 0.0;
-    double scrolly = 0.0;
+    double scrollx;
+    double scrolly;
 };
 
 } // anonymous namespace
