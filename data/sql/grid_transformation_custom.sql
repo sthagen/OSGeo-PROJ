@@ -1,11 +1,5 @@
 -- This file is hand generated.
 
--- Belgium
-
--- FIXME: remove this record when EPSG has fixed that issue
-INSERT INTO "grid_transformation" VALUES('PROJ','BD72_TO_BEREF2002','BD72 to ETRS89-BEL [BEREF2002] (3)','Copy of BD72 to ETRS89-BEL [BEREF2011] (3) EPSG:8369','EPSG','9615','NTv2','EPSG','4313','EPSG','11063',0.01,'EPSG','8656','Latitude and longitude difference file','bd72lb72_etrs89lb08.gsb',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'IGN-Bel 0.01m',0);
-INSERT INTO "usage" VALUES('PROJ','BD72_TO_BEREF2002_USAGE','grid_transformation','PROJ','BD72_TO_BEREF2002','EPSG','1347','EPSG','1150');
-
 -- Denmark
 
 INSERT INTO "grid_transformation" VALUES(

@@ -586,3 +586,15 @@ INSERT INTO "concatenated_operation_step" VALUES('EPSG','11398',1,'EPSG','9593',
 INSERT INTO "concatenated_operation_step" VALUES('EPSG','11398',2,'EPSG','11396',NULL);
 INSERT INTO "concatenated_operation_step" VALUES('EPSG','11441',1,'EPSG','11439',NULL);
 INSERT INTO "concatenated_operation_step" VALUES('EPSG','11441',2,'EPSG','11440',NULL);
+INSERT INTO "concatenated_operation_step" VALUES('EPSG','11505',1,'EPSG','11503',NULL);
+INSERT INTO "concatenated_operation_step" VALUES('EPSG','11505',2,'EPSG','9275',NULL);
+INSERT INTO "concatenated_operation_step" VALUES('EPSG','11523',1,'EPSG','11524',NULL);
+INSERT INTO "concatenated_operation_step" VALUES('EPSG','11523',2,'EPSG','11525',NULL);
+INSERT INTO "concatenated_operation_step" VALUES('EPSG','11528',1,'EPSG','11526',NULL);
+INSERT INTO "concatenated_operation_step" VALUES('EPSG','11528',2,'EPSG','8364',NULL);
+INSERT INTO "concatenated_operation_step" VALUES('EPSG','11529',1,'EPSG','8364',NULL);
+INSERT INTO "concatenated_operation_step" VALUES('EPSG','11529',2,'EPSG','11527',NULL);
+INSERT INTO "concatenated_operation_step" VALUES('EPSG','12172',1,'EPSG','10586',NULL);
+INSERT INTO "concatenated_operation_step" VALUES('EPSG','12172',2,'EPSG','12173',NULL);
+INSERT INTO "concatenated_operation_step" VALUES('EPSG','12191',1,'EPSG','10586',NULL);
+INSERT INTO "concatenated_operation_step" VALUES('EPSG','12191',2,'EPSG','11817',NULL);

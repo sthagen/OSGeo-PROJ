@@ -27,7 +27,7 @@ INSERT INTO "scope" VALUES('EPSG','1047','Remote sensing.',0);
 INSERT INTO "scope" VALUES('EPSG','1048','Transformation of coordinates at 0.25m level of accuracy.',0);
 INSERT INTO "scope" VALUES('EPSG','1049','Transformation of coordinates at 9m level of accuracy.',0);
 INSERT INTO "scope" VALUES('EPSG','1050','Transformation of coordinates at 10m level of accuracy.',0);
-INSERT INTO "scope" VALUES('EPSG','1051','Horizontal component of official 3D RDNAPTRANS(TM)2018 transformation. Accuracy by definition exact.',0);
+INSERT INTO "scope" VALUES('EPSG','1051','Horizontal component of official RDNAPTRANS(TM) transformation.',0);
 INSERT INTO "scope" VALUES('EPSG','1052','Basin-wide mapping and analysis.',0);
 INSERT INTO "scope" VALUES('EPSG','1053','Boundary demarcation.',0);
 INSERT INTO "scope" VALUES('EPSG','1054','Cadastre, engineering survey.',0);
@@ -258,8 +258,8 @@ INSERT INTO "scope" VALUES('EPSG','1278','Transformation of coordinates at 0.006
 INSERT INTO "scope" VALUES('EPSG','1279','Navigation and medium accuracy spatial referencing.',0);
 INSERT INTO "scope" VALUES('EPSG','1280','Readjustment of coordinates to account for ground deformation caused by 2011 Tohoku earthquake.',0);
 INSERT INTO "scope" VALUES('EPSG','1281','Geodesy. Defines LUREF from 2006 to 2014.',0);
-INSERT INTO "scope" VALUES('EPSG','1282','Geodesy. Defines LUREF from 2014 to 2020.',0);
-INSERT INTO "scope" VALUES('EPSG','1283','Geodesy. Defines LUREF from 2020.',0);
+INSERT INTO "scope" VALUES('EPSG','1282','Geodesy. Defines LUREF from 2014 to 2021.',0);
+INSERT INTO "scope" VALUES('EPSG','1283','Geodesy. Defines LUREF from 2021 to 2026.',0);
 INSERT INTO "scope" VALUES('EPSG','1284','Geodesy. Defines NAD83(CSRS)v8.',0);
 INSERT INTO "scope" VALUES('EPSG','1285','Engineering survey and mapping for the Brenner base tunnel (BBT) railway project.',0);
 INSERT INTO "scope" VALUES('EPSG','1286','Mapping and data analysis for Texas Water Development Board groundwater modeling.',0);
@@ -275,3 +275,4 @@ INSERT INTO "scope" VALUES('EPSG','1295','Geodesy. Active GNSS network / Continu
 INSERT INTO "scope" VALUES('EPSG','1296','Merging of spatial data referenced to different national realizations of ETRS89 at the sub-decimetre level of accuracy.',0);
 INSERT INTO "scope" VALUES('EPSG','1297','Engineering survey and topographic mapping for transport applications.',0);
 INSERT INTO "scope" VALUES('EPSG','1298','Minerals management.',0);
+INSERT INTO "scope" VALUES('EPSG','1299','Geodesy. Defines LUREF from 2026.',0);

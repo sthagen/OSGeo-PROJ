@@ -233,7 +233,7 @@ INSERT INTO "usage" VALUES('EPSG','17277','vertical_datum','EPSG','1316','EPSG',
 INSERT INTO "vertical_datum" VALUES('EPSG','1318','GNTRANS2016',NULL,'2016-01-01',NULL,NULL,NULL,NULL,0);
 INSERT INTO "usage" VALUES('EPSG','17278','vertical_datum','EPSG','1318','EPSG','3339','EPSG','1141');
 INSERT INTO "vertical_datum" VALUES('EPSG','1323','Svalbard vertical datum 2006',NULL,'2006-01-01',NULL,NULL,NULL,NULL,0);
-INSERT INTO "usage" VALUES('EPSG','17963','vertical_datum','EPSG','1323','EPSG','4058','EPSG','1180');
+INSERT INTO "usage" VALUES('EPSG','17963','vertical_datum','EPSG','1323','EPSG','4860','EPSG','1180');
 INSERT INTO "vertical_datum" VALUES('EPSG','1325','Canadian Geodetic Vertical Datum of 2013 (CGG2013a) epoch 2002',NULL,'2019-02-01',NULL,NULL,NULL,2002.0,0);
 INSERT INTO "usage" VALUES('EPSG','18301','vertical_datum','EPSG','1325','EPSG','1061','EPSG','1180');
 INSERT INTO "vertical_datum" VALUES('EPSG','1326','Canadian Geodetic Vertical Datum of 2013 (CGG2013a) epoch 1997',NULL,'2019-02-01',NULL,NULL,NULL,1997.0,0);
@@ -306,6 +306,8 @@ INSERT INTO "vertical_datum" VALUES('EPSG','1456','Greenland Mean Sea Level (202
 INSERT INTO "usage" VALUES('EPSG','25751','vertical_datum','EPSG','1456','EPSG','4776','EPSG','1198');
 INSERT INTO "vertical_datum" VALUES('EPSG','1457','Greenland Lowest Astronomic Tide (2025)',NULL,'2026-01-01',NULL,NULL,NULL,NULL,0);
 INSERT INTO "usage" VALUES('EPSG','25770','vertical_datum','EPSG','1457','EPSG','4776','EPSG','1198');
+INSERT INTO "vertical_datum" VALUES('EPSG','1464','Colombian Geodetic Vertical Datum 2023',NULL,'2026-05-05',NULL,NULL,NULL,NULL,0);
+INSERT INTO "usage" VALUES('EPSG','27015','vertical_datum','EPSG','1464','EPSG','3229','EPSG','1178');
 INSERT INTO "vertical_datum" VALUES('EPSG','5100','Mean Sea Level',NULL,NULL,NULL,NULL,NULL,NULL,0);
 INSERT INTO "usage" VALUES('EPSG','13307','vertical_datum','EPSG','5100','EPSG','1262','EPSG','1199');
 INSERT INTO "vertical_datum" VALUES('EPSG','5101','Ordnance Datum Newlyn',NULL,'1956-01-01',NULL,NULL,NULL,NULL,0);
